@@ -15,6 +15,7 @@ import { MOCK_RECONCILIATION, MOCK_RECONCILIATION_BATCH_DTO } from '../test/fixt
 import { ApiError } from '../api/client';
 import { systemApi } from '../api/systemApi';
 import { serverStateCache } from '../store/serverStateCache';
+import { invalidateMrxCaches } from '../api/mrxCacheInvalidation';
 
 const defaultSummary = { ...MOCK_RECONCILIATION, weekStartDate: '2026-10-19', weekEndDate: '2026-10-24' };
 
@@ -285,7 +286,7 @@ describe('Reconciliation transitions and reports', () => {
   it('reuses cached raw MrxBatch across serviceDate calls in getBatchSummary without duplicate network GETs', async () => {
     vi.mocked(mrxApi.getBatchSummary).mockRestore();
     serverStateCache.clearAll();
-    const getBatchSpy = vi.spyOn(mrxApi, 'getBatch').mockResolvedValue({
+    const getBatchSpy = vi.spyOn(apiTransport, 'apiClient').mockResolvedValue({
       ...MOCK_RECONCILIATION_BATCH_DTO,
       batchId: 'cached-batch-1',
       weekStartDate: '2026-10-19',
@@ -302,11 +303,32 @@ describe('Reconciliation transitions and reports', () => {
     const monSummary = await mrxApi.getBatchSummary('cached-batch-1', '2026-10-19');
     const tueSummary = await mrxApi.getBatchSummary('cached-batch-1', '2026-10-20');
 
-    expect(getBatchSpy).toHaveBeenCalledTimes(1);
+    expect(getBatchSpy.mock.calls).toEqual([['/reconciliation/batches/cached-batch-1']]);
     expect(monSummary.lines).toHaveLength(1);
     expect(monSummary.lines[0].requiredQuantity).toBe(5);
     expect(tueSummary.lines).toHaveLength(1);
     expect(tueSummary.lines[0].requiredQuantity).toBe(8);
+  });
+
+  it('does not restore the old raw batch cache when a read resolves after invalidation', async () => {
+    vi.mocked(mrxApi.getBatchSummary).mockRestore();
+    serverStateCache.clearAll();
+    const batchId = 'cached-batch-race';
+    const oldBatch = { ...MOCK_RECONCILIATION_BATCH_DTO, batchId, version: 1 };
+    const currentBatch = { ...oldBatch, version: 2 };
+    let resolveOld!: (batch: typeof oldBatch) => void;
+    const delayed = new Promise<typeof oldBatch>(resolve => { resolveOld = resolve; });
+    const transport = vi.spyOn(apiTransport, 'apiClient')
+      .mockImplementationOnce(() => delayed as never)
+      .mockResolvedValueOnce(currentBatch);
+
+    const earlier = mrxApi.getBatchSummary(batchId);
+    invalidateMrxCaches();
+    expect((await mrxApi.getBatchSummary(batchId)).version).toBe(2);
+    resolveOld(oldBatch);
+    expect((await earlier).version).toBe(1);
+    expect((await mrxApi.getBatchSummary(batchId)).version).toBe(2);
+    expect(transport).toHaveBeenCalledTimes(2);
   });
 
   it('D6: completing a batch updates the week catalogue status and invalidates cached summaries', async () => {
@@ -994,7 +1016,7 @@ describe('Reconciliation transitions and reports', () => {
         requiredQuantity: 10,
         issuedQuantity: 12,
         difference: 2,
-        varianceType: 'OVER_ISSUED',
+        varianceType: 'OVER_ISSUED', unplannedIssuedQuantity: 0,
         dispositionCategory: 'ACCEPTED_VARIANCE',
         dispositionReason: 'Bao bì lẻ',
         disposedBy: 'user-1',
@@ -1168,7 +1190,7 @@ describe('Reconciliation transitions and reports', () => {
         rows: [{
           batchId: 'b-dav', customerName: 'Draxlmaier', serviceDate: '2026-10-19', shiftName: 'Ca sáng',
           ingredientCode: 'NL-1', ingredientName: 'Thịt bò DAV', canonicalUnitName: 'kg',
-          requiredQuantity: 10, issuedQuantity: 11, difference: 1, varianceType: 'OVER_ISSUED',
+          requiredQuantity: 10, issuedQuantity: 11, difference: 1, varianceType: 'OVER_ISSUED', unplannedIssuedQuantity: 0,
           dispositionCategory: 'ACCEPTED_VARIANCE', dispositionReason: 'Lệch DAV', disposedBy: 'u-1',
           disposedAt: '2026-10-19T07:00:00Z', issueNotes: [],
         }],
@@ -1190,7 +1212,7 @@ describe('Reconciliation transitions and reports', () => {
         rows: [{
           batchId: 'b-kh2', customerName: 'Khách hàng 2', serviceDate: '2026-10-19', shiftName: 'Ca sáng',
           ingredientCode: 'NL-2', ingredientName: 'Cá hồi KH2', canonicalUnitName: 'kg',
-          requiredQuantity: 5, issuedQuantity: 6, difference: 1, varianceType: 'OVER_ISSUED',
+          requiredQuantity: 5, issuedQuantity: 6, difference: 1, varianceType: 'OVER_ISSUED', unplannedIssuedQuantity: 0,
           dispositionCategory: 'ACCEPTED_VARIANCE', dispositionReason: 'Lệch KH2', disposedBy: 'u-1',
           disposedAt: '2026-10-19T07:00:00Z', issueNotes: [],
         }],
@@ -1283,7 +1305,7 @@ describe('Reconciliation transitions and reports', () => {
         rows: [{
           batchId: batchId ?? 'b-week1', customerName: 'Draxlmaier', serviceDate: batchId === 'b-week2' ? '2026-10-26' : '2026-10-19', shiftName: 'Ca sáng',
           ingredientCode: 'NL-1', ingredientName: batchId === 'b-week2' ? 'Thịt bò Tuần 2' : 'Thịt bò Tuần 1', canonicalUnitName: 'kg',
-          requiredQuantity: 10, issuedQuantity: 11, difference: 1, varianceType: 'OVER_ISSUED',
+          requiredQuantity: 10, issuedQuantity: 11, difference: 1, varianceType: 'OVER_ISSUED', unplannedIssuedQuantity: 0,
           dispositionCategory: 'ACCEPTED_VARIANCE', dispositionReason: 'Lệch ca', disposedBy: 'u-1',
           disposedAt: '2026-10-19T07:00:00Z', issueNotes: [],
         }],
@@ -1315,7 +1337,7 @@ describe('Reconciliation transitions and reports', () => {
       rows: [{
         batchId: 'b-dav', customerName: 'Draxlmaier', serviceDate: '2026-10-19', shiftName: 'Ca sáng',
         ingredientCode: 'NL-1', ingredientName: 'Thịt bò DAV', canonicalUnitName: 'kg',
-        requiredQuantity: 10, issuedQuantity: 11, difference: 1, varianceType: 'OVER_ISSUED',
+        requiredQuantity: 10, issuedQuantity: 11, difference: 1, varianceType: 'OVER_ISSUED', unplannedIssuedQuantity: 0,
         dispositionCategory: 'ACCEPTED_VARIANCE', dispositionReason: 'Lệch DAV', disposedBy: 'u-1',
         disposedAt: '2026-10-19T07:00:00Z', issueNotes: [],
       }],

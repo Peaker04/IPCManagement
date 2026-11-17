@@ -1,3 +1,4 @@
+import { subscribeMrxReads } from '../../api/mrxCacheInvalidation';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CalendarDays, Layers, Scale, Warehouse, ArrowRight, RefreshCw } from 'lucide-react';
@@ -92,19 +93,19 @@ export function ReconciliationDashboardPage() {
   const customers = data?.customers ?? getCachedArray<CustomerOption>(customersKey) ?? [];
 
   const refreshing = isTransitioning || (current?.refreshing ?? Boolean(exactData));
-  const read = useCallback(async (forceSummary = false): Promise<DashboardData> => {
+  const read = useCallback(async (id: number, forceSummary = false): Promise<DashboardData> => {
     if (historicalScope.error) throw new Error(historicalScope.error);
     const summaryKey = `mrx_dashboard_summary_${scope}_${queuePage}`;
     const cachedSummary = serverStateCache.get<MrxOperationalSummary>(summaryKey);
     const summaryRequest = !forceSummary && cachedSummary && !cachedSummary.isStale
       ? Promise.resolve(cachedSummary.data)
-      : mrxApi.getOperationalSummary(queuePage > 1 ? { ...filters, queuePage } : filters).then(summary => { serverStateCache.set(summaryKey, summary); return summary; });
+      : mrxApi.getOperationalSummary(queuePage > 1 ? { ...filters, queuePage } : filters).then(summary => { if (id === requestId.current) serverStateCache.set(summaryKey, summary); return summary; });
     const batchKey = `mrx_dashboard_batches_${scope}_${page}`;
     const cachedBatches = serverStateCache.get<MrxBatchPage>(batchKey);
     const [summary, batches] = await Promise.all([
       summaryRequest,
       !forceSummary && cachedBatches && !cachedBatches.isStale ? Promise.resolve(cachedBatches.data)
-        : mrxApi.getBatchPage({ ...filters, pageNumber: page, pageSize: 20 }).then(batches => { serverStateCache.set(batchKey, batches); return batches; }),
+        : mrxApi.getBatchPage({ ...filters, pageNumber: page, pageSize: 20 }).then(batches => { if (id === requestId.current) serverStateCache.set(batchKey, batches); return batches; }),
     ]);
     return { summary, customers: summary.customerOptions, batches };
   }, [filters, page, scope, historicalScope.error, queuePage]);
@@ -113,7 +114,7 @@ export function ReconciliationDashboardPage() {
     const id = ++requestId.current;
     const revalidateScope = lastReadScope.current !== scope;
     lastReadScope.current = scope;
-    read(revalidateScope).then((result) => {
+    read(id, revalidateScope).then((result) => {
       if (id !== requestId.current) return;
       serverStateCache.set(cacheKey, result);
       serverStateCache.set(customersKey, result.customers);
@@ -125,11 +126,11 @@ export function ReconciliationDashboardPage() {
     return () => { requestId.current += 1; };
   }, [cacheKey, customersKey, read, scope]);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const id = ++requestId.current;
     setState({ key: cacheKey, data, error: null, refreshing: true });
     try {
-      const result = await read(true);
+      const result = await read(id, true);
       if (id !== requestId.current) return;
       serverStateCache.set(cacheKey, result);
       serverStateCache.set(customersKey, result.customers);
@@ -138,7 +139,12 @@ export function ReconciliationDashboardPage() {
       if (id !== requestId.current) return;
       setState({ key: cacheKey, data, error: cause instanceof Error ? cause : new Error('Không thể tải tổng quan đối soát.'), refreshing: false });
     }
-  };
+  }, [cacheKey, customersKey, data, read]);
+
+  useEffect(() => {
+    if (operationalMode !== 'MATERIAL_RECONCILIATION') return;
+    return subscribeMrxReads(() => { void refresh(); });
+  }, [operationalMode, refresh]);
 
   const canOpen = useCallback((url: string) => {
     const [pathname, search] = url.split('?');

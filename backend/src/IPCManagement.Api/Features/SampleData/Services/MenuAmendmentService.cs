@@ -62,7 +62,7 @@ internal sealed class MenuAmendmentService(
     public async Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetInboxAsync(string? status, CancellationToken cancellationToken = default)
     {
         var items = await context.Menuamendments.AsNoTracking().Include(item => item.Customer)
-            .Where(item => string.IsNullOrWhiteSpace(status) || item.Status == status)
+            .Where(item => item.BaseMenuVersionId == null && (string.IsNullOrWhiteSpace(status) || item.Status == status))
             .OrderBy(item => item.CreatedAt).ToListAsync(cancellationToken);
         return items.Select(item =>
         {
@@ -97,6 +97,8 @@ internal sealed class MenuAmendmentService(
         var id = GuidHelper.ParseGuidString(amendmentId) ?? throw new ArgumentException("Mã yêu cầu thay đổi không hợp lệ.");
         var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người thực thi.");
         var amendment = await context.Menuamendments.Include(item => item.Lines).SingleOrDefaultAsync(item => item.MenuAmendmentId.SequenceEqual(id), cancellationToken) ?? throw new KeyNotFoundException("Không tìm thấy yêu cầu thay đổi thực đơn.");
+        if (amendment.BaseMenuVersionId is not null)
+            throw new UnauthorizedAccessException("Hồ sơ thuộc chế độ Đối soát nguyên liệu.");
         var isBreakGlass = breakGlassReason is not null;
         if (!isBreakGlass && amendment.Status != "APPROVED_FOR_EXECUTION") throw new BusinessRuleException("Yêu cầu thay đổi chưa đủ điều kiện thực thi.");
         if (isBreakGlass && amendment.Status is not ("PENDING_REVIEW" or "APPROVED_FOR_EXECUTION"))
@@ -231,6 +233,8 @@ internal sealed class MenuAmendmentService(
         var id = GuidHelper.ParseGuidString(amendmentId) ?? throw new ArgumentException("Mã yêu cầu thay đổi không hợp lệ.");
         var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người hậu kiểm.");
         var amendment = await context.Menuamendments.FindAsync([id], cancellationToken) ?? throw new KeyNotFoundException("Không tìm thấy yêu cầu thay đổi thực đơn.");
+        if (amendment.BaseMenuVersionId is not null)
+            throw new UnauthorizedAccessException("Hồ sơ thuộc chế độ Đối soát nguyên liệu.");
         if (amendment.Status is not ("PENDING_REVIEW" or "RECONCILIATION_REQUIRED")) throw new BusinessRuleException("Yêu cầu thay đổi không còn chờ review.");
         if (actorId.SequenceEqual(amendment.CreatedBy))
             throw new BusinessRuleException("Người tạo không được tự hậu kiểm yêu cầu thay đổi thực đơn.");

@@ -22,8 +22,8 @@ internal static class MrxReportWorkbookExporter
             Project(rows, row => [row.AuditId, row.ChangedAt, row.ChangedBy, row.BusinessArea, row.EntityName, row.EntityId, row.FieldName, row.OldValue, row.NewValue, row.Reason], token), token);
 
     internal static Task<FileStream> VariancesAsync(IAsyncEnumerable<MrxVarianceRegisterRowDto> rows, CancellationToken token = default)
-        => WriteAsync("Sổ chênh lệch", ["Mã lô", "Khách hàng", "Ngày", "Ca", "Mã nguyên liệu", "Nguyên liệu", "Đơn vị", "Nhu cầu", "Thực xuất", "Chênh lệch", "Phân loại", "Xử lý", "Giải trình", "Người xử lý", "Thời gian", "Ghi chú phiếu"],
-            Project(rows, row => [row.BatchId, row.CustomerName, row.ServiceDate, row.ShiftName, row.IngredientCode, row.IngredientName, row.CanonicalUnitName, row.RequiredQuantity, row.IssuedQuantity, row.Difference, VarianceTypeLabel(row.VarianceType), DispositionCategoryLabel(row.DispositionCategory), row.DispositionReason, row.DisposedBy, row.DisposedAt, string.Join("; ", row.IssueNotes)], token), token);
+        => WriteAsync("Sổ chênh lệch", ["Mã lô", "Khách hàng", "Ngày", "Ca", "Mã nguyên liệu", "Nguyên liệu", "Đơn vị", "Nhu cầu", "Thực xuất", "Chênh lệch", "Phân loại", "Xử lý", "Giải trình", "Người xử lý", "Thời gian", "Ghi chú phiếu", "Còn thiếu theo nhu cầu", "Cấp ngoài nhu cầu"],
+            Project(rows, row => [row.BatchId, row.CustomerName, row.ServiceDate, row.ShiftName, row.IngredientCode, row.IngredientName, row.CanonicalUnitName, row.RequiredQuantity, row.IssuedQuantity, row.Difference, VarianceTypeLabel(row.VarianceType), DispositionCategoryLabel(row.DispositionCategory), row.DispositionReason, row.DisposedBy, row.DisposedAt, string.Join("; ", row.IssueNotes), row.RemainingByPurpose, row.UnplannedIssuedQuantity], token), token);
 
     internal static Task<FileStream> CompletedAsync(IAsyncEnumerable<MrxCompletedRegisterRowDto> rows, CancellationToken token = default)
         => WriteAsync("Lô đã hoàn tất", ["Mã lô", "Khách hàng", "Tuần bắt đầu", "Tuần kết thúc", "Người hoàn tất", "Thời gian hoàn tất", "Phiên bản", "Số nguyên liệu", "Tổng nhu cầu", "Tổng thực xuất", "Tổng chênh lệch", "Đơn vị của tổng"],
@@ -139,6 +139,8 @@ internal static class MrxReportWorkbookExporter
     {
         "OVER_ISSUED" => "Xuất thừa",
         "UNDER_ISSUED" => "Xuất thiếu",
+        "PURPOSE_SHORTAGE" => "Còn thiếu theo nhu cầu",
+        "ALLOCATION_REQUIRES_REVIEW" => "Cần đối chiếu phân bổ",
         _ => value ?? string.Empty
     };
 

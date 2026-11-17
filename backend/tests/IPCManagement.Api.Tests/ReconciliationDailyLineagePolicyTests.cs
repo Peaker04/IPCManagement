@@ -102,7 +102,11 @@ public sealed class ReconciliationDailyLineagePolicyTests
     [Theory]
     [InlineData(false, "READY", false, "LEGACY_DAILY_LINEAGE_MISSING")]
     [InlineData(false, "COMPLETED", false, "LEGACY_DAILY_LINEAGE_MISSING")]
-    [InlineData(true, "READY", true, null)]
+    [InlineData(true, "DRAFT", false, "BATCH_NOT_TRANSFERRED")]
+    [InlineData(true, "READY", false, "BATCH_NOT_TRANSFERRED")]
+    [InlineData(true, "TRANSFERRED", true, null)]
+    [InlineData(true, "IN_PROGRESS", true, null)]
+    [InlineData(true, "COMPLETED", false, "BATCH_READ_ONLY")]
     public void Legacy_batches_remain_readable_but_daily_issue_requires_frozen_daily_lineage(
         bool hasDailyLineage,
         string batchStatus,

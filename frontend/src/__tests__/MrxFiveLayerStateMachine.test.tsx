@@ -66,7 +66,7 @@ describe('MRX 5-Layer State Machine & Transition Matrix Verification', () => {
           returnedQuantity: 0,
           remainingQuantity: 0,
           lines: [
-            {
+            { frozenBaselineQuantity: 150, approvedSupplementalQuantity: 0,
               batchLineId: 'bl-1',
               dailyLineId: 'dl-1',
               ingredientId: 'ing-1',
@@ -301,7 +301,7 @@ describe('MRX 5-Layer State Machine & Transition Matrix Verification', () => {
           ingredientName: 'Thịt gà phi lê',
           canonicalUnitId: 'unit-kg', canonicalUnitName: 'kg',
           totalRequiredQuantity: 200, totalIssuedQuantity: 0, totalRemainingQuantity: 200,
-          allocations: [{ batchId: 'b-prep-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier', requiredQuantity: 200, issuedQuantity: 0, remainingQuantity: 200, status: 'UNTOUCHED' }],
+          allocations: [{ batchId: 'b-prep-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'customer-1', unplannedIssuedQuantity: 0, customerCode: 'DAV', customerName: 'Draxlmaier', requiredQuantity: 200, issuedQuantity: 0, remainingQuantity: 200, status: 'UNTOUCHED' }],
         },
       ],
     });
@@ -325,7 +325,7 @@ describe('MRX 5-Layer State Machine & Transition Matrix Verification', () => {
             ingredientName: 'Thịt gà phi lê',
             canonicalUnitId: 'unit-kg', canonicalUnitName: 'kg',
             totalRequiredQuantity: 200, totalIssuedQuantity: 0, totalRemainingQuantity: 200,
-            allocations: [{ batchId: 'b-prep-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier', requiredQuantity: 200, issuedQuantity: 0, remainingQuantity: 200, status: 'UNTOUCHED' }],
+            allocations: [{   batchId: 'b-prep-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'customer-1', unplannedIssuedQuantity: 0, customerCode: 'DAV', customerName: 'Draxlmaier', requiredQuantity: 200, issuedQuantity: 0, remainingQuantity: 200, status: 'UNTOUCHED' }],
           },
         ],
       },

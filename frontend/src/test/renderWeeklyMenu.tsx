@@ -21,6 +21,7 @@ export function renderWeeklyMenu(initialEntry = '/weekly-menu', withShell = fals
     <Route path="/weekly-menu" element={<WeeklyMenuPage />} />
     <Route path="/forbidden" element={<ForbiddenPage />} />
     <Route path="/warehouse" element={<LocationProbe />} />
+    <Route path="/approvals" element={<LocationProbe />} />
   </Routes>;
   return render(
     <AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}>

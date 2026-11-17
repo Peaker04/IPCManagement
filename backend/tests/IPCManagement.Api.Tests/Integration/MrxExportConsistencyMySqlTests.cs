@@ -240,11 +240,14 @@ public sealed class MrxExportConsistencyMySqlTests
         Assert.Null(zip.GetEntry("xl/worksheets/sheet3.xml"));
         var exportedMenus = inputs.Select(item => $"{item.Date:dd/MM/yyyy}|{(item.Shift == "MORNING" ? "Sáng" : "Chiều")}|{(item.Variant == "savory" ? "Mặn" : "Chay")}|{item.DishName}|{item.Servings}").Distinct().Order().ToArray();
         Assert.Equal(exportedMenus, menuRows.Skip(3).Select(row => string.Join("|", row.Skip(1))).Order().ToArray());
+        Assert.Equal(new[] { "Nguyên liệu", "ĐVT", "Tổng nhu cầu", "Còn thiếu", "Cấp ngoài nhu cầu" }, rows[3]);
         foreach (var group in inputs.GroupBy(item => new { item.IngredientName, item.UnitName }))
         {
             var total = group.Sum(item => decimal.Round(item.Raw * item.Servings * item.BomRate / item.CanonicalRate, 6, MidpointRounding.AwayFromZero));
-            var material = Assert.Single(rows, row => row.Length == 3 && row[0] == group.Key.IngredientName && row[1] == group.Key.UnitName);
-            Assert.Equal(total, decimal.Parse(material[^1], CultureInfo.InvariantCulture));
+            var material = Assert.Single(rows, row => row.Length == 5 && row[0] == group.Key.IngredientName && row[1] == group.Key.UnitName);
+            Assert.Equal(total, decimal.Parse(material[2], CultureInfo.InvariantCulture));
+            Assert.Equal(total, decimal.Parse(material[3], CultureInfo.InvariantCulture));
+            Assert.Equal(0m, decimal.Parse(material[4], CultureInfo.InvariantCulture));
         }
     }
     private static async Task<string[]> StockChecksums(IpcManagementContext context, CancellationToken token)

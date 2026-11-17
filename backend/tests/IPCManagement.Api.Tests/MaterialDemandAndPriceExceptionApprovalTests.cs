@@ -20,6 +20,67 @@ namespace IPCManagement.Api.Tests;
 public class MaterialDemandAndPriceExceptionApprovalTests
 {
     [Fact]
+    public async Task Inbox_filter_finds_request_after_two_hundred_candidates()
+    {
+        await using var context = CreateInboxContext();
+        var seed = await SeedInboxDemandAsync(context, 1, "DRAFT");
+        for (var i = 2; i <= 225; i++)
+            context.Materialrequests.Add(new MaterialRequest
+            {
+                RequestId = GuidHelper.NewId(), RequestCode = $"MR-{i:D4}",
+                RequestDate = seed.RequestDate, PlanId = seed.PlanId, Plan = seed.Plan,
+                CreatedBy = seed.CreatedBy, CreatedByNavigation = seed.CreatedByNavigation,
+                RequestScope = "FULLDAY", Status = "DRAFT"
+            });
+        await context.SaveChangesAsync();
+        var service = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
+        var page = await service.GetPendingPageAsync(BuildPrincipal("Manager"),
+            new ApprovalInboxQueryDto { SearchKeyword = "MR-0225", Limit = 1 });
+        page.Items.Should().ContainSingle().Which.TargetCode.Should().Be("MR-0225");
+        page.HasNext.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Inbox_cursor_cannot_be_reused_after_filter_or_actor_changes()
+    {
+        await using var context = CreateInboxContext();
+        await SeedInboxDemandAsync(context, 1, "DRAFT");
+        await SeedInboxDemandAsync(context, 2, "DRAFT");
+        var service = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
+        var page = await service.GetPendingPageAsync(BuildPrincipal("Manager"), new ApprovalInboxQueryDto { Limit = 1 });
+        var filtered = () => service.GetPendingPageAsync(BuildPrincipal("Manager"),
+            new ApprovalInboxQueryDto { Limit = 1, Cursor = page.NextCursor, SearchKeyword = "other" });
+        await filtered.Should().ThrowAsync<ArgumentException>();
+        var changedActor = new ClaimsPrincipal(new ClaimsIdentity(new[] {
+            new Claim(ClaimTypes.Role, "Manager"), new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()) }, "test"));
+        var other = () => service.GetPendingPageAsync(changedActor, new ApprovalInboxQueryDto { Cursor = page.NextCursor });
+        await other.Should().ThrowAsync<ArgumentException>();
+        var invalid = () => service.GetPendingPageAsync(BuildPrincipal("Manager"), new ApprovalInboxQueryDto { Cursor = "invalid" });
+        await invalid.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task Inbox_cursor_is_invalidated_by_mode_version_and_default_query_denies_mrx()
+    {
+        await using var context = CreateInboxContext();
+        await SeedInboxDemandAsync(context, 1, "DRAFT");
+        await SeedInboxDemandAsync(context, 2, "DRAFT");
+        var mode = new SystemOperationMode { Mode = "DEFAULT", Version = 1, UpdatedBy = GuidHelper.NewId() };
+        context.Systemoperationmodes.Add(mode);
+        await context.SaveChangesAsync();
+        var service = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
+        var page = await service.GetPendingPageAsync(BuildPrincipal("Manager"), new ApprovalInboxQueryDto { Limit = 1 });
+        mode.Version = 2;
+        await context.SaveChangesAsync();
+        var stale = () => service.GetPendingPageAsync(BuildPrincipal("Manager"), new ApprovalInboxQueryDto { Cursor = page.NextCursor });
+        await stale.Should().ThrowAsync<ArgumentException>();
+        mode.Mode = "MATERIAL_RECONCILIATION";
+        await context.SaveChangesAsync();
+        var crossed = () => service.GetPendingPageAsync(BuildPrincipal("Manager"), new ApprovalInboxQueryDto());
+        await crossed.Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
     public void Migration_contract_keeps_supplier_nullable_and_uses_existing_po_uniqueness()
     {
         using var context = CreateInboxContext();

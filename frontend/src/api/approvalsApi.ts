@@ -1,77 +1,42 @@
 import { apiClient } from './client';
+import { notifyMrxWriteAcknowledged } from './mrxCacheInvalidation';
+import type { components } from '../shared/api/contracts/schema';
 
-export interface ApprovalInboxItem {
-  inboxItemId: string;
-  targetType: string;
-  targetId: string;
-  targetCode: string;
-  itemType: string;
-  title: string;
-  source: string;
-  ownerRole: string;
-  submittedBy: string;
-  dueDate: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  reason?: string;
-  totalQuantity?: number;
-  totalValue?: number;
-  submittedAt: string;
-  slaDeadline: string;
-  supplierName?: string;
-  materials?: Array<{
-    name: string;
-    quantity: number;
-    unit: string;
-  }>;
-}
+export type ApprovalInboxItem = components['schemas']['ApprovalInboxItemDto'];
+export type ApprovalHistoryItem = components['schemas']['ApprovalHistoryItemDto'];
+export type OperationalApprovalPage = components['schemas']['OperationalApprovalPage'];
+export type OperationalApprovalAction = 'APPROVE' | 'REJECT' | 'REVIEW_APPROVE' | 'REVIEW_REJECT' | 'APPLY';
+export type OperationalApprovalDetail = components['schemas']['OperationalApprovalDetail'];
 
-export interface ApprovalHistoryItem {
-  historyId: string;
-  documentType: string;
-  documentId: string;
-  actorId: string;
-  actorName: string;
-  action: string;
-  comment?: string;
-  createdAt: string;
-}
-
-export interface RawApprovalResponse {
-  items: ApprovalInboxItem[];
-  limit: number;
-  hasNext: boolean;
-}
+export interface OperationalApprovalFilters { type: string; cursor: string; search: string; state: 'PENDING' | 'PROCESSED'; customerCode?: string; date?: string }
 
 export const approvalsApi = {
-  async getInbox(targetType?: string): Promise<ApprovalInboxItem[]> {
-    const resp = await apiClient<RawApprovalResponse | ApprovalInboxItem[]>('/approvals/inbox');
-    const items = Array.isArray(resp) ? resp : resp?.items || [];
-
-    if (targetType && targetType !== 'ALL') {
-      return items.filter((i) => i.targetType === targetType || i.itemType === targetType);
-    }
-    return items;
+  getOperationalInbox(filters: OperationalApprovalFilters): Promise<OperationalApprovalPage> {
+    const query = new URLSearchParams({ Limit: '20' });
+    if (filters.type !== 'ALL') query.set('TargetType', filters.type);
+    if (filters.cursor) query.set('Cursor', filters.cursor);
+    if (filters.search) query.set('SearchKeyword', filters.search);
+    if (filters.customerCode) query.set('CustomerCode', filters.customerCode);
+    if (filters.date) query.set('Date', filters.date);
+    if (filters.state === 'PROCESSED') query.set('State', filters.state);
+    return apiClient<OperationalApprovalPage>(`/operational-approvals/inbox?${query}`);
   },
-
-  async decide(
-    targetType: string,
-    id: string,
-    decision: 'APPROVE' | 'REJECT',
-    reason: string
-  ): Promise<{ success: boolean }> {
-    if (!reason || !reason.trim()) {
-      throw new Error('Lý do phê duyệt / từ chối là bắt buộc (BR-GLOBAL-03).');
-    }
-    const status = decision === 'APPROVE' ? 'Approve' : 'Reject';
-    return apiClient<{ success: boolean }>(`/approvals/${encodeURIComponent(targetType)}/${encodeURIComponent(id)}`, {
-      method: 'POST',
-      body: JSON.stringify({ status, decision: status, reason }),
-    });
+  getDetail(type: string, id: string, state: string = 'PENDING'): Promise<OperationalApprovalDetail> {
+    const query = state === 'PROCESSED' ? '?state=PROCESSED' : '';
+    return apiClient<OperationalApprovalDetail>(`/operational-approvals/${encodeURIComponent(type)}/${encodeURIComponent(id)}${query}`);
   },
-
+  async decideOperational(detail: OperationalApprovalDetail, decision: OperationalApprovalAction, reason: string, commandId: string) {
+    const result = await apiClient<components['schemas']['ApprovalResultDto']>(
+      `/operational-approvals/${encodeURIComponent(detail.item.targetType)}/${encodeURIComponent(detail.item.targetId)}/decision`,
+      { method: 'POST', body: JSON.stringify({ commandId, expectedModeVersion: detail.modeVersion,
+        expectedFingerprint: detail.fingerprint, decision: decision === 'REJECT' || decision === 'REVIEW_REJECT' ? 'Reject' : 'Approve',
+        ...(!['APPROVE', 'REJECT'].includes(decision) ? { action: decision } : {}), reason }) });
+    if (detail.mode === 'MATERIAL_RECONCILIATION') notifyMrxWriteAcknowledged();
+    return result;
+  },
   async getHistory(documentType: string, documentId: string): Promise<ApprovalHistoryItem[]> {
     return apiClient<ApprovalHistoryItem[]>(
-      `/approval-history/${encodeURIComponent(documentType)}/${encodeURIComponent(documentId)}`
-    ).catch(() => []);
+      `/operational-approvals/${encodeURIComponent(documentType)}/${encodeURIComponent(documentId)}/history`
+    );
   },
 };

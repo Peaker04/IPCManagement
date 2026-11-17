@@ -5,6 +5,7 @@ import type { EmptyScenario } from '../components/workbench/StateBoundary';
 
 export interface OperationalRecoveryOptions<TData, TFilter> {
   queryKey: string;
+  cacheByFilters?: boolean;
   fetcher: (filters: TFilter) => Promise<TData>;
   initialFilters: TFilter;
   defaultFilters: TFilter;
@@ -107,6 +108,7 @@ function defaultIsEqualFilters<TFilter>(a: TFilter, b: TFilter): boolean {
  */
 export function useOperationalRecovery<TData, TFilter>({
   queryKey,
+  cacheByFilters = false,
   fetcher,
   initialFilters,
   defaultFilters,
@@ -115,22 +117,25 @@ export function useOperationalRecovery<TData, TFilter>({
   prerequisiteRoute,
   prerequisiteLabel,
 }: OperationalRecoveryOptions<TData, TFilter>): OperationalRecoveryResult<TData, TFilter> {
-  const cached = serverStateCache.get<TData>(queryKey)?.data;
+  const cached = serverStateCache.get<TData>(cacheByFilters ? `${queryKey}:${JSON.stringify(initialFilters)}` : queryKey)?.data;
   const [data, setData] = useState<TData | null>(() => cached ?? null);
   const [filters, setFilters] = useState<TFilter>(() => initialFilters);
+  const filtersRef = useRef(initialFilters);
   const [isLoading, setIsLoading] = useState<boolean>(() => !cached);
   const [isFetching, setIsFetching] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
   const setFiltersSafe = useCallback(
     (newFiltersOrFn: React.SetStateAction<TFilter>) => {
-      setFilters((prev) => {
-        const next = typeof newFiltersOrFn === 'function'
-          ? (newFiltersOrFn as (p: TFilter) => TFilter)(prev)
-          : newFiltersOrFn;
-        if (isEqualFilters(prev, next)) return prev;
-        return next;
-      });
+      const previous = filtersRef.current;
+      const next = typeof newFiltersOrFn === 'function'
+        ? (newFiltersOrFn as (p: TFilter) => TFilter)(previous)
+        : newFiltersOrFn;
+      if (isEqualFilters(previous, next)) return;
+      filtersRef.current = next;
+      setIsFetching(true);
+      setError(null);
+      setFilters(next);
     },
     [isEqualFilters]
   );
@@ -153,7 +158,7 @@ export function useOperationalRecovery<TData, TFilter>({
         const result = await fetcherRef.current(currentFilters);
         if (seq === requestSequence.current) {
           setData(result);
-          serverStateCache.set(queryKeyRef.current, result);
+          serverStateCache.set(cacheByFilters ? `${queryKeyRef.current}:${JSON.stringify(currentFilters)}` : queryKeyRef.current, result);
           setIsLoading(false);
           setIsFetching(false);
         }
@@ -167,7 +172,7 @@ export function useOperationalRecovery<TData, TFilter>({
         }
       }
     },
-    []
+    [cacheByFilters]
   );
 
   useEffect(() => {
@@ -176,7 +181,7 @@ export function useOperationalRecovery<TData, TFilter>({
       .then((result) => {
         if (seq !== requestSequence.current) return;
         setData(result);
-        serverStateCache.set(queryKeyRef.current, result);
+        serverStateCache.set(cacheByFilters ? `${queryKeyRef.current}:${JSON.stringify(filters)}` : queryKeyRef.current, result);
         setIsLoading(false);
         setIsFetching(false);
       })
@@ -187,20 +192,17 @@ export function useOperationalRecovery<TData, TFilter>({
         setIsLoading(false);
         setIsFetching(false);
       });
-  }, [filters]);
+  }, [filters, cacheByFilters]);
 
   const updateFilter = useCallback(<K extends keyof TFilter>(key: K, value: TFilter[K]) => {
-    setIsFetching(true);
-    setError(null);
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  }, []);
+    setFiltersSafe(previous => ({ ...previous, [key]: value }));
+  }, [setFiltersSafe]);
 
   const handleResetFilters = useCallback(() => {
-    setIsFetching(true);
-    setError(null);
-    setFilters(defaultFilters);
+    if (isEqualFilters(filtersRef.current, defaultFilters)) void executeFetch(defaultFilters);
+    else setFiltersSafe(defaultFilters);
     onResetFilters?.();
-  }, [defaultFilters, onResetFilters]);
+  }, [defaultFilters, onResetFilters, isEqualFilters, executeFetch, setFiltersSafe]);
 
   const handleRetry = useCallback(async () => {
     await executeFetch(filters);

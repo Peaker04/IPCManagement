@@ -3,9 +3,10 @@ param(
     [ValidateSet('Preflight', 'Execute', 'Start', 'Run', 'Finish', 'Abort')]
     [string]$Mode = 'Preflight',
     [string]$CampaignId,
+    [switch]$Headless,
     [ValidateSet('G1', 'Qualification')]
     [string]$Profile = 'G1',
-    [ValidateSet('Admission', 'Golden', 'Supplemental', 'Race', 'Recovery', 'Session', 'SupplementalRecovery', 'CampaignBaseline', 'RepairCheck', 'CombinedFE', 'SourceCustomer', 'RemainingFE', 'MeasurementCheck', 'Quantitative', 'LifecycleAcceptance', 'MenuIntegrityPerformance', 'CustomerWorstCase', 'SourceAtomicity', 'ExportConsistency', 'UiAcceptance', 'ModalAcceptance', 'LifecycleTail', 'Coordinated', 'MenuCoverage', 'MenuReimport')]
+    [ValidateSet('Admission', 'Golden', 'Supplemental', 'Race', 'Recovery', 'Session', 'SupplementalRecovery', 'CampaignBaseline', 'RepairCheck', 'CombinedFE', 'SourceCustomer', 'RemainingFE', 'MeasurementCheck', 'Quantitative', 'LifecycleAcceptance', 'MenuIntegrityPerformance', 'CustomerWorstCase', 'SourceAtomicity', 'ExportConsistency', 'UiAcceptance', 'ModalAcceptance', 'LifecycleTail', 'Coordinated', 'MenuCoverage', 'MenuReimport', 'SupplementalDemand', 'MrxBusiness', 'MutationLifecycle','MrxBusinessTail','ThreeCustomerActors','ThreeCustomerAdmin')]
     [string]$Diagnostic,
     [string]$SourceSettings = 'backend/src/IPCManagement.Api/appsettings.json',
     [string]$EvidenceDirectory = '.artifacts/mrx-evidence'
@@ -323,7 +324,16 @@ function Invoke-MigrationAndRelationalEvidence {
     Invoke-CheckedProcess -FilePath 'dotnet' -Arguments @(
         'test', 'backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj', '-c', 'Release', '--no-restore',
         '--filter', 'FullyQualifiedName~IPCManagement.Api.Tests.Integration.WorkflowLifecycleE2ETests'
-    ) -Environment @{ 'IPC_TEST_CONNECTION_STRING' = $integrationBuilder.ConnectionString }
+    ) -Environment @{
+        'IPC_TEST_CONNECTION_STRING' = $integrationBuilder.ConnectionString
+        'ConnectionStrings__DefaultConnection' = $integrationBuilder.ConnectionString
+        'JwtSettings__SecretKey' = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
+        'JwtSettings__Issuer' = 'IPCManagementAPI'
+        'JwtSettings__Audience' = 'IPCManagementClient'
+        'JwtSettings__ExpiryMinutes' = '30'
+        'JwtSettings__RefreshExpiryDays' = '1'
+        'JwtSettings__MaxActiveRefreshTokens' = '3'
+    }
 }
 
 function New-MrxAuditPlanSql {
@@ -399,7 +409,7 @@ function Initialize-QualificationCredentials {
             existingUsersUpdated = 0; rolesChanged = 0; browserCreated = $false
         })
     }
-    if ([string]::IsNullOrWhiteSpace($Diagnostic) -or $Diagnostic -in @('SourceCustomer', 'CustomerWorstCase', 'LifecycleAcceptance', 'CombinedFE', 'RemainingFE', 'CampaignBaseline')) {
+    if ([string]::IsNullOrWhiteSpace($Diagnostic) -or $Diagnostic -in @('SourceCustomer', 'CustomerWorstCase', 'MrxBusiness', 'MrxBusinessTail', 'LifecycleAcceptance', 'CombinedFE', 'RemainingFE', 'CampaignBaseline')) {
         # Owner-approved LC-12 prerequisite, isolated from existing G/KG and physical stock.
         Assert-MrxEvidenceTarget -DatabaseName $targetDatabase -RunId $runId | Out-Null
         $canonical = [int64](Invoke-MySqlQuery -Database $targetDatabase -Sql "SELECT COUNT(*) FROM units WHERE unitCode = 'KG' AND baseUnitCode = 'KG' AND convertRateToBase = 1;")
@@ -511,7 +521,7 @@ function Invoke-PreparedG1Evidence {
         'endurance-smoke' = '@G8-Five-User'; endurance = '@G8-Five-User'; 'http-host' = '@G8-HTTP'
     }
     if ($Diagnostic -and $Diagnostic -notin @('CampaignBaseline', 'RepairCheck', 'RemainingFE', 'MeasurementCheck', 'Quantitative', 'LifecycleAcceptance', 'MenuIntegrityPerformance')) {
-        $diagnosticCases = @{ Admission = '@G2-'; Golden = '@G1-Golden|Stock oracle rejects'; Supplemental = '@G3-Submitted'; Race = '@G4-Race'; Recovery = '@G5-Recovery Committed initial'; SupplementalRecovery = '@G5-Recovery Committed supplemental'; Session = '@G5-Session'; CombinedFE = '@G6-Merged-Customer|@G3-Submitted'; SourceCustomer = '@G6-Merged-Customer'; CustomerWorstCase = '@G6-Merged-Customer|@G6-Customer-Concurrency'; SourceAtomicity = '@G6-Direct-Source-Edit'; ExportConsistency = '@T7-Export-Consistency'; UiAcceptance = '@MRX-UiAcceptance'; ModalAcceptance = '@MRX-ModalAcceptance'; LifecycleTail = '@G5-Coordinated|@G6-(Direct-Source-Edit|Merged-Customer)'; Coordinated = '@G5-Coordinated'; MenuCoverage = '@G6-Menu-Coverage'; MenuReimport = '@G6-Menu-Reimport' }
+        $diagnosticCases = @{ ThreeCustomerActors = '@MRX-ThreeCustomer-Actors'; ThreeCustomerAdmin = '@MRX-ThreeCustomer-Admin'; Admission = '@G2-'; Golden = '@G1-Golden|Stock oracle rejects'; Supplemental = '@G3-Submitted'; Race = '@G4-Race'; Recovery = '@G5-Recovery Committed initial'; SupplementalRecovery = '@G5-Recovery Committed supplemental'; Session = '@G5-Session'; CombinedFE = '@G6-Merged-Customer|@G3-Submitted'; SourceCustomer = '@G6-Merged-Customer'; CustomerWorstCase = '@G6-Merged-Customer|@G6-Customer-Concurrency'; SourceAtomicity = '@G6-Direct-Source-Edit'; ExportConsistency = '@T7-Export-Consistency'; UiAcceptance = '@MRX-UiAcceptance'; ModalAcceptance = '@MRX-ModalAcceptance'; LifecycleTail = '@G5-Coordinated|@G6-(Direct-Source-Edit|Merged-Customer)'; Coordinated = '@G5-Coordinated'; MenuCoverage = '@G6-Menu-Coverage'; MenuReimport = '@G6-Menu-Reimport'; SupplementalDemand = '@MRX-Supplemental-Demand'; MrxBusinessTail = '@MRX-(UiAcceptance responsive|ModalAcceptance)'; MutationLifecycle = '@G3-Alt .*BOM import dialog|@G4-Race|@G5-Recovery|@MRX-Supplemental-Demand'; MrxBusiness = '@G[1-6]-|Stock oracle rejects|@T7-Export-Consistency|@MRX-(UiAcceptance|ModalAcceptance|Supplemental-Demand)' }
         $phases = [ordered]@{ functional = $diagnosticCases[$Diagnostic] }
     }
     if ($Diagnostic -eq 'RepairCheck') {
@@ -543,7 +553,7 @@ function Invoke-PreparedG1Evidence {
         $budgetMs = switch ($phase) {
             'data-path-performance' { 1800000 }
             'adversarial' { 900000 }
-            'functional' { if ($Diagnostic -eq 'MenuIntegrityPerformance') { 1800000 } elseif ($CampaignId -and $Diagnostic -eq 'LifecycleAcceptance') { 1200000 } else { 900000 } }
+            'functional' { if ($Diagnostic -in @('MrxBusiness','MutationLifecycle','MrxBusinessTail','ThreeCustomerActors','ThreeCustomerAdmin')) { 3600000 } elseif ($Diagnostic -eq 'MenuIntegrityPerformance') { 1800000 } elseif ($CampaignId -and $Diagnostic -eq 'LifecycleAcceptance') { 1200000 } else { 900000 } }
             'endurance' { 3900000 }
             'memory' { 900000 }
             'http-host' { 900000 }
@@ -554,7 +564,10 @@ function Invoke-PreparedG1Evidence {
         try {
             Assert-EvidencePortsFree
             if ($CampaignId) { Get-MrxCampaignStorage -Root (Get-MrxCampaignPaths -RepoRoot $repoRoot -CampaignId $CampaignId).root -WorkingDirectory $tempRoot | Out-Null }
-            Invoke-Npm -Arguments @('run', 'test:e2e:mrx', '--', '--grep', $phases[$phase], '--headed', '--workers=1', '--max-failures=1', '--global-timeout', ([string]$budgetMs), '--output', (Join-Path $evidenceRoot "playwright-$phase")) -Environment $environment
+            $browserMode = @(if ($Diagnostic -notin @('SupplementalDemand','MrxBusiness','MutationLifecycle','MrxBusinessTail','ThreeCustomerActors','ThreeCustomerAdmin') -and -not (Get-Variable Headless -ValueOnly -ErrorAction SilentlyContinue)) { '--headed' })
+            $playwrightArguments = @('run', 'test:e2e:mrx', '--', '--grep', $phases[$phase]) + $browserMode +
+                @('--workers=1', '--max-failures=1', '--global-timeout', ([string]$budgetMs), '--output', (Join-Path $evidenceRoot "playwright-$phase"))
+            Invoke-Npm -Arguments $playwrightArguments -Environment $environment
             if ($Diagnostic -eq 'ExportConsistency') {
                 $remainingSeconds = [int][Math]::Floor(($budgetMs - $phaseWatch.ElapsedMilliseconds) / 1000)
                 if ($remainingSeconds -lt 1) { throw 'Export owner has no remaining phase budget.' }

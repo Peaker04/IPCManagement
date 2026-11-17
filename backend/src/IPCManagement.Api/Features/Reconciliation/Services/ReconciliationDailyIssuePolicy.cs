@@ -1,3 +1,4 @@
+using IPCManagement.Api.Features.Inventory.Services;
 namespace IPCManagement.Api.Features.Reconciliation.Services;
 
 public sealed record ReconciliationDailyRequirement(
@@ -45,12 +46,23 @@ public static class ReconciliationDailyIssuePolicy
         };
     }
 
+    internal static ReconciliationDailyLineStatus ResolveWithPurpose(decimal required, decimal? issued, bool hasDisposition,
+        IPCManagement.Api.Features.Inventory.Contracts.ReconciliationSupplementalFulfillmentLineDto? balance)
+    {
+        var arithmetic = ResolveLineStatus(required, issued, hasDisposition);
+        if (balance is not { HasPurposeEvidence: true }) return arithmetic;
+        if (balance.RemainingByPurpose is null) return new("ALLOCATION_REQUIRES_REVIEW");
+        if (!balance.IsDemandFulfilled && issued.HasValue && arithmetic.QuantityStatus != "UNDER_ISSUED")
+            return new("PURPOSE_SHORTAGE");
+        return arithmetic;
+    }
+
     public static string ResolveDailyStatus(IReadOnlyCollection<ReconciliationDailyLineStatus> lines)
     {
         if (lines.Count == 0) return "NO_REQUIREMENT";
         if (lines.All(line => line.QuantityStatus == "UNTOUCHED")) return "UNTOUCHED";
         if (lines.Any(line => line.QuantityStatus == "UNTOUCHED")) return "PARTIAL";
-        if (lines.Any(line => line.QuantityStatus == "UNDER_ISSUED"))
+        if (lines.Any(line => line.QuantityStatus is "UNDER_ISSUED" or "PURPOSE_SHORTAGE" or "ALLOCATION_REQUIRES_REVIEW"))
             return "PARTIAL";
         if (lines.Any(line => line.QuantityStatus == "OVER_ISSUED" && !line.HasValidDisposition))
             return "OVERAGE_REQUIRES_RESOLUTION";
@@ -72,7 +84,9 @@ public static class ReconciliationDailyIssuePolicy
         if (!hasDailyLineage) return new(true, false, "LEGACY_DAILY_LINEAGE_MISSING");
         if (string.Equals(batchStatus, "COMPLETED", StringComparison.Ordinal))
             return new(true, false, "BATCH_READ_ONLY");
-        return new(true, true, null);
+        return ReconciliationInventoryIssueCreator.AllowsIssue(batchStatus)
+            ? new(true, true, null)
+            : new(true, false, "BATCH_NOT_TRANSFERRED");
     }
 
     private static decimal Normalize(decimal quantity) => decimal.Round(quantity, 6, MidpointRounding.AwayFromZero);

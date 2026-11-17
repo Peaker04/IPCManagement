@@ -20,7 +20,7 @@ export interface MrxDailyLinesBranchProps {
     unitName: string;
     requiredQuantity: number;
     issuedQuantity: number | null;
-    remainingQuantity: number;
+    remainingQuantity: number | null;
   }>;
   lines: Array<{
     batchLineId: string;
@@ -93,7 +93,7 @@ export function MrxDailyLinesBranch({
     { id: 'unit', header: 'ĐVT', width: '10%', minWidth: '70px', align: 'center', cell: (line) => <span className="font-mono text-xs text-slate-700">{line.unitName}</span> },
     { id: 'required', header: 'Tổng nhu cầu tuần', width: '18%', minWidth: '120px', align: 'right', cell: (line) => <Num value={line.requiredQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className="font-bold text-slate-900 text-sm" /> },
     { id: 'issued', header: 'Tổng đã xuất thực tế', width: '18%', minWidth: '120px', align: 'right', cell: (line) => <Num value={line.issuedQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className="font-mono text-sm" /> },
-    { id: 'remaining', header: 'Còn lại phải xuất', width: '20%', minWidth: '120px', align: 'right', cell: (line) => <Num value={line.remainingQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className={line.remainingQuantity > 0 ? 'text-amber-700 font-bold font-mono text-sm' : 'text-slate-600 font-mono text-sm'} /> },
+    { id: 'remaining', header: 'Còn lại phải xuất', width: '20%', minWidth: '120px', align: 'right', cell: (line) => line.remainingQuantity == null ? <span className="text-xs text-slate-600">Chưa xác định</span> : <Num value={line.remainingQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className={line.remainingQuantity > 0 ? 'text-amber-700 font-bold font-mono text-sm' : 'text-slate-600 font-mono text-sm'} /> },
   ], []);
 
   const columns = useMemo<ColumnDef<typeof lines[number]>[]>(() => [
@@ -163,6 +163,8 @@ export function MrxDailyLinesBranch({
           if (line.quantityStatus === 'UNTOUCHED') return <Badge variant="neutral" size="sm">Chưa xuất</Badge>;
           if (line.quantityStatus === 'EXACT') return <Badge variant="success" size="sm">Đã xuất đủ</Badge>;
           if (line.quantityStatus === 'UNDER_ISSUED') return <Badge variant="warning" size="sm">Đã xuất thiếu</Badge>;
+          if (line.quantityStatus === 'PURPOSE_SHORTAGE') return <Badge variant="warning" size="sm">Còn thiếu theo nhu cầu</Badge>;
+          if (line.quantityStatus === 'ALLOCATION_REQUIRES_REVIEW') return <Badge variant="warning" size="sm">Cần đối chiếu phân bổ</Badge>;
           if (line.quantityStatus === 'OVER_ISSUED') return <Badge variant="info" size="sm">Đã xuất vượt</Badge>;
           return <Badge variant="neutral" size="sm">Chưa xác định</Badge>;
         }

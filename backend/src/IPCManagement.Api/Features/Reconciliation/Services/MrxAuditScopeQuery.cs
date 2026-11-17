@@ -14,6 +14,7 @@ internal sealed class MrxAuditScopeQuery(IpcManagementContext context)
         nameof(ReconciliationBatchContributor),
         nameof(ReconciliationSourceRevision),
         nameof(ReconciliationSourceDelta),
+        nameof(ReconciliationSupplementalDemand),
         nameof(ReconciliationDisposition),
         nameof(ReconciliationDailyDisposition),
         nameof(ReconciliationActual),
@@ -161,10 +162,13 @@ internal sealed class MrxAuditScopeQuery(IpcManagementContext context)
         allEntityIds.AddRange(versionIds);
         allEntityIds.AddRange(versionSchedules);
 
+        var supplementalIds = await context.Reconciliationsupplementaldemands.AsNoTracking()
+            .Where(demand => demand.BatchId == batchId).Select(demand => demand.DemandId).ToListAsync(token);
         var distinctEntityIds = allEntityIds.DistinctBy(Convert.ToHexString).ToList();
         return audits.Where(audit => audit.EntityId != null
-            && ScopedEntityNames.Contains(audit.EntityName)
-            && distinctEntityIds.Contains(audit.EntityId));
+            && (audit.EntityName == nameof(ReconciliationSupplementalDemand) && supplementalIds.Contains(audit.EntityId)
+                || audit.EntityName != nameof(ReconciliationSupplementalDemand) && ScopedEntityNames.Contains(audit.EntityName)
+                    && distinctEntityIds.Contains(audit.EntityId)));
     }
 
     public IQueryable<AuditLog> Apply(IQueryable<AuditLog> audits, byte[]? batchId)
@@ -174,6 +178,10 @@ internal sealed class MrxAuditScopeQuery(IpcManagementContext context)
             batches = batches.Where(batch => batch.BatchId == batchId);
 
         return audits.Where(audit => audit.EntityId != null && (
+            audit.EntityName == nameof(ReconciliationSupplementalDemand)
+                && context.Reconciliationsupplementaldemands.Any(demand => demand.DemandId == audit.EntityId
+                    && batches.Any(batch => batch.BatchId == demand.BatchId))
+            ||
             audit.EntityName == nameof(ReconciliationBatch)
                 && batches.Any(batch => batch.BatchId == audit.EntityId)
             || audit.EntityName == nameof(ReconciliationBatchLine)

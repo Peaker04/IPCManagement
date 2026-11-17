@@ -31,6 +31,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     await thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
     let predecessorIssueId: string | undefined;
     let priorIssued = 0;
+    let supplementalIngredientName: string | null | undefined;
     if (supplemental) {
       const daily = await thukhoPage.evaluate(async (id) => {
         const token = localStorage.getItem('ipc_v3_token');
@@ -40,6 +41,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       }, batchId);
       const line = daily.dates.find((day) => day.serviceDate === scope.weekStartDate)!.lines.find((item) => item.requiredQuantity > 1)!;
       expect(line).toBeTruthy();
+      supplementalIngredientName = line.ingredientName;
       priorIssued = line.requiredQuantity - 1;
       await thukhoPage.getByLabel(`Số lượng thực xuất ${line.ingredientName}`, { exact: true }).fill(String(priorIssued));
       const initial = thukhoPage.waitForResponse((response) => response.url().endsWith('/api/inventory-issues') && response.request().method() === 'POST');
@@ -49,8 +51,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       predecessorIssueId = (await response.json()).data.issueId;
       await thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true }).click();
       const dialog = thukhoPage.getByRole('dialog', { name: 'Xuất kho bổ sung trong ca' });
-      await dialog.getByLabel('Chọn nguyên liệu bổ sung', { exact: true }).selectOption(line.dailyLineId);
-      await dialog.getByLabel('Số lượng xuất thêm', { exact: true }).fill('1');
+      await dialog.getByRole('spinbutton', { name: `Lượng xuất bổ sung ${line.ingredientName}`, exact: true }).fill('1');
       await dialog.getByLabel('Lý do xuất bổ sung', { exact: true }).fill(scope.reason);
     }
     const predecessorRows = predecessorIssueId ? dbVerifier.query(`SELECT HEX(issueLineId) AS id, CAST(issuedQty AS CHAR) AS quantity FROM inventoryissuelines WHERE issueId=UNHEX('${binaryId(predecessorIssueId)}') ORDER BY id;`) : [];
@@ -73,14 +74,15 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       committed = (await response.json()).data;
       await route.abort('connectionreset');
     });
+    const recoveryName = supplemental ? 'Kiểm tra lại lệnh xuất đã gửi' : 'Tải lại để kiểm tra kết quả';
     try {
       await thukhoPage.getByRole('button', { name: submitName, exact: true }).click();
       const alert = thukhoPage.getByRole('alert');
       await expect(alert).toContainText('Chưa xác nhận được kết quả xuất kho');
-      await expect(alert.getByRole('button', { name: 'Tải lại để kiểm tra kết quả' })).toBeEnabled();
+      await expect(alert.getByRole('button', { name: recoveryName, exact: true })).toBeEnabled();
       await expect(thukhoPage.getByRole('button', { name: submitName, exact: true })).toBeDisabled();
       if (supplemental) {
-        await expect(thukhoPage.getByLabel('Số lượng xuất thêm', { exact: true })).toHaveValue('1');
+        await expect(thukhoPage.getByRole('spinbutton', { name: `Lượng xuất bổ sung ${supplementalIngredientName}`, exact: true })).toHaveValue('1');
         await expect(thukhoPage.getByLabel('Lý do xuất bổ sung', { exact: true })).toHaveValue(scope.reason);
       }
       expect(command).toBeTruthy();
@@ -118,10 +120,11 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     expect(dbVerifier.query(`SELECT HEX(issueId) AS id FROM inventoryissues WHERE reconciliationBatchId=UNHEX('${batchHex}') ORDER BY id;`)).toEqual(expectedIds);
     if (predecessorIssueId) expect(dbVerifier.query(`SELECT HEX(issueLineId) AS id, CAST(issuedQty AS CHAR) AS quantity FROM inventoryissuelines WHERE issueId=UNHEX('${binaryId(predecessorIssueId)}') ORDER BY id;`)).toEqual(predecessorRows);
     for (const [id, snapshot] of stocksAfterCommit) expect(dbVerifier.captureStockSnapshot(id)).toEqual(snapshot);
-    await thukhoPage.getByRole('button', { name: 'Tải lại để kiểm tra kết quả', exact: true }).click();
+    await thukhoPage.getByRole('button', { name: recoveryName, exact: true }).click();
     await expect(thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true })).toBeVisible();
     await expect(thukhoPage.getByRole('button', { name: new RegExp(`^Lịch sử phiếu \\(\\s*${issueCount}\\s*\\)$`) })).toBeVisible();
     await expect(thukhoPage.getByRole('alert')).toHaveCount(0);
+    expect(dbVerifier.query(receiptSql)).toEqual(receiptsBeforeReplay);
     const projection = await thukhoPage.evaluate(async (id) => {
       const token = localStorage.getItem('ipc_v3_token');
       const response = await fetch(`/api/reconciliation/batches/${id}/warehouse-daily`, { headers: { Authorization: `Bearer ${token}` } });
@@ -378,7 +381,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     await (await workbookDownload).saveAs(preparationFile);
     const summaryRows = parseCookingFile(preparationFile, 'xlsx', 1);
     const menuRows = parseCookingFile(preparationFile, 'xlsx', 2);
-    expect(summaryRows[3]).toEqual(['Nguyên liệu', 'ĐVT', 'Tổng nhu cầu']);
+    expect(summaryRows[3]).toEqual(['Nguyên liệu', 'ĐVT', 'Tổng nhu cầu', 'Còn thiếu', 'Cấp ngoài nhu cầu']);
     expect(menuRows[2]).toEqual(['Khách hàng', 'Ngày', 'Ca', 'Loại thực đơn', 'Món', 'Số suất']);
     const scopedBatches = batchIds.map(id => `UNHEX('${binaryId(id)}')`).join(',');
     const expectedMenus = dbVerifier.query<{ customer: string; date: string; shift: string; variant: string; name: string; servings: string }>(`SELECT DISTINCT CONCAT(c.customerCode,' · ',c.customerName) AS customer, DATE_FORMAT(d.ServiceDate,'%d/%m/%Y') AS date, rc.FrozenShiftName AS shift, rc.FrozenMenuVariant AS variant, rc.FrozenDishName AS name, CAST(rc.FrozenServings AS CHAR) AS servings FROM reconciliationbatchcontributors rc JOIN reconciliationbatchdailylines d ON d.DailyLineId=rc.DailyLineId JOIN reconciliationbatches b ON b.BatchId=d.BatchId JOIN menuversions v ON v.menuVersionId=b.MenuVersionId JOIN customers c ON c.customerId=v.customerId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate = '${scope.weekStartDate}' AND d.RequiredQuantity>0 AND rc.InvalidatedAt IS NULL;`);
@@ -386,7 +389,9 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       row.shift === 'MORNING' ? 'Sáng' : row.shift === 'AFTERNOON' ? 'Chiều' : row.shift,
       row.variant === 'savory' ? 'Mặn' : row.variant === 'vegetarian' ? 'Chay' : row.variant, row.name, row.servings].join('|')).sort());
     const quantitiesByUnit = new Map<string, bigint>();
-    for (const row of summaryRows.slice(4).filter(row => row.length === 3)) {
+    for (const row of summaryRows.slice(4).filter(row => row.length === 5)) {
+      expect(micros(row[3])).toBe(micros(row[2]));
+      expect(micros(row[4])).toBe(0n);
       quantitiesByUnit.set(row[1], (quantitiesByUnit.get(row[1]) ?? 0n) + micros(row[2]));
     }
     const expectedQuantities = dbVerifier.query<{ unit: string; quantity: string }>(`SELECT u.unitName AS unit, CAST(SUM(d.RequiredQuantity) AS CHAR) AS quantity FROM reconciliationbatchdailylines d JOIN units u ON u.unitId=d.CanonicalUnitId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate = '${scope.weekStartDate}' AND d.RequiredQuantity>0 GROUP BY u.unitName;`);

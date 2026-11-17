@@ -51,7 +51,7 @@ export function ReconciliationLinesBranch({
   }
 
   const needsReviewCount = useMemo(
-    () => lines.filter((l) => (l.issuedRequiredDifference ?? 0) > 0 && !l.disposition).length,
+    () => lines.filter((l) => l.status === 'NEEDS_REVIEW' && (l.issuedRequiredDifference ?? 0) > 0 && !l.disposition).length,
     [lines]
   );
   const disposedCount = useMemo(
@@ -59,17 +59,17 @@ export function ReconciliationLinesBranch({
     [lines]
   );
   const matchedCount = useMemo(
-    () => lines.filter((l) => l.issuedRequiredDifference === 0).length,
+    () => lines.filter((l) => l.status === 'MATCHED' && l.issuedRequiredDifference === 0).length,
     [lines]
   );
 
   const filteredLines = useMemo(() => {
     return lines.filter((line) => {
-      if (statusFilter === 'NEEDS_REVIEW' && ((line.issuedRequiredDifference ?? 0) <= 0 || Boolean(line.disposition))) {
+      if (statusFilter === 'NEEDS_REVIEW' && (line.status !== 'NEEDS_REVIEW' || (line.issuedRequiredDifference ?? 0) <= 0 || Boolean(line.disposition))) {
         return false;
       }
       if (statusFilter === 'DISPOSED' && !line.disposition) return false;
-      if (statusFilter === 'MATCHED' && line.issuedRequiredDifference !== 0) return false;
+      if (statusFilter === 'MATCHED' && (line.status !== 'MATCHED' || line.issuedRequiredDifference !== 0)) return false;
       if (searchTerm.trim()) {
         const query = normalizeSearchText(searchTerm);
         if (
@@ -117,7 +117,7 @@ export function ReconciliationLinesBranch({
           needsReviewCount > 1 && !isPending
             ? () => {
                 const unresolved = lines.filter(
-                  (l) => (l.issuedRequiredDifference ?? 0) > 0 && !l.disposition
+                  (l) => l.status === 'NEEDS_REVIEW' && (l.issuedRequiredDifference ?? 0) > 0 && !l.disposition
                 );
                 if (unresolved.length > 0) {
                   setBulkLines(unresolved);

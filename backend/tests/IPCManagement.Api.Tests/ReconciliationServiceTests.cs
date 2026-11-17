@@ -1200,6 +1200,8 @@ public sealed partial class ReconciliationServiceTests
                 typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationBatchDailyLine), typeof(ReconciliationBatchContributor), typeof(ReconciliationSourceRevision), typeof(ReconciliationSourceDelta), typeof(ReconciliationTolerance), typeof(ReconciliationDailyDisposition), typeof(ReconciliationActual), typeof(ReconciliationActualRevision),
                 typeof(ReconciliationDisposition), typeof(BomAdjustment), typeof(Ingredient), typeof(Unit), typeof(InventoryIssue), typeof(InventoryIssueLine),
                 typeof(InventoryReturn), typeof(InventoryReturnLine), typeof(AuditLog), typeof(Dish), typeof(DishBom)
+                , typeof(ReconciliationSupplementalDemand), typeof(ReconciliationSupplementalDemandDish),
+                typeof(ReconciliationSupplementalDemandMaterial), typeof(ReconciliationSupplementalDemandContribution), typeof(ReconciliationIssueAllocation)
             };
             foreach (var entityType in typeof(AuditLog).Assembly.GetTypes().Where(type => type.Namespace == typeof(AuditLog).Namespace && type.IsClass && !included.Contains(type)))
                 modelBuilder.Ignore(entityType);
@@ -1297,6 +1299,21 @@ public sealed partial class ReconciliationServiceTests
             modelBuilder.Entity<InventoryReturnLine>().HasOne(x => x.Return).WithMany(x => x.Inventoryreturnlines).HasForeignKey(x => x.ReturnId);
             modelBuilder.Entity<AuditLog>().HasKey(x => x.AuditId);
             modelBuilder.Entity<AuditLog>().Ignore(x => x.ChangedByNavigation);
+            modelBuilder.Entity<ReconciliationSupplementalDemand>().HasKey(x => x.DemandId);
+            modelBuilder.Entity<ReconciliationSupplementalDemand>().Property(x => x.Version).IsConcurrencyToken();
+            modelBuilder.Entity<ReconciliationSupplementalDemand>().HasOne(x => x.Batch).WithMany().HasForeignKey(x => x.BatchId);
+            modelBuilder.Entity<ReconciliationSupplementalDemandDish>().HasKey(x => x.DemandDishId);
+            modelBuilder.Entity<ReconciliationSupplementalDemandDish>().HasOne(x => x.Demand).WithMany(x => x.Dishes).HasForeignKey(x => x.DemandId);
+            modelBuilder.Entity<ReconciliationSupplementalDemandMaterial>().HasKey(x => x.DemandMaterialId);
+            modelBuilder.Entity<ReconciliationSupplementalDemandMaterial>().HasOne(x => x.Demand).WithMany(x => x.Materials).HasForeignKey(x => x.DemandId);
+            modelBuilder.Entity<ReconciliationSupplementalDemandMaterial>().HasOne(x => x.DailyLine).WithMany().HasForeignKey(x => x.DailyLineId);
+            modelBuilder.Entity<ReconciliationSupplementalDemandContribution>().HasKey(x => x.DemandContributionId);
+            modelBuilder.Entity<ReconciliationSupplementalDemandContribution>().HasOne(x => x.DemandDish).WithMany(x => x.Contributions).HasForeignKey(x => x.DemandDishId);
+            modelBuilder.Entity<ReconciliationSupplementalDemandContribution>().HasOne(x => x.DemandMaterial).WithMany(x => x.Contributions).HasForeignKey(x => x.DemandMaterialId);
+            modelBuilder.Entity<ReconciliationIssueAllocation>().HasKey(x => x.AllocationId);
+            modelBuilder.Entity<ReconciliationIssueAllocation>().HasOne(x => x.IssueLine).WithMany().HasForeignKey(x => x.IssueLineId);
+            modelBuilder.Entity<ReconciliationIssueAllocation>().HasOne(x => x.DailyLine).WithMany().HasForeignKey(x => x.DailyLineId);
+            modelBuilder.Entity<ReconciliationIssueAllocation>().HasOne(x => x.DemandMaterial).WithMany().HasForeignKey(x => x.DemandMaterialId);
         }
     }
 }

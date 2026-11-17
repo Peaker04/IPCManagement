@@ -316,7 +316,7 @@ export function MrxBatchWorkbench() {
                 onClick={() => {
                   setIsSourceReviewOpen(false);
                   setActionError(null);
-                  setReviewRequest(changeInbox[0]);
+                  navigate("/approvals?targetType=mrx-source-change&targetId=" + encodeURIComponent(changeInbox[0].menuAmendmentId));
                 }}
                 className="h-7 text-xs font-medium"
               >

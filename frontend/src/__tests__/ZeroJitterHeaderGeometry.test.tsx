@@ -9,7 +9,7 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
   it('keeps pending warehouse and source headers from presenting old-scope actions and statuses', () => {
     const dailyProps = { batches: [], activeBatchId: 'b', batchStatus: 'COMPLETED',
       onSelectBatch: vi.fn(), activeDate: '2026-09-21', onSelectDate: vi.fn(), isWeeklyAll: false,
-      hasInitialIssue: true, onOpenSupplemental: vi.fn(), onFillAll: vi.fn(), onSubmit: vi.fn(),
+      hasInitialIssue: true, canIssueBatch: false, onOpenSupplemental: vi.fn(), onFillAll: vi.fn(), onSubmit: vi.fn(),
       canSubmit: false, saving: false, linesCount: 3 };
     const { rerender } = render(<>
       <MrxDailyHeaderBranch {...dailyProps} isPending />
@@ -26,7 +26,7 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
     expect(screen.getByText('Không xác minh được lô')).toBeInTheDocument();
     expect(screen.queryByText('Đang tải phạm vi mới')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Xuất bổ sung ca' })).not.toBeInTheDocument();
-    rerender(<MrxDailyHeaderBranch {...dailyProps} />);
+    rerender(<MrxDailyHeaderBranch {...dailyProps} batchStatus="IN_PROGRESS" canIssueBatch />);
     expect(screen.getByRole('button', { name: 'Xuất bổ sung ca' })).toBeEnabled();
   });
   it('reserves fixed badge anchor slot when batchStatus is null, maintaining layout geometry', () => {
@@ -108,6 +108,7 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
         onSelectDate={vi.fn()}
         isWeeklyAll={false}
         hasInitialIssue={false}
+        canIssueBatch
         onOpenSupplemental={vi.fn()}
         onFillAll={vi.fn()}
         onSubmit={vi.fn()}

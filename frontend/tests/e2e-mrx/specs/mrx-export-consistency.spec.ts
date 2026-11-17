@@ -66,7 +66,7 @@ test('@T7-Export-Consistency three same-week customers download purchasing and k
     await (await event).saveAs(file);
     const materials = parseCookingFile(file, 'xlsx', 1);
     const menu = parseCookingFile(file, 'xlsx', 2);
-    expect(materials[3]).toEqual(['Nguyên liệu', 'ĐVT', 'Tổng nhu cầu']);
+    expect(materials[3]).toEqual(['Nguyên liệu', 'ĐVT', 'Tổng nhu cầu', 'Còn thiếu', 'Cấp ngoài nhu cầu']);
     expect(menu[2]).toEqual(['Khách hàng', 'Ngày', 'Ca', 'Loại thực đơn', 'Món', 'Số suất']);
     expect(new Set(menu.slice(3).map(row => row[0])).size).toBe(indices.length);
     for (const i of indices) expect(materials[2][0]).toContain(customers[i].name);
@@ -80,7 +80,9 @@ test('@T7-Export-Consistency three same-week customers download purchasing and k
       for (const row of rows) {
         if (row[0]?.startsWith('NHÓM CUNG ỨNG:')) group = row[0];
         if (row[0]?.startsWith('NHÀ CUNG CẤP:')) supplier = row[0];
-        if (row.length !== 3) continue;
+        if (row.length !== 5) continue;
+        expect(Number(row[3])).toBe(Number(row[2]));
+        expect(Number(row[4])).toBe(0);
         const key = JSON.stringify([group, supplier, row[0], row[1]]);
         result.set(key, (result.get(key) ?? 0) + Math.round(Number(row[2]) * 1_000_000));
       }

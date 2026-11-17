@@ -236,6 +236,7 @@ public class CreateInventoryIssueRequest
 
 public class CreateInventoryIssueLineRequest
 {
+    public List<ReconciliationIssueAllocationRequest> Allocations { get; set; } = [];
     public string? MaterialRequestLineId { get; set; }
 
     public string? ReconciliationBatchLineId { get; set; }
@@ -256,6 +257,14 @@ public class CreateInventoryIssueLineRequest
 
     [Required]
     public string UnitId { get; set; } = string.Empty;
+}
+
+public sealed class ReconciliationIssueAllocationRequest
+{
+    public string Purpose { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public string? DemandMaterialId { get; set; }
+    public long? ExpectedDemandVersion { get; set; }
 }
 
 public class InventoryIssueCreatedDto

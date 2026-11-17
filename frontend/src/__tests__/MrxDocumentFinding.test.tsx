@@ -9,7 +9,7 @@ it('finds variance rows locally and restores unchanged canonical quantities on c
   const row: MrxVarianceRegisterReport['rows'][number] = {
     batchId: 'batch-1', customerName: 'Khách A', serviceDate: '2026-10-19', shiftName: 'MORNING',
     ingredientCode: 'GAO', ingredientName: 'Gạo tẻ', canonicalUnitName: 'kg',
-    requiredQuantity: 1.5, issuedQuantity: 2.25, difference: 0.75, varianceType: 'OVER_ISSUED',
+    requiredQuantity: 1.5, issuedQuantity: 2.25, difference: 0.75, varianceType: 'OVER_ISSUED', unplannedIssuedQuantity: 0,
     dispositionCategory: null, dispositionReason: null, disposedBy: null, disposedAt: null, issueNotes: [],
   };
   const view = render(<ReconciliationVariancesBranch batchId="batch-1" report={{ rows: [], totalCount: 0 }} />);

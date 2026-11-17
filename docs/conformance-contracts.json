@@ -2,94 +2,297 @@
   "version": 1,
   "requirements": [
     {
-      "id": "BR-MRX-EDIT-1", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Source Change Roles",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_CHANGE.PREVIEW", "RECON.SOURCE_CHANGE.SUBMIT", "RECON.SOURCE_CHANGE.DECIDE"],
-      "evidenceRequired": ["contract", "backend-test", "browser", "actor-mode", "persistence"],
-      "sourceAnchor": "BR-MRX-EDIT-1", "statementDigest": "95f94d5343088c5d80bb2c47270e6ba6d2a42fd11a091901825a2170a6a52e9e"
+      "id": "BR-MRX-EDIT-1",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Source Change Roles",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_CHANGE.PREVIEW",
+        "RECON.SOURCE_CHANGE.SUBMIT",
+        "RECON.SOURCE_CHANGE.DECIDE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-EDIT-1",
+      "statementDigest": "95f94d5343088c5d80bb2c47270e6ba6d2a42fd11a091901825a2170a6a52e9e"
     },
     {
-      "id": "BR-MRX-EDIT-2", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Editable Source Grain",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_CHANGE.PREVIEW", "RECON.SOURCE_CHANGE.DECIDE", "MENU.IMPORT.COMMIT"],
-      "evidenceRequired": ["contract", "backend-test", "browser", "persistence"],
-      "sourceAnchor": "BR-MRX-EDIT-2", "statementDigest": "6df20588314d3b0375b2dd1fea1cbb7cceb5a132c149f4fe5c31ad28aa32daee"
+      "id": "BR-MRX-EDIT-2",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Editable Source Grain",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_CHANGE.PREVIEW",
+        "RECON.SOURCE_CHANGE.DECIDE",
+        "MENU.IMPORT.COMMIT"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-EDIT-2",
+      "statementDigest": "6df20588314d3b0375b2dd1fea1cbb7cceb5a132c149f4fe5c31ad28aa32daee"
     },
     {
-      "id": "BR-MRX-EDIT-3", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Day Lock",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_CHANGE.PREVIEW", "RECON.SOURCE_CHANGE.DECIDE", "RECON.PREPARATION.ISSUE", "RECON.BATCH.COMPLETE"],
-      "evidenceRequired": ["contract", "backend-test", "browser", "persistence"],
-      "sourceAnchor": "BR-MRX-EDIT-3", "statementDigest": "e567c0e9a82506efce926f95c91eea881f68ea63d4e67fccfeceac3c0d5e594b"
+      "id": "BR-MRX-EDIT-3",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Day Lock",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_CHANGE.PREVIEW",
+        "RECON.SOURCE_CHANGE.DECIDE",
+        "RECON.PREPARATION.ISSUE",
+        "RECON.BATCH.COMPLETE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-EDIT-3",
+      "statementDigest": "e567c0e9a82506efce926f95c91eea881f68ea63d4e67fccfeceac3c0d5e594b"
     },
     {
-      "id": "BR-MRX-EDIT-4", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Atomic Locked-Date Rejection",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_CHANGE.DECIDE", "MENU.IMPORT.COMMIT"],
-      "evidenceRequired": ["contract", "backend-test", "persistence"],
-      "sourceAnchor": "BR-MRX-EDIT-4", "statementDigest": "65b2d0520ce405cac12d7c9e37a7abd94d482f92d78088e6803b632641f1d843"
+      "id": "BR-MRX-EDIT-4",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Atomic Locked-Date Rejection",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_CHANGE.DECIDE",
+        "MENU.IMPORT.COMMIT"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-EDIT-4",
+      "statementDigest": "65b2d0520ce405cac12d7c9e37a7abd94d482f92d78088e6803b632641f1d843"
     },
     {
-      "id": "BR-MRX-EDIT-5", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Cross-Projection Synchronization",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_CHANGE.DECIDE", "RECON.BATCH.READ", "RECON.KITCHEN_REPORT.READ"],
-      "evidenceRequired": ["contract", "backend-test", "browser", "persistence"],
-      "sourceAnchor": "BR-MRX-EDIT-5", "statementDigest": "4591a8e31767d80e37cd9c4a668a659a1a997c3f7f4b6d39fbcc2fb5fd4955fe"
+      "id": "BR-MRX-EDIT-5",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Cross-Projection Synchronization",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_CHANGE.DECIDE",
+        "RECON.BATCH.READ",
+        "RECON.KITCHEN_REPORT.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-EDIT-5",
+      "statementDigest": "4591a8e31767d80e37cd9c4a668a659a1a997c3f7f4b6d39fbcc2fb5fd4955fe"
     },
     {
-      "id": "BR-MRX-EDIT-6", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Single Source-Change Path",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_CHANGE.DECIDE", "MENU.IMPORT.COMMIT", "MENU.IMPORT.BATCH_COMMIT", "MENU.IMPORT.BULK_UPDATE"],
-      "evidenceRequired": ["contract", "backend-test", "actor-mode", "persistence"],
-      "sourceAnchor": "BR-MRX-EDIT-6", "statementDigest": "56096e21c70710bc797668b55160ded884a3d145a9fcaa29a32149b57cffde70"
+      "id": "BR-MRX-EDIT-6",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Single Source-Change Path",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_CHANGE.DECIDE",
+        "MENU.IMPORT.COMMIT",
+        "MENU.IMPORT.BATCH_COMMIT",
+        "MENU.IMPORT.BULK_UPDATE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "actor-mode",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-EDIT-6",
+      "statementDigest": "56096e21c70710bc797668b55160ded884a3d145a9fcaa29a32149b57cffde70"
     },
     {
-      "id": "BR-MRX-EDIT-7", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Per-Day Freeze",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.PREPARATION.ISSUE", "RECON.BATCH.READ", "RECON.SOURCE_CHANGE.DECIDE"],
-      "evidenceRequired": ["contract", "backend-test", "persistence"],
-      "sourceAnchor": "BR-MRX-EDIT-7", "statementDigest": "ba9cf5bd1e1ceae155d6860c52bde4b2d128b3bf691d46eb75c8c56b9d4b0f6e"
+      "id": "BR-MRX-EDIT-7",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Per-Day Freeze",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.PREPARATION.ISSUE",
+        "RECON.BATCH.READ",
+        "RECON.SOURCE_CHANGE.DECIDE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-EDIT-7",
+      "statementDigest": "ba9cf5bd1e1ceae155d6860c52bde4b2d128b3bf691d46eb75c8c56b9d4b0f6e"
     },
     {
-      "id": "BR-MRX-EDIT-8", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Append-Only Revision History",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_CHANGE.DECIDE", "RECON.KITCHEN_REPORT.READ"],
-      "evidenceRequired": ["contract", "backend-test", "actor-mode", "persistence"],
-      "sourceAnchor": "BR-MRX-EDIT-8", "statementDigest": "b78e4e49c8dcfde7a43df8668c46f8210d91f64eb4c5ea6c85a92177692d695b"
+      "id": "BR-MRX-EDIT-8",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Append-Only Revision History",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_CHANGE.DECIDE",
+        "RECON.KITCHEN_REPORT.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "actor-mode",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-EDIT-8",
+      "statementDigest": "b78e4e49c8dcfde7a43df8668c46f8210d91f64eb4c5ea6c85a92177692d695b"
     },
     {
-      "id": "BR-MRX-EDIT-9", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Apply-vs-Issue Concurrency",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_CHANGE.DECIDE", "RECON.PREPARATION.ISSUE"],
-      "evidenceRequired": ["contract", "backend-test", "persistence"],
-      "sourceAnchor": "BR-MRX-EDIT-9", "statementDigest": "d0ca451945235a133afc0a7ed00adb3e4371db610cd708c4c016a93c7c8c9e37"
+      "id": "BR-MRX-EDIT-9",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Apply-vs-Issue Concurrency",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_CHANGE.DECIDE",
+        "RECON.PREPARATION.ISSUE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-EDIT-9",
+      "statementDigest": "d0ca451945235a133afc0a7ed00adb3e4371db610cd708c4c016a93c7c8c9e37"
     },
     {
-      "id": "BR-MRX-TRUTH-1", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Canonical Net Issued",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.BATCH.READ", "RECON.ACTUALS.ISSUED", "RECON.DAILY_LINES.DISPOSITION", "RECON.KITCHEN_REPORT.READ"],
-      "evidenceRequired": ["contract", "backend-test", "persistence"],
-      "sourceAnchor": "BR-MRX-TRUTH-1", "statementDigest": "a1701cc70dd14312f454065271b25b90c627f013f259581ad5ecade50c5296e3"
+      "id": "BR-MRX-TRUTH-1",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Canonical Net Issued",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.BATCH.READ",
+        "RECON.ACTUALS.ISSUED",
+        "RECON.DAILY_LINES.DISPOSITION",
+        "RECON.KITCHEN_REPORT.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-TRUTH-1",
+      "statementDigest": "a1701cc70dd14312f454065271b25b90c627f013f259581ad5ecade50c5296e3"
     },
     {
-      "id": "BR-MRX-TRUTH-2", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Truthful Completed Register",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.BATCH.COMPLETE", "RECON.KITCHEN_REPORT.READ"],
-      "evidenceRequired": ["contract", "backend-test", "browser", "persistence"],
-      "sourceAnchor": "BR-MRX-TRUTH-2", "statementDigest": "e55fa0c92c07c4054175cd7b73cab07df082cbfa6adb61b5d90117207f3ba8dc"
+      "id": "BR-MRX-TRUTH-2",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Truthful Completed Register",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.BATCH.COMPLETE",
+        "RECON.KITCHEN_REPORT.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-TRUTH-2",
+      "statementDigest": "e55fa0c92c07c4054175cd7b73cab07df082cbfa6adb61b5d90117207f3ba8dc"
     },
     {
-      "id": "BR-MRX-HIST-1", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Append-Only Decision Evidence",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_CHANGE.DECIDE", "RECON.DAILY_LINES.DISPOSITION", "RECON.KITCHEN_REPORT.READ"],
-      "evidenceRequired": ["contract", "backend-test", "persistence"],
-      "sourceAnchor": "BR-MRX-HIST-1", "statementDigest": "2eef618ced6eff418498575aaea67cada6a2cc88e803938175709669d5fd5cb0"
+      "id": "BR-MRX-HIST-1",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Append-Only Decision Evidence",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_CHANGE.DECIDE",
+        "RECON.DAILY_LINES.DISPOSITION",
+        "RECON.KITCHEN_REPORT.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-HIST-1",
+      "statementDigest": "2eef618ced6eff418498575aaea67cada6a2cc88e803938175709669d5fd5cb0"
     },
     {
-      "id": "BR-MRX-HIST-2", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Five-Year MRX Evidence",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.KITCHEN_REPORT.READ"],
-      "evidenceRequired": ["contract", "backend-test", "actor-mode", "persistence"],
-      "sourceAnchor": "BR-MRX-HIST-2", "statementDigest": "01d479113d0a46acf5a5314a78306401c24f185d00e535407d09fde49f619971"
+      "id": "BR-MRX-HIST-2",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Five-Year MRX Evidence",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.KITCHEN_REPORT.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "actor-mode",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-HIST-2",
+      "statementDigest": "01d479113d0a46acf5a5314a78306401c24f185d00e535407d09fde49f619971"
     },
     {
-      "id": "BR-MRX-SERV-1", "kind": "BR", "source": "docs/DOMAIN.md", "title": "Savory/Vegetarian Servings",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_MATERIALS.READ", "RECON.SOURCE_PLANS.READ", "RECON.BATCH.PREVIEW_IMPORT"],
-      "evidenceRequired": ["contract", "backend-test", "browser", "persistence"],
-      "sourceAnchor": "BR-MRX-SERV-1", "statementDigest": "aab37f93074fc637b0f7bc8329019b94307f283391f139fdcb95b4b048acab56"
+      "id": "BR-MRX-SERV-1",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "Savory/Vegetarian Servings",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_MATERIALS.READ",
+        "RECON.SOURCE_PLANS.READ",
+        "RECON.BATCH.PREVIEW_IMPORT"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-SERV-1",
+      "statementDigest": "aab37f93074fc637b0f7bc8329019b94307f283391f139fdcb95b4b048acab56"
     },
     {
-      "id": "BR-MRX-SERV-2", "kind": "BR", "source": "docs/DOMAIN.md", "title": "No Fabricated Servings",
-      "assessment": "PARTIAL", "capabilityIds": ["RECON.SOURCE_CHANGE.PREVIEW", "RECON.BATCH.PREVIEW_IMPORT", "RECON.BATCH.COMMIT_IMPORT"],
-      "evidenceRequired": ["contract", "backend-test", "browser", "persistence"],
-      "sourceAnchor": "BR-MRX-SERV-2", "statementDigest": "257e79c787eca84315a1819e1d3352b742b33f518e73b0ca3d4059a60e0c55b7"
+      "id": "BR-MRX-SERV-2",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "title": "No Fabricated Servings",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SOURCE_CHANGE.PREVIEW",
+        "RECON.BATCH.PREVIEW_IMPORT",
+        "RECON.BATCH.COMMIT_IMPORT"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "sourceAnchor": "BR-MRX-SERV-2",
+      "statementDigest": "257e79c787eca84315a1819e1d3352b742b33f518e73b0ca3d4059a60e0c55b7"
     },
     {
       "id": "BR-GLOBAL-01",
@@ -521,7 +724,7 @@
       ],
       "title": "Phê duyệt vận hành",
       "sourceAnchor": "FR-APPR",
-      "statementDigest": "bb27bc1ee5146e2a0139f39370f33c73ccbba393d9c39655c6a3c269e942563b"
+      "statementDigest": "740d0bacbf7a65456bab1d20429500dd60838e695c374ab62572b7b0f12e9f66"
     },
     {
       "id": "FR-PUR",
@@ -1247,9 +1450,300 @@
       "title": "Unified Preference",
       "sourceAnchor": "N8",
       "statementDigest": "e8ac0d31f0b6e164770931e2b36f03055e46ed71e1bc27ec6883f730e4739eb9"
+    },
+    {
+      "id": "BR-APPR-1",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "APPR.INBOX.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Trung tâm `/approvals` dành cho Quản lý/Admin ở cả DEFAULT và MRX; identity gồm mode × type × target × bước.",
+      "sourceAnchor": "BR-APPR-1",
+      "statementDigest": "b009137f26a5c0162b4d6216ec450d53e1fedff0feb8820737269dfe4fc2931b"
+    },
+    {
+      "id": "BR-APPR-2",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "APPR.DECISION"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Duyệt, duyệt một bước, chờ áp dụng và đã áp dụng là các trạng thái khác nhau.",
+      "sourceAnchor": "BR-APPR-2",
+      "statementDigest": "2ce446aebac2ed816617d960c68327ea0fcc8cfdb17d7b0d03155999703189b2"
+    },
+    {
+      "id": "BR-APPR-3",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "APPR.DECISION",
+        "APPR.HISTORY.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Quyết định gắn actor, mode version, fingerprint bằng chứng, nội dung và mã lệnh.",
+      "sourceAnchor": "BR-APPR-3",
+      "statementDigest": "fccdfc2d8d3e91a523d49b8f9eaaec4df0f64e686ddc52e9edd6b864b4bd94e2"
+    },
+    {
+      "id": "BR-APPR-4",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "APPR.DECISION",
+        "APPR.HISTORY.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Đối chiếu liên kết chứng từ cũ: Quản lý độc lập duyệt, Admin áp dụng sau duyệt.",
+      "sourceAnchor": "BR-APPR-4",
+      "statementDigest": "8f88dd54390952a3b8b3be2b597acea0cbdb58d5b667d7b84fc5adeea5d8283a"
+    },
+    {
+      "id": "BR-MRX-SD-1",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SUPPLEMENTAL_DEMAND.WRITE",
+        "RECON.SUPPLEMENTAL_DEMAND.DECIDE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Ngày đã có issue vẫn khóa món và suất gốc, kể cả sau khi trả hết hàng. Suất tăng là nhu cầu riêng.",
+      "sourceAnchor": "BR-MRX-SD-1",
+      "statementDigest": "ef0544b09bf1dcb8f7866cee78cf52b7e712ca27ceeb06e1ac3e32c0a34f097f"
+    },
+    {
+      "id": "BR-MRX-SD-2",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SUPPLEMENTAL_DEMAND.WRITE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Định lượng phát sinh dùng đúng frozen BOM/conversion của batch/day/dish/shift/variant.",
+      "sourceAnchor": "BR-MRX-SD-2",
+      "statementDigest": "bcc27f70cb5bbf31fbe7ca83312c4abe45fe6c4b34fae835492192992951c6b5"
+    },
+    {
+      "id": "BR-MRX-SD-3",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SUPPLEMENTAL_DEMAND.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Thủ kho xác nhận actual sau khi duyệt nhu cầu; baseline shortage, approved extra và unplanned extra tách mục đích.",
+      "sourceAnchor": "BR-MRX-SD-3",
+      "statementDigest": "3baf10aa295309b896ec478d0a06624dd1d199eb837ad3e29d5afce85adf00fa"
+    },
+    {
+      "id": "BR-MRX-SD-4",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.SUPPLEMENTAL_DEMAND.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Kho, Bếp, chuẩn bị và đối soát đọc baseline + nhu cầu phát sinh đã duyệt cùng identity.",
+      "sourceAnchor": "BR-MRX-SD-4",
+      "statementDigest": "cc07738f6e59089dbd18b1ae7ac870669f9a43ab62c4bd257387e1ad651c2c01"
     }
   ],
   "capabilities": [
+    {
+      "id": "RECON.SUPPLEMENTAL_DEMAND.READ",
+      "frCode": "FR-RECON",
+      "name": "Read MRX supplemental demand and purpose fulfillment",
+      "operation": "read",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Manager",
+        "Admin",
+        "WarehouseStaff",
+        "Authorized reconciliation reader"
+      ],
+      "permissionTokens": [
+        "ReconciliationSupplementalDemandReadAccess"
+      ],
+      "grain": "batch / service date / frozen dish / shift / menu variant; exact daily material allocation",
+      "prerequisites": [
+        "authoritative MRX mode",
+        "actor policy",
+        "version and command identity for writes",
+        "initial issue before proposing extras"
+      ],
+      "sourceLineage": [
+        "frozen contributor to demand snapshot; approved demand to purpose allocation; frozen source and physical stock unchanged"
+      ],
+      "actionIds": [
+        "ReconciliationSupplementalDemands.List",
+        "ReconciliationSupplementalDemands.Get",
+        "ReconciliationSupplementalDemands.Fulfillment",
+        "ReconciliationSupplementalDemands.DishOptions"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationSupplementalDemandContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "FR-WH",
+        "FR-APPR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Warehouse request UI, kitchen/export/report propagation, legacy allocation recovery and MySQL multi-role qualification remain open in approved native plan."
+      ]
+    },
+    {
+      "id": "RECON.SUPPLEMENTAL_DEMAND.WRITE",
+      "frCode": "FR-RECON",
+      "name": "Propose submit or cancel MRX extra-meal demand",
+      "operation": "update",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Manager",
+        "Admin",
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "ReconciliationSupplementalDemandWriteAccess"
+      ],
+      "grain": "batch / service date / frozen dish / shift / menu variant; exact daily material allocation",
+      "prerequisites": [
+        "authoritative MRX mode",
+        "actor policy",
+        "version and command identity for writes",
+        "initial issue before proposing extras"
+      ],
+      "sourceLineage": [
+        "frozen contributor to demand snapshot; approved demand to purpose allocation; frozen source and physical stock unchanged"
+      ],
+      "actionIds": [
+        "ReconciliationSupplementalDemands.Create",
+        "ReconciliationSupplementalDemands.Update",
+        "ReconciliationSupplementalDemands.Submit",
+        "ReconciliationSupplementalDemands.Cancel"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationSupplementalDemandContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "FR-WH",
+        "FR-APPR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Warehouse request UI, kitchen/export/report propagation, legacy allocation recovery and MySQL multi-role qualification remain open in approved native plan."
+      ]
+    },
+    {
+      "id": "RECON.SUPPLEMENTAL_DEMAND.DECIDE",
+      "frCode": "FR-RECON",
+      "name": "Manager or Admin confirms extra-meal demand",
+      "operation": "terminal",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Manager",
+        "Admin"
+      ],
+      "permissionTokens": [
+        "ReconciliationSupplementalDemandApproveAccess"
+      ],
+      "grain": "batch / service date / frozen dish / shift / menu variant; exact daily material allocation",
+      "prerequisites": [
+        "authoritative MRX mode",
+        "actor policy",
+        "version and command identity for writes",
+        "initial issue before proposing extras"
+      ],
+      "sourceLineage": [
+        "frozen contributor to demand snapshot; approved demand to purpose allocation; frozen source and physical stock unchanged"
+      ],
+      "actionIds": [
+        "ReconciliationSupplementalDemands.Approve",
+        "ReconciliationSupplementalDemands.Reject"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationSupplementalDemandContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "FR-WH",
+        "FR-APPR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Warehouse request UI, kitchen/export/report propagation, legacy allocation recovery and MySQL multi-role qualification remain open in approved native plan."
+      ]
+    },
     {
       "id": "AUTH.PROFILE.READ",
       "frCode": "FR-AUTH",
@@ -1863,17 +2357,20 @@
         "authenticated actor"
       ],
       "sourceLineage": [
-        "approval target to inbox and history"
+        "approval target to inbox and history",
+        "Mode-scoped facade dispatches only to the active owning family; records and histories are never combined"
       ],
       "actionIds": [
-        "Approvals.GetInbox"
+        "Approvals.GetInbox",
+        "OperationalApprovals.Inbox",
+        "OperationalApprovals.Detail"
       ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalsController.cs",
         "responseDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalWorkflowDto.cs",
         "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
       },
-      "deliveryClass": "READY",
+      "deliveryClass": "PARTIAL",
       "requirementIds": [
         "FR-APPR",
         "FR-DASH"
@@ -1882,7 +2379,9 @@
         "dashboard.root",
         "approval.inbox"
       ],
-      "gaps": []
+      "gaps": [
+        "Broader approved target matrix, customer/date filters, source-partial summary and provider qualification remain incomplete; registry support is not whole-plan acceptance."
+      ]
     },
     {
       "id": "APPR.DECISION",
@@ -1900,10 +2399,12 @@
         "eligible actor"
       ],
       "sourceLineage": [
-        "target lifecycle to immutable approval history"
+        "target lifecycle to immutable approval history",
+        "Mode-scoped facade dispatches only to the active owning family; records and histories are never combined"
       ],
       "actionIds": [
-        "Approvals.Execute"
+        "Approvals.Execute",
+        "OperationalApprovals.Decide"
       ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalsController.cs",
@@ -4108,7 +4609,9 @@
         "FR-COORD",
         "FR-ADMIN"
       ],
-      "surfaceIds": ["admin.customers"],
+      "surfaceIds": [
+        "admin.customers"
+      ],
       "gaps": [
         "Actual customer-contract read surface is mapped; rendered actor and persistence evidence remain required."
       ]
@@ -5257,10 +5760,12 @@
         "authenticated manager"
       ],
       "sourceLineage": [
-        "approval audit trail"
+        "approval audit trail",
+        "Mode-scoped facade dispatches only to the active owning family; records and histories are never combined"
       ],
       "actionIds": [
-        "ApprovalHistory.GetHistory"
+        "ApprovalHistory.GetHistory",
+        "OperationalApprovals.History"
       ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalHistoryController.cs",
@@ -6799,20 +7304,40 @@
       "name": "Inspect projected source ingredients and actual contributions",
       "operation": "read",
       "mode": "MATERIAL_RECONCILIATION",
-      "actors": ["Admin", "Manager", "Coordinator"],
-      "permissionTokens": ["reconciliation.source.read"],
+      "actors": [
+        "Admin",
+        "Manager",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "reconciliation.source.read"
+      ],
       "grain": "menu-version ingredient and canonical-unit aggregate",
-      "prerequisites": ["published weekly menu", "completed quantity plans"],
-      "sourceLineage": ["MRX canonical snapshot; actual date/shift/dish/servings and effective BOM contributions, not frozen batch facts"],
-      "actionIds": ["ReconciliationQuantityInspection.MaterialInspection"],
+      "prerequisites": [
+        "published weekly menu",
+        "completed quantity plans"
+      ],
+      "sourceLineage": [
+        "MRX canonical snapshot; actual date/shift/dish/servings and effective BOM contributions, not frozen batch facts"
+      ],
+      "actionIds": [
+        "ReconciliationQuantityInspection.MaterialInspection"
+      ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationQuantityInspectionController.cs",
         "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
       },
       "deliveryClass": "PARTIAL",
-      "requirementIds": ["FR-RECON", "BR-GLOBAL-01"],
-      "surfaceIds": ["mrx.materials"],
-      "gaps": ["Rendered actor/mode and actual source-reload evidence remain required."]
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [
+        "mrx.materials"
+      ],
+      "gaps": [
+        "Rendered actor/mode and actual source-reload evidence remain required."
+      ]
     },
     {
       "id": "RECON.SOURCE_PLANS.READ",
@@ -6820,20 +7345,40 @@
       "name": "Inspect source quantity-plan shifts and dishes",
       "operation": "read",
       "mode": "MATERIAL_RECONCILIATION",
-      "actors": ["Admin", "Manager", "Coordinator"],
-      "permissionTokens": ["reconciliation.source.read"],
+      "actors": [
+        "Admin",
+        "Manager",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "reconciliation.source.read"
+      ],
       "grain": "menu-version quantity-plan line",
-      "prerequisites": ["published weekly menu", "completed quantity plans"],
-      "sourceLineage": ["MRX canonical snapshot; quantity-plan line, schedule, dishes and effective BOM; no commit ticket or mutation"],
-      "actionIds": ["ReconciliationQuantityInspection.PlanInspection"],
+      "prerequisites": [
+        "published weekly menu",
+        "completed quantity plans"
+      ],
+      "sourceLineage": [
+        "MRX canonical snapshot; quantity-plan line, schedule, dishes and effective BOM; no commit ticket or mutation"
+      ],
+      "actionIds": [
+        "ReconciliationQuantityInspection.PlanInspection"
+      ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationQuantityInspectionController.cs",
         "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
       },
       "deliveryClass": "PARTIAL",
-      "requirementIds": ["FR-RECON", "BR-GLOBAL-01"],
-      "surfaceIds": ["mrx.plans"],
-      "gaps": ["Rendered actor/mode and actual source-reload evidence remain required."]
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [
+        "mrx.plans"
+      ],
+      "gaps": [
+        "Rendered actor/mode and actual source-reload evidence remain required."
+      ]
     },
     {
       "id": "RECON.SOURCE_CHANGE.INBOX",
@@ -6841,20 +7386,37 @@
       "name": "Read pending MRX source changes",
       "operation": "read",
       "mode": "MATERIAL_RECONCILIATION",
-      "actors": ["Admin"],
-      "permissionTokens": ["reconciliation.source.read"],
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "reconciliation.source.read"
+      ],
       "grain": "pending source change inbox",
-      "prerequisites": ["pending specialist source change"],
-      "sourceLineage": ["immutable source-change impact snapshot"],
-      "actionIds": ["WeeklyMenuImports.GetMrxMenuAmendmentInbox"],
+      "prerequisites": [
+        "pending specialist source change"
+      ],
+      "sourceLineage": [
+        "immutable source-change impact snapshot"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.GetMrxMenuAmendmentInbox"
+      ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
         "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
       },
       "deliveryClass": "PARTIAL",
-      "requirementIds": ["FR-RECON", "BR-GLOBAL-01"],
-      "surfaceIds": ["mrx.batch"],
-      "gaps": ["Browser and persistence evidence remain required."]
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [
+        "mrx.batch"
+      ],
+      "gaps": [
+        "Browser and persistence evidence remain required."
+      ]
     },
     {
       "id": "RECON.SOURCE_CHANGE.PREVIEW",
@@ -6862,20 +7424,40 @@
       "name": "Preview MRX source change impact",
       "operation": "read",
       "mode": "MATERIAL_RECONCILIATION",
-      "actors": ["Admin", "Coordinator"],
-      "permissionTokens": ["reconciliation.source.read"],
+      "actors": [
+        "Admin",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "reconciliation.source.read"
+      ],
       "grain": "source change impact preview",
-      "prerequisites": ["versioned weekly menu source", "effective dish BOM"],
-      "sourceLineage": ["customer/date/shift/dish/servings to affected MRX batches"],
-      "actionIds": ["ReconciliationWeeklyMenu.GetEditScope", "WeeklyMenuImports.PreviewMenuAmendment"],
+      "prerequisites": [
+        "versioned weekly menu source",
+        "effective dish BOM"
+      ],
+      "sourceLineage": [
+        "customer/date/shift/dish/servings to affected MRX batches"
+      ],
+      "actionIds": [
+        "ReconciliationWeeklyMenu.GetEditScope",
+        "WeeklyMenuImports.PreviewMenuAmendment"
+      ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
         "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
       },
       "deliveryClass": "PARTIAL",
-      "requirementIds": ["FR-RECON", "BR-GLOBAL-01"],
-      "surfaceIds": ["mrx.batch"],
-      "gaps": ["Browser and persistence evidence remain required."]
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [
+        "mrx.batch"
+      ],
+      "gaps": [
+        "Browser and persistence evidence remain required."
+      ]
     },
     {
       "id": "RECON.SOURCE_CHANGE.SUBMIT",
@@ -6883,20 +7465,37 @@
       "name": "Submit MRX source change for Admin decision",
       "operation": "create",
       "mode": "MATERIAL_RECONCILIATION",
-      "actors": ["Coordinator"],
-      "permissionTokens": ["reconciliation.source.read"],
+      "actors": [
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "reconciliation.source.read"
+      ],
       "grain": "pending source change request",
-      "prerequisites": ["current impact preview"],
-      "sourceLineage": ["versioned source change request and immutable impact snapshot"],
-      "actionIds": ["WeeklyMenuImports.SubmitMrxMenuAmendment"],
+      "prerequisites": [
+        "current impact preview"
+      ],
+      "sourceLineage": [
+        "versioned source change request and immutable impact snapshot"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.SubmitMrxMenuAmendment"
+      ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
         "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
       },
       "deliveryClass": "PARTIAL",
-      "requirementIds": ["FR-RECON", "BR-GLOBAL-01"],
-      "surfaceIds": ["mrx.batch"],
-      "gaps": ["Browser and persistence evidence remain required."]
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [
+        "mrx.batch"
+      ],
+      "gaps": [
+        "Browser and persistence evidence remain required."
+      ]
     },
     {
       "id": "RECON.SOURCE_CHANGE.DECIDE",
@@ -6904,20 +7503,39 @@
       "name": "Directly apply or decide MRX source change",
       "operation": "update",
       "mode": "MATERIAL_RECONCILIATION",
-      "actors": ["Admin", "Manager"],
-      "permissionTokens": ["reconciliation.source.read"],
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "reconciliation.source.read"
+      ],
       "grain": "source change decision",
-      "prerequisites": ["current impact preview or pending specialist request"],
-      "sourceLineage": ["Admin actor to source revision and audit"],
-      "actionIds": ["WeeklyMenuImports.ApplyMrxMenuAmendment", "WeeklyMenuImports.DecideMrxMenuAmendment"],
+      "prerequisites": [
+        "current impact preview or pending specialist request"
+      ],
+      "sourceLineage": [
+        "Admin actor to source revision and audit"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.ApplyMrxMenuAmendment",
+        "WeeklyMenuImports.DecideMrxMenuAmendment"
+      ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
         "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
       },
       "deliveryClass": "PARTIAL",
-      "requirementIds": ["FR-RECON", "BR-GLOBAL-01"],
-      "surfaceIds": ["mrx.batch"],
-      "gaps": ["Browser and persistence evidence remain required."]
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [
+        "mrx.batch"
+      ],
+      "gaps": [
+        "Browser and persistence evidence remain required."
+      ]
     },
     {
       "id": "RECON.BATCH.CREATE",
@@ -7638,6 +8256,81 @@
       "gaps": [
         "Unit normalization decision UI surface unresolved."
       ]
+    },
+    {
+      "id": "RECON.SOURCE_HISTORY.READ",
+      "frCode": "FR-RECON",
+      "name": "Read source change history",
+      "operation": "read",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Authorized reconciliation reader"
+      ],
+      "permissionTokens": [
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "grain": "source event or change",
+      "prerequisites": [
+        "authenticated actor",
+        "mode-scoped source"
+      ],
+      "sourceLineage": [
+        "source change to read-only audit history"
+      ],
+      "actionIds": [
+        "ReconciliationSourceHistory.List",
+        "ReconciliationSourceHistory.Detail"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSourceHistoryController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Existing source endpoint discovered while refreshing action index; live qualification is outside this approval-center foundation verification."
+      ]
+    },
+    {
+      "id": "RECON.SOURCE_CHANGES.READ",
+      "frCode": "FR-RECON",
+      "name": "Read source change history",
+      "operation": "read",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Authorized reconciliation reader"
+      ],
+      "permissionTokens": [
+        "ReconciliationSourceReadAccess"
+      ],
+      "grain": "source event or change",
+      "prerequisites": [
+        "authenticated actor",
+        "mode-scoped source"
+      ],
+      "sourceLineage": [
+        "source change to read-only audit history"
+      ],
+      "actionIds": [
+        "ReconciliationReports.GetSourceChanges"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Existing source endpoint discovered while refreshing action index; live qualification is outside this approval-center foundation verification."
+      ]
     }
   ],
   "surfaces": [
@@ -8184,18 +8877,40 @@
       "view": "mrx-materials",
       "workObject": "SplitWorkbench",
       "tableContractId": "mrx-materials",
-      "capabilityIds": ["RECON.SOURCE_MATERIALS.READ"],
+      "capabilityIds": [
+        "RECON.SOURCE_MATERIALS.READ"
+      ],
       "actions": [],
-      "states": ["loading", "empty", "error", "permission-denied", "partial", "write-reconciliation"],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
       "skeleton": {
         "kind": "split",
         "owner": "frontend/src/components/workbench/StateBoundary.tsx",
         "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
-        "geometry": { "kind": "split", "columns": 3, "rows": 8, "splitRatio": "40/60", "toolbar": true }
+        "geometry": {
+          "kind": "split",
+          "columns": 3,
+          "rows": 8,
+          "splitRatio": "40/60",
+          "toolbar": true
+        }
       },
-      "gaps": ["Rendered actor/mode and actual source-reload evidence remain required; this is read-only projected data."],
+      "gaps": [
+        "Rendered actor/mode and actual source-reload evidence remain required; this is read-only projected data."
+      ],
       "owner": "frontend/src/features/weekly-menu/MrxQuantityInspectionPage.tsx",
-      "evidenceRequired": ["contract", "browser", "persistence", "actor-mode"]
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
     },
     {
       "id": "mrx.plans",
@@ -8203,18 +8918,39 @@
       "view": "mrx-plans",
       "workObject": "OperationalFrame",
       "tableContractId": "mrx-plans",
-      "capabilityIds": ["RECON.SOURCE_PLANS.READ"],
+      "capabilityIds": [
+        "RECON.SOURCE_PLANS.READ"
+      ],
       "actions": [],
-      "states": ["loading", "empty", "error", "permission-denied", "partial", "write-reconciliation"],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
       "skeleton": {
         "kind": "table",
         "owner": "frontend/src/components/workbench/StateBoundary.tsx",
         "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
-        "geometry": { "kind": "table", "columns": 5, "rows": 8, "toolbar": true }
+        "geometry": {
+          "kind": "table",
+          "columns": 5,
+          "rows": 8,
+          "toolbar": true
+        }
       },
-      "gaps": ["Rendered actor/mode and actual source-reload evidence remain required; this is read-only projected data."],
+      "gaps": [
+        "Rendered actor/mode and actual source-reload evidence remain required; this is read-only projected data."
+      ],
       "owner": "frontend/src/features/weekly-menu/MrxQuantityInspectionPage.tsx",
-      "evidenceRequired": ["contract", "browser", "persistence", "actor-mode"]
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
     },
     {
       "id": "mrx.batch",
@@ -8622,38 +9358,80 @@
       "route": "/admin-data",
       "view": "customers",
       "workObject": "OperationalFrame",
-      "capabilityIds": ["COORD.CUSTOMER_CONTRACT.READ"],
+      "capabilityIds": [
+        "COORD.CUSTOMER_CONTRACT.READ"
+      ],
       "actions": [],
-      "states": ["loading", "empty", "error", "permission-denied", "partial", "write-reconciliation"],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
       "skeleton": {
         "kind": "table",
         "owner": "frontend/src/components/workbench/StateBoundary.tsx",
         "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
-        "geometry": { "kind": "table", "columns": 5, "rows": 8, "toolbar": true }
+        "geometry": {
+          "kind": "table",
+          "columns": 5,
+          "rows": 8,
+          "toolbar": true
+        }
       },
       "tableContractId": "admin-customers",
-      "gaps": ["Customer creation remains separate from read coverage; rendered actor and persistence evidence remain required."],
+      "gaps": [
+        "Customer creation remains separate from read coverage; rendered actor and persistence evidence remain required."
+      ],
       "owner": "frontend/src/features/admin/branches/AdminCustomersBranch.tsx",
-      "evidenceRequired": ["contract", "browser", "persistence", "actor-mode"]
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
     },
     {
       "id": "admin.bom",
       "route": "/admin-data",
       "view": "bom",
       "workObject": "OperationalFrame",
-      "capabilityIds": ["CAT.BOM.READ"],
+      "capabilityIds": [
+        "CAT.BOM.READ"
+      ],
       "actions": [],
-      "states": ["loading", "empty", "error", "permission-denied", "partial", "write-reconciliation"],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
       "skeleton": {
         "kind": "table",
         "owner": "frontend/src/components/workbench/StateBoundary.tsx",
         "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
-        "geometry": { "kind": "table", "columns": 6, "rows": 8, "toolbar": true }
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
       },
       "tableContractId": "admin-bom",
-      "gaps": ["Read surface maps actual BOM coverage and editor entry. BOM mutation concurrency/import capabilities and real actor/persistence evidence remain separately PARTIAL/BLOCKED; this record does not certify those writes."],
+      "gaps": [
+        "Read surface maps actual BOM coverage and editor entry. BOM mutation concurrency/import capabilities and real actor/persistence evidence remain separately PARTIAL/BLOCKED; this record does not certify those writes."
+      ],
       "owner": "frontend/src/features/admin/branches/AdminBomBranch.tsx",
-      "evidenceRequired": ["contract", "browser", "persistence", "actor-mode"]
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
     },
     {
       "id": "admin.dishes",

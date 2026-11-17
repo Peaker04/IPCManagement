@@ -732,6 +732,13 @@
         ],
         "parameters": [
           {
+            "name": "State",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "Limit",
             "in": "query",
             "schema": {
@@ -776,6 +783,13 @@
           },
           {
             "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CustomerCode",
             "in": "query",
             "schema": {
               "type": "string"
@@ -7414,6 +7428,269 @@
         }
       }
     },
+    "/api/operational-approvals/inbox": {
+      "get": {
+        "tags": [
+          "OperationalApprovals"
+        ],
+        "parameters": [
+          {
+            "name": "State",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "TargetType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "TargetId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Week",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Date",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CustomerCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalApprovalPageApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalApprovalPageApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalApprovalPageApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operational-approvals/{targetType}/{id}": {
+      "get": {
+        "tags": [
+          "OperationalApprovals"
+        ],
+        "parameters": [
+          {
+            "name": "targetType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "PENDING"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalApprovalDetailApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalApprovalDetailApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalApprovalDetailApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operational-approvals/{targetType}/{id}/history": {
+      "get": {
+        "tags": [
+          "OperationalApprovals"
+        ],
+        "parameters": [
+          {
+            "name": "targetType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalHistoryItemDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalHistoryItemDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalHistoryItemDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operational-approvals/{targetType}/{id}/decision": {
+      "post": {
+        "tags": [
+          "OperationalApprovals"
+        ],
+        "parameters": [
+          {
+            "name": "targetType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationalApprovalActionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationalApprovalActionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationalApprovalActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResultDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/production-plans": {
       "get": {
         "tags": [
@@ -11062,6 +11339,563 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReconciliationSourceHistoryDetailDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/supplemental-demands": {
+      "get": {
+        "tags": [
+          "ReconciliationSupplementalDemands"
+        ],
+        "parameters": [
+          {
+            "name": "BatchId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ServiceDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "Status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDesc",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandSummaryDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandSummaryDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandSummaryDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ReconciliationSupplementalDemands"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandWriteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandWriteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandWriteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/supplemental-demands/{id}": {
+      "get": {
+        "tags": [
+          "ReconciliationSupplementalDemands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ReconciliationSupplementalDemands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandWriteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandWriteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandWriteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/supplemental-demands/batches/{batchId}/fulfillment": {
+      "get": {
+        "tags": [
+          "ReconciliationSupplementalDemands"
+        ],
+        "parameters": [
+          {
+            "name": "batchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalFulfillmentDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalFulfillmentDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalFulfillmentDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/supplemental-demands/batches/{batchId}/dish-options": {
+      "get": {
+        "tags": [
+          "ReconciliationSupplementalDemands"
+        ],
+        "parameters": [
+          {
+            "name": "batchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDishOptionsDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDishOptionsDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDishOptionsDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/supplemental-demands/{id}/submit": {
+      "post": {
+        "tags": [
+          "ReconciliationSupplementalDemands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/supplemental-demands/{id}/approve": {
+      "post": {
+        "tags": [
+          "ReconciliationSupplementalDemands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/supplemental-demands/{id}/reject": {
+      "post": {
+        "tags": [
+          "ReconciliationSupplementalDemands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/supplemental-demands/{id}/cancel": {
+      "post": {
+        "tags": [
+          "ReconciliationSupplementalDemands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationSupplementalDemandCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSupplementalDemandDtoApiResponse"
                 }
               }
             }
@@ -21910,6 +22744,7 @@
           "ownerRole",
           "reason",
           "route",
+          "serviceDates",
           "source",
           "status",
           "submittedBy",
@@ -21932,6 +22767,17 @@
           },
           "targetCode": {
             "type": "string"
+          },
+          "customerCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceDates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
           },
           "itemType": {
             "type": "string"
@@ -24265,6 +25111,7 @@
       },
       "CreateInventoryIssueLineRequest": {
         "required": [
+          "allocations",
           "ingredientId",
           "issuedQty",
           "requestedQty",
@@ -24272,6 +25119,12 @@
         ],
         "type": "object",
         "properties": {
+          "allocations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationIssueAllocationRequest"
+            }
+          },
           "materialRequestLineId": {
             "type": "string",
             "nullable": true
@@ -29892,6 +30745,78 @@
         },
         "additionalProperties": false
       },
+      "LegacyLineageDispositionDto": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "dispositionId",
+          "legacyLineId",
+          "legacyLineType",
+          "reason",
+          "status",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "dispositionId": {
+            "type": "string"
+          },
+          "legacyLineType": {
+            "type": "string"
+          },
+          "legacyLineId": {
+            "type": "string"
+          },
+          "targetMaterialRequestLineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetIssueLineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "reviewReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "appliedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "appliedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "LegacyLineageDispositionReportDto": {
         "required": [
           "legacyLineId",
@@ -32972,6 +33897,7 @@
           "requiredQuantity",
           "serviceDate",
           "shiftName",
+          "unplannedIssuedQuantity",
           "varianceType"
         ],
         "type": "object",
@@ -33035,6 +33961,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "remainingByPurpose": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "unplannedIssuedQuantity": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -33060,6 +33995,239 @@
             "type": "number",
             "format": "double",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OperationalApprovalActionRequest": {
+        "required": [
+          "commandId",
+          "decision",
+          "expectedFingerprint",
+          "expectedModeVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "expectedModeVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expectedFingerprint": {
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/ApprovalDecision"
+          },
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OperationalApprovalDetail": {
+        "required": [
+          "allowedActions",
+          "blockedReasons",
+          "fingerprint",
+          "item",
+          "materialImpact",
+          "mode",
+          "modeVersion",
+          "sourceDishNames"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "modeVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "item": {
+            "$ref": "#/components/schemas/ApprovalInboxItemDto"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "allowedActions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blockedReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "materialImpact": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxMaterialImpactDto"
+            }
+          },
+          "sourceChange": {
+            "$ref": "#/components/schemas/MenuAmendmentResultDto"
+          },
+          "sourceDishNames": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "supplementalDemand": {
+            "$ref": "#/components/schemas/ReconciliationSupplementalDemandDto"
+          },
+          "stocktake": {
+            "$ref": "#/components/schemas/StocktakeDto"
+          },
+          "legacyLineage": {
+            "$ref": "#/components/schemas/LegacyLineageDispositionDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OperationalApprovalDetailApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OperationalApprovalDetail"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OperationalApprovalPage": {
+        "required": [
+          "hasNext",
+          "items",
+          "limit",
+          "mode",
+          "modeVersion",
+          "targets",
+          "unavailableSources"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalInboxItemDto"
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "unavailableSources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationalApprovalUnavailableSource"
+            }
+          },
+          "mode": {
+            "type": "string"
+          },
+          "modeVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationalApprovalTarget"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "OperationalApprovalPageApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OperationalApprovalPage"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OperationalApprovalTarget": {
+        "required": [
+          "label",
+          "mode",
+          "permission",
+          "targetType"
+        ],
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OperationalApprovalUnavailableSource": {
+        "required": [
+          "message",
+          "targetType"
+        ],
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -38588,6 +39756,32 @@
         },
         "additionalProperties": false
       },
+      "ReconciliationIssueAllocationRequest": {
+        "required": [
+          "purpose",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "purpose": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "demandMaterialId": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedDemandVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ReconciliationKitchenCookingExportDto": {
         "required": [
           "batchId",
@@ -38636,6 +39830,8 @@
       },
       "ReconciliationKitchenCookingRowDto": {
         "required": [
+          "approvedDemandIds",
+          "approvedExtraServings",
           "dishCode",
           "dishName",
           "ingredientCode",
@@ -38692,6 +39888,21 @@
           "totalRequiredQuantity": {
             "type": "number",
             "format": "double"
+          },
+          "frozenBaselineServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "approvedExtraServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "approvedDemandIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "menuVariant": {
             "type": "string"
@@ -38821,7 +40032,6 @@
           "canonicalUnitId",
           "ingredientId",
           "totalIssuedQuantity",
-          "totalRemainingQuantity",
           "totalRequiredQuantity"
         ],
         "type": "object",
@@ -38854,7 +40064,8 @@
           },
           "totalRemainingQuantity": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "allocations": {
             "type": "array",
@@ -38871,9 +40082,9 @@
           "batchLineId",
           "customerId",
           "dailyLineId",
-          "remainingQuantity",
           "requiredQuantity",
-          "status"
+          "status",
+          "unplannedIssuedQuantity"
         ],
         "type": "object",
         "properties": {
@@ -38908,10 +40119,15 @@
           },
           "remainingQuantity": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "status": {
             "type": "string"
+          },
+          "unplannedIssuedQuantity": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -38925,7 +40141,6 @@
           "hasExistingIssue",
           "isApplicable",
           "issuedQuantity",
-          "remainingQuantity",
           "requiredQuantity"
         ],
         "type": "object",
@@ -38967,7 +40182,8 @@
           },
           "remainingQuantity": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -39009,7 +40225,8 @@
           "quantity",
           "serviceDate",
           "shiftName",
-          "supplierName"
+          "supplierName",
+          "unplannedIssuedQuantity"
         ],
         "type": "object",
         "properties": {
@@ -39059,6 +40276,19 @@
           },
           "supplierName": {
             "type": "string"
+          },
+          "supplementalDemandId": {
+            "type": "string",
+            "nullable": true
+          },
+          "remainingQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "unplannedIssuedQuantity": {
+            "type": "number",
+            "format": "double"
           },
           "supplierId": {
             "type": "string",
@@ -39179,7 +40409,8 @@
           "ingredientName",
           "preparationGroupCode",
           "supplierName",
-          "totalQuantity"
+          "totalQuantity",
+          "unplannedIssuedQuantity"
         ],
         "type": "object",
         "properties": {
@@ -39209,6 +40440,15 @@
             }
           },
           "totalQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "remainingQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "unplannedIssuedQuantity": {
             "type": "number",
             "format": "double"
           },
@@ -40104,6 +41344,639 @@
         },
         "additionalProperties": false
       },
+      "ReconciliationSupplementalDemandCommand": {
+        "required": [
+          "commandId",
+          "expectedBatchVersion",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expectedBatchVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDemandDto": {
+        "required": [
+          "batchId",
+          "batchVersion",
+          "createdAt",
+          "createdBy",
+          "demandId",
+          "dishes",
+          "materials",
+          "reason",
+          "serviceDate",
+          "snapshotFingerprint",
+          "status",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "demandId": {
+            "type": "string"
+          },
+          "batchId": {
+            "type": "string"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "batchVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "snapshotFingerprint": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "decidedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "decisionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "dishes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSupplementalDishDto"
+            }
+          },
+          "materials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSupplementalMaterialDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDemandDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReconciliationSupplementalDemandDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDemandSummaryDto": {
+        "required": [
+          "batchId",
+          "batchVersion",
+          "createdAt",
+          "demandId",
+          "dishCount",
+          "reason",
+          "serviceDate",
+          "status",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "demandId": {
+            "type": "string"
+          },
+          "batchId": {
+            "type": "string"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "batchVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dishCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDemandSummaryDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSupplementalDemandSummaryDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDemandSummaryDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReconciliationSupplementalDemandSummaryDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDemandWriteRequest": {
+        "required": [
+          "batchId",
+          "commandId",
+          "dishes",
+          "expectedBatchVersion",
+          "expectedVersion",
+          "reason",
+          "serviceDate"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expectedBatchVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "batchId": {
+            "type": "string"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "dishes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSupplementalDishSelection"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDishDto": {
+        "required": [
+          "demandDishId",
+          "dishCode",
+          "dishId",
+          "dishName",
+          "extraServings",
+          "menuVariant",
+          "shiftName"
+        ],
+        "type": "object",
+        "properties": {
+          "demandDishId": {
+            "type": "string"
+          },
+          "dishId": {
+            "type": "string"
+          },
+          "dishCode": {
+            "type": "string"
+          },
+          "dishName": {
+            "type": "string"
+          },
+          "shiftName": {
+            "type": "string"
+          },
+          "menuVariant": {
+            "type": "string"
+          },
+          "extraServings": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDishOptionDto": {
+        "required": [
+          "dishCode",
+          "dishId",
+          "dishName",
+          "menuVariant",
+          "shiftName"
+        ],
+        "type": "object",
+        "properties": {
+          "dishId": {
+            "type": "string"
+          },
+          "dishCode": {
+            "type": "string"
+          },
+          "dishName": {
+            "type": "string"
+          },
+          "shiftName": {
+            "type": "string"
+          },
+          "menuVariant": {
+            "type": "string"
+          },
+          "blockedReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDishOptionsDto": {
+        "required": [
+          "batchId",
+          "batchVersion",
+          "canCreate",
+          "dishes",
+          "requiresApproval",
+          "serviceDate"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "batchVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "canCreate": {
+            "type": "boolean"
+          },
+          "blockedReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "dishes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSupplementalDishOptionDto"
+            }
+          },
+          "requiresApproval": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDishOptionsDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReconciliationSupplementalDishOptionsDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalDishSelection": {
+        "required": [
+          "dishId",
+          "extraServings",
+          "menuVariant",
+          "shiftName"
+        ],
+        "type": "object",
+        "properties": {
+          "dishId": {
+            "type": "string"
+          },
+          "shiftName": {
+            "type": "string"
+          },
+          "menuVariant": {
+            "type": "string"
+          },
+          "extraServings": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalExtraBalanceDto": {
+        "required": [
+          "demandId",
+          "demandMaterialId",
+          "issuedQuantity",
+          "requiredQuantity"
+        ],
+        "type": "object",
+        "properties": {
+          "demandId": {
+            "type": "string"
+          },
+          "demandMaterialId": {
+            "type": "string"
+          },
+          "requiredQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "issuedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "remainingQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalFulfillmentDto": {
+        "required": [
+          "batchId",
+          "lines",
+          "pendingDemandCount",
+          "serviceDate"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "pendingDemandCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSupplementalFulfillmentLineDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalFulfillmentDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReconciliationSupplementalFulfillmentDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalFulfillmentLineDto": {
+        "required": [
+          "baselineIssuedQuantity",
+          "baselineRequiredQuantity",
+          "canonicalUnitId",
+          "dailyLineId",
+          "extraDemands",
+          "hasAmbiguousReturn",
+          "hasIncompleteAllocation",
+          "ingredientId",
+          "isDemandFulfilled",
+          "netIssuedQuantity",
+          "unallocatedIssuedQuantity",
+          "unplannedIssuedQuantity"
+        ],
+        "type": "object",
+        "properties": {
+          "dailyLineId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "canonicalUnitId": {
+            "type": "string"
+          },
+          "baselineRequiredQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "baselineIssuedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "baselineRemainingQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "netIssuedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "unplannedIssuedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "unallocatedIssuedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "hasIncompleteAllocation": {
+            "type": "boolean"
+          },
+          "hasAmbiguousReturn": {
+            "type": "boolean"
+          },
+          "isDemandFulfilled": {
+            "type": "boolean"
+          },
+          "extraDemands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSupplementalExtraBalanceDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSupplementalMaterialDto": {
+        "required": [
+          "canonicalUnitId",
+          "dailyLineId",
+          "demandMaterialId",
+          "ingredientId",
+          "requiredQuantity"
+        ],
+        "type": "object",
+        "properties": {
+          "demandMaterialId": {
+            "type": "string"
+          },
+          "dailyLineId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "canonicalUnitId": {
+            "type": "string"
+          },
+          "requiredQuantity": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
       "ReconciliationToleranceInitializationResult": {
         "required": [
           "createdAt",
@@ -40221,13 +42094,14 @@
       },
       "ReconciliationWarehouseDailyLineDto": {
         "required": [
+          "approvedSupplementalQuantity",
           "batchLineId",
           "canonicalUnitId",
           "dailyLineId",
+          "frozenBaselineQuantity",
           "hasValidDisposition",
           "ingredientId",
           "quantityStatus",
-          "remainingQuantity",
           "requiredQuantity",
           "returnedQuantity"
         ],
@@ -40272,13 +42146,22 @@
           },
           "remainingQuantity": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "quantityStatus": {
             "type": "string"
           },
           "hasValidDisposition": {
             "type": "boolean"
+          },
+          "frozenBaselineQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "approvedSupplementalQuantity": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -40288,7 +42171,6 @@
           "isApplicable",
           "issuedQuantity",
           "lines",
-          "remainingQuantity",
           "requiredQuantity",
           "returnedQuantity",
           "serviceDate",
@@ -40320,7 +42202,8 @@
           },
           "remainingQuantity": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "lines": {
             "type": "array",
@@ -45974,6 +47857,9 @@
       "name": "MaterialDemand"
     },
     {
+      "name": "OperationalApprovals"
+    },
+    {
       "name": "ProductionPlans"
     },
     {
@@ -46017,6 +47903,9 @@
     },
     {
       "name": "ReconciliationSourceHistory"
+    },
+    {
+      "name": "ReconciliationSupplementalDemands"
     },
     {
       "name": "ReconciliationWeeklyMenu"

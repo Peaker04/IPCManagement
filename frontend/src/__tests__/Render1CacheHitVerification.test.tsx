@@ -31,7 +31,7 @@ import { chefApi } from '../api/chefApi';
 import { purchasingApi } from '../api/purchasingApi';
 import { adminApi } from '../api/adminApi';
 import { bomApi } from '../api/bomApi';
-import { approvalsApi } from '../api/approvalsApi';
+import * as approvalClient from '../api/client';
 
 describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification', () => {
   beforeEach(() => {
@@ -83,7 +83,7 @@ describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification',
           returnedQuantity: 0,
           remainingQuantity: 5,
           lines: [
-            {
+            { frozenBaselineQuantity: 15, approvedSupplementalQuantity: 0,
               dailyLineId: 'dl-1',
               batchLineId: 'bl-1',
               ingredientId: 'ing-1',
@@ -558,9 +558,14 @@ describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification',
 
   it('ApprovalPage: Render #1 synchronously mounts cached inbox items without skeleton flash', () => {
     localStorage.setItem('ipc_v3_mode', 'DEFAULT');
-    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValue(MOCK_APPROVALS);
-    vi.spyOn(approvalsApi, 'getHistory').mockResolvedValue([]);
-    serverStateCache.set('approval_inbox_ALL', MOCK_APPROVALS);
+    const actor = JSON.parse(localStorage.getItem('ipc_v3_user')!);
+    const page = { items: MOCK_APPROVALS, mode: 'DEFAULT', modeVersion: 1, targets: [], limit: 20, hasNext: false, nextCursor: null };
+    vi.spyOn(approvalClient, 'apiClient').mockImplementation(async url => {
+      if (url.startsWith('/operational-approvals/inbox')) return page as never;
+      throw new Error(`Unexpected approval request: ${url}`);
+    });
+    const scope = JSON.stringify([actor.userId, actor.roleCode, actor.permissions, 'DEFAULT', 1]);
+    serverStateCache.set(`operational-approvals:DEFAULT:${scope}:${JSON.stringify({ type: 'ALL', cursor: '', search: '', state: 'PENDING' })}`, page);
 
     render(
       <AuthProvider>

@@ -13,11 +13,52 @@ using Microsoft.AspNetCore.Mvc;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 
 namespace IPCManagement.Api.Tests;
 
 public sealed class ReconciliationKitchenExportTests
 {
+    [Theory]
+    [InlineData("APPROVED", 115, "9.2", "5.75")]
+    [InlineData("PENDING", 100, "8", "5")]
+    [InlineData("REJECTED", 100, "8", "5")]
+    [InlineData("CANCELLED", 100, "8", "5")]
+    public async Task Kitchen_reads_approved_extra_servings_before_issue_and_keeps_other_dates_frozen(string status, int servings, string riceQuantity, string eggQuantity)
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:;Foreign Keys=False");
+        await connection.OpenAsync();
+        await using var context = new KitchenExportSqliteContext(new DbContextOptionsBuilder<IpcManagementContext>().UseSqlite(connection).Options);
+        await context.Database.EnsureCreatedAsync();
+        var fixture = Seed(context); await context.SaveChangesAsync();
+        var batch = await context.Reconciliationbatches.SingleAsync(); batch.Status = "IN_PROGRESS";
+        foreach (var extra in new[] { 10, 5 })
+        {
+            var snapshot = ReconciliationSupplementalSnapshotBuilder.Build(batch, fixture.Monday,
+                [new(GuidHelper.ToGuidString(fixture.MutableDish.DishId), "MORNING", "savory", extra)],
+                fixture.Contributors.Select(x => x.DailyLine!).DistinctBy(x => Convert.ToHexString(x.DailyLineId)).ToList(), fixture.Contributors);
+            var demand = new ReconciliationSupplementalDemand { DemandId = GuidHelper.NewId(), BatchId = batch.BatchId,
+                ServiceDate = fixture.Monday, Status = status, Version = 3, Reason = "Khách tăng suất", SnapshotFingerprint = snapshot.Fingerprint,
+                SnapshotBatchVersion = batch.Version, CreatedBy = batch.CreatedBy, CreatedAt = DateTime.UtcNow };
+            foreach (var dish in snapshot.Dishes) { dish.DemandId = demand.DemandId; demand.Dishes.Add(dish); }
+            foreach (var material in snapshot.Materials) { material.DemandId = demand.DemandId; demand.Materials.Add(material); }
+            context.Reconciliationsupplementaldemands.Add(demand);
+        }
+        fixture.MutableDish.DishName = "Không dùng tên hiện hành"; fixture.MutableBom.GrossQtyPerServing = 999;
+        await context.SaveChangesAsync();
+        var document = (await new ReconciliationKitchenExportService(context).GetAsync(GuidHelper.ToGuidString(batch.BatchId)))!;
+        var mondayRice = Assert.Single(document.Rows, x => x.ServiceDate == fixture.Monday && x.IngredientCode == "RICE");
+        Assert.Equal(servings, mondayRice.Servings);
+        Assert.Equal(decimal.Parse(riceQuantity, System.Globalization.CultureInfo.InvariantCulture), mondayRice.TotalRequiredQuantity);
+        Assert.Equal("Cơm rang", mondayRice.DishName);
+        Assert.Equal(0.08m, mondayRice.BomQuantityPerServing);
+        var mondayEgg = Assert.Single(document.Rows, x => x.ServiceDate == fixture.Monday && x.IngredientCode == "EGG");
+        Assert.Equal(decimal.Parse(eggQuantity, System.Globalization.CultureInfo.InvariantCulture), mondayEgg.TotalRequiredQuantity);
+        Assert.Equal(60, Assert.Single(document.Rows, x => x.ServiceDate == fixture.Tuesday).Servings);
+        Assert.Empty(context.Inventoryissues);
+        Assert.Equal(8m, fixture.Contributors[0].SourceQuantity);
+        Assert.Equal(100, fixture.Contributors[0].FrozenServings);
+    }
     [Fact]
     public void Export_controller_is_reconciliation_only_read_authority_with_preview_and_csv_routes()
     {
@@ -415,6 +456,22 @@ public sealed class ReconciliationKitchenExportTests
             modelBuilder.Entity<ReconciliationBatchLine>().Property(item => item.BatchLineId).ValueGeneratedNever();
             modelBuilder.Entity<ReconciliationBatchDailyLine>().Property(item => item.DailyLineId).ValueGeneratedNever();
             modelBuilder.Entity<ReconciliationBatchContributor>().Property(item => item.ContributorId).ValueGeneratedNever();
+        }
+    }
+
+    private sealed class KitchenExportSqliteContext(DbContextOptions<IpcManagementContext> options) : IpcManagementContext(options)
+    {
+        protected override void OnModelCreating(ModelBuilder model)
+        {
+            base.OnModelCreating(model); model.UseCollation("BINARY");
+            foreach (var entity in model.Model.GetEntityTypes())
+                foreach (var index in entity.GetIndexes()) index.SetDatabaseName($"{entity.GetTableName()}_{index.GetDatabaseName()}");
+            foreach (var property in model.Model.GetEntityTypes().SelectMany(entity => entity.GetProperties()))
+            {
+                if (property.GetColumnType()?.StartsWith("enum(", StringComparison.OrdinalIgnoreCase) == true) property.SetColumnType("TEXT");
+                if (property.GetCollation()?.Contains("utf8mb4", StringComparison.OrdinalIgnoreCase) == true) property.SetCollation("BINARY");
+                if (property.GetDefaultValueSql()?.Contains("CURRENT_TIMESTAMP(6)", StringComparison.OrdinalIgnoreCase) == true) property.SetDefaultValueSql("CURRENT_TIMESTAMP");
+            }
         }
     }
 

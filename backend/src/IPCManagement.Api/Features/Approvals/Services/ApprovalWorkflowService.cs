@@ -84,13 +84,12 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
         }
 
         if (actor is not null && normalizedTargetType == ApprovalTargetType.InventoryReceipt &&
-            !actor.FindAll(ClaimTypes.Role).Any(claim => AuthorizationPolicies.MatchesManagerRole(claim.Value)))
+            InventoryReceiptApprovalPolicy.RoleBlockedReason(actor.FindAll(ClaimTypes.Role).Select(claim => claim.Value)) is { } roleBlockedReason)
         {
-            throw new UnauthorizedAccessException("Chỉ Quản lý được duyệt phiếu nhập kho sau khi kiểm tra chất lượng.");
+            throw new UnauthorizedAccessException(roleBlockedReason);
         }
 
-        if (normalizedTargetType == ApprovalTargetType.MaterialDemand &&
-            handler is IApprovalTargetPersistenceHandler persistenceHandler &&
+        if (handler is IApprovalTargetPersistenceHandler persistenceHandler &&
             _context is not null &&
             _transactionRunner is not null &&
             _systemOperationRequestContext is
@@ -102,6 +101,7 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
                 expectedModeVersion,
                 async _ =>
                 {
+                    await ApprovalTargetLock.AcquireAsync(_context, normalizedTargetType.Value, GuidHelper.ParseGuidString(targetId)!);
                     transactionResult = await RecordRequiredApprovalStepAsync(
                         normalizedTargetType.Value, targetId, request, actorId, actor, saveChanges: false);
                     transactionResult ??= await persistenceHandler.StageAsync(targetId, request, actorId);
@@ -165,13 +165,12 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
             .OrderBy(item => item.ActionAt).ToListAsync();
         var next = assignments.Skip(history.Count).FirstOrDefault();
         if (next is null) return null;
-        if (history.Any(item => item.ActionBy.SequenceEqual(actorId)))
-            throw new BusinessRuleException("Một người không được hoàn thành hai bước phê duyệt.");
-        if (next.ApproverUserId is not null && !next.ApproverUserId.SequenceEqual(actorId))
-            throw new UnauthorizedAccessException("Bạn không phải người được chỉ định cho bước duyệt này.");
-        var actorRoles = actor.FindAll(ClaimTypes.Role).Select(item => item.Value);
-        if (next.ApproverUserId is null && !actorRoles.Any(role => string.Equals(role, next.ApproverRole, StringComparison.OrdinalIgnoreCase)))
-            throw new UnauthorizedAccessException("Vai trò hiện tại không được phép thực hiện bước duyệt này.");
+        var blockedReason = ApprovalStepPolicy.ApprovalBlocker(assignments, history.Select(item => item.ActionBy), history.Count, actor);
+        if (blockedReason is not null)
+        {
+            if (history.Any(item => item.ActionBy.SequenceEqual(actorId))) throw new BusinessRuleException(blockedReason);
+            throw new UnauthorizedAccessException(blockedReason);
+        }
 
         var now = DateTime.UtcNow;
         var step = new ApprovalHistory { ApprovalHistoryId = GuidHelper.NewId(), TargetType = targetTypeName, TargetId = targetIdBytes, Decision = "STEP_APPROVED", OldStatus = next.Sequence.ToString(), NewStatus = "PENDING", Reason = request.Reason, ActionBy = actorId, ActionAt = now };

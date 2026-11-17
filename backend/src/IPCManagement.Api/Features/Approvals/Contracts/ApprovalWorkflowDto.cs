@@ -35,6 +35,7 @@ public class ApprovalResultDto
 
 public class ApprovalInboxQueryDto
 {
+    public string State { get; set; } = "PENDING";
     public int Limit { get; set; } = 20;
     public string? Cursor { get; set; }
     public string? TargetType { get; set; }
@@ -42,6 +43,7 @@ public class ApprovalInboxQueryDto
     public string? Week { get; set; }
     public string? Date { get; set; }
     public string? SearchKeyword { get; set; }
+    public string? CustomerCode { get; set; }
 }
 
 public class ApprovalInboxPageDto
@@ -58,6 +60,8 @@ public class ApprovalInboxItemDto
     public string TargetType { get; set; } = string.Empty;
     public string TargetId { get; set; } = string.Empty;
     public string TargetCode { get; set; } = string.Empty;
+    public string? CustomerCode { get; set; }
+    public IReadOnlyList<DateOnly> ServiceDates { get; set; } = [];
     public string ItemType { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty;

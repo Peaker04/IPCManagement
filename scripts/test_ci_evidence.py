@@ -1,5 +1,8 @@
 """Behavioral CI evidence checks. No database or application process is started."""
 import importlib.util
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -28,6 +31,15 @@ class TestResultsTests(unittest.TestCase):
                        for name, outcome in results)
         self.path.write_text('<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">'
                              '<Results>' + rows + '</Results></TestRun>', encoding='utf-8')
+
+    def test_cli_reports_unicode_on_a_legacy_windows_output_encoding(self):
+        self.write([('Suite.Nguyên liệu đủ', 'Passed')])
+        environment = {**os.environ, 'PYTHONIOENCODING': 'cp1252'}
+        result = subprocess.run(
+            [sys.executable, str(Path(__file__).with_name('ci_test_results.py')), '--trx', str(self.path)],
+            env=environment, capture_output=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Nguyên liệu đủ', result.stdout.decode('utf-8'))
 
     def test_accepts_real_namespaced_passed_results(self):
         self.write([('Suite.fresh', 'Passed'), ('Suite.upgrade', 'Passed')])

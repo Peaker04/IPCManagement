@@ -155,10 +155,10 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
     const response = coordinator.waitForResponse((item) => item.url().endsWith('/weekly-menu/amendments/preview') && item.request().method() === 'POST');
     await coordinator.getByRole('button', { name: 'Kiểm tra lại ảnh hưởng', exact: true }).click();
     const result = await response;
-    await expect(coordinator.getByRole('button', { name: 'Gửi duyệt', exact: true })).toBeEnabled();
+    await expect(coordinator.getByRole('button', { name: coordinator === admin ? 'Áp dụng ngay' : 'Gửi duyệt', exact: true })).toBeEnabled();
     return result;
   });
-  if (auditUI) await captureStationUI(coordinator, 'source-review', 1366, 768, coordinator.getByRole('button', { name: 'Gửi duyệt', exact: true }));
+  if (auditUI) await captureStationUI(coordinator, 'source-review', 1366, 768, coordinator.getByRole('button', { name: coordinator === admin ? 'Áp dụng ngay' : 'Gửi duyệt', exact: true }));
   await expect(coordinator.getByText(/Nguồn thay đổi:/)).toContainText('6 ngày.');
   await coordinator.screenshot({ path: path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, `${artifactPrefix}-review-summary.png`) });
   await expect(coordinator.getByRole('heading', { name: /^Số suất đề nghị theo ca/ })).toBeVisible();
@@ -181,7 +181,20 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
   await expect(coordinator.getByRole('button', { name: /Tiếp tục xem ảnh hưởng|Kiểm tra số suất/ })).toBeFocused();
   await coordinator.getByRole('button', { name: /Tiếp tục xem ảnh hưởng|Kiểm tra số suất/ }).click();
   await expect(coordinator.getByLabel('Lý do thay đổi nguồn')).toHaveValue(scope.reason);
-  await step(coordinator, scope, 'source-submit-review', 'COORDINATOR', async () => {
+  if (coordinator === admin) {
+    await expect(admin.getByRole('button', { name: 'Gửi duyệt', exact: true })).toHaveCount(0);
+    await admin.getByRole('button', { name: 'Áp dụng ngay', exact: true }).click();
+    const confirm = admin.getByRole('dialog', { name: 'Xác nhận áp dụng thay đổi' });
+    await confirm.getByRole('button', { name: 'Quay lại', exact: true }).click();
+    await expect(confirm).toHaveCount(0);
+    await admin.getByRole('button', { name: 'Áp dụng ngay', exact: true }).click();
+    const applied = admin.waitForResponse(item => item.url().endsWith('/mrx-apply') && item.request().method() === 'POST');
+    await confirm.getByRole('button', { name: 'Xác nhận áp dụng', exact: true }).click();
+    const result = await applied;
+    expect(result.ok(), await result.text()).toBe(true);
+    await expect(confirm).toHaveCount(0);
+  } else {
+  const sourceSubmission = await step(coordinator, scope, 'source-submit-review', 'COORDINATOR', async () => {
     const response = coordinator.waitForResponse((item) => item.url().endsWith('/weekly-menu/amendments/mrx-submit') && item.request().method() === 'POST');
     await coordinator.getByRole('button', { name: 'Gửi duyệt', exact: true }).click();
     const result = await response;
@@ -193,25 +206,23 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
   await admin.bringToFront();
   await admin.goto(url);
   await admin.getByRole('button', { name: /Yêu cầu chờ duyệt/ }).click();
-  const selector = admin.getByLabel('Yêu cầu nguồn cần duyệt');
-  if (await selector.isVisible()) {
-    const id = await selector.locator('option').filter({ hasText: scope.reason }).getAttribute('value');
-    expect(id).toBeTruthy();
-    await selector.selectOption(id!);
-  }
+  const sourceRequestId = (await sourceSubmission!.json()).data.menuAmendmentId as string;
+  await admin.goto('/approvals?targetType=mrx-source-change&targetId=' + sourceRequestId);
   await step(admin, scope, 'admin-open-source-approval', 'ADMIN', async () => {
-    await admin.getByRole('button', { name: 'Phê duyệt thay đổi', exact: true }).click();
+    await admin.getByRole('button', { name: 'Phê duyệt hồ sơ', exact: true }).click();
     await expect(admin.getByRole('button', { name: 'Xác nhận phê duyệt', exact: true })).toBeVisible();
   });
   await step(admin, scope, 'admin-confirm-source-approval', 'ADMIN', async () => {
-    const response = admin.waitForResponse((item) => item.url().includes('/weekly-menu/amendments/') && item.url().includes('/mrx-decision') && item.request().method() === 'POST');
+    const response = admin.waitForResponse((item) => item.url().includes('/api/operational-approvals/mrx-source-change/') && item.url().endsWith('/decision') && item.request().method() === 'POST');
+    await admin.getByLabel('Căn cứ quyết định').fill(scope.reason);
     await admin.getByRole('button', { name: 'Xác nhận phê duyệt', exact: true }).click();
     const result = await response;
-    await expect(admin.getByText('Đã áp dụng thay đổi nguồn.')).toBeVisible();
+    await expect(admin.getByText('Đã ghi nhận quyết định · Đã áp dụng')).toBeVisible();
     return result;
   });
   console.log('[UI] Admin: đã bấm Phê duyệt thay đổi; UI xác nhận đã áp dụng.');
   await admin.screenshot({ path: path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, `${artifactPrefix}-03-source-approved.png`) });
+  }
   await coordinator.bringToFront();
   await coordinator.reload();
   await pages.sourceAccepted?.(coordinator, scope);

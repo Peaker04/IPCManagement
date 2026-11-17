@@ -2,10 +2,11 @@ import { renderWarehouse } from '../test/renderWarehouse';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider, MemoryRouter } from 'react-router-dom';
 import { MrxSupplementalIssueModal } from '../features/warehouse/MrxSupplementalIssueModal';
 import { WarehousePage } from '../features/warehouse/WarehousePage';
 import { AuthProvider } from '../store/authContext';
+import * as apiTransport from '../api/client';
 import { warehouseApi } from '../api/warehouseApi';
 import { systemApi } from '../api/systemApi';
 import { serverStateCache } from '../store/serverStateCache';
@@ -102,7 +103,7 @@ describe('Warehouse MRX transitions', () => {
         lastRevisionAt: '2026-10-31T01:30:00Z',
         lastRevisionByName: 'Nguyễn Quản Lý',
         lastRevisionByRole: 'MANAGER',
-        lines: [{
+        lines: [{ frozenBaselineQuantity: 20, approvedSupplementalQuantity: 0,
           dailyLineId: 'dl-1',
           batchLineId: 'bl-1',
           ingredientId: 'ing-1',
@@ -230,7 +231,7 @@ describe('Warehouse MRX transitions', () => {
           issuedQuantity: 10,
           returnedQuantity: 0,
           remainingQuantity: 0,
-          lines: [{
+          lines: [{ frozenBaselineQuantity: 10, approvedSupplementalQuantity: 0,
             dailyLineId: 'dl-1',
             batchLineId: 'bl-1',
             ingredientId: 'ing-1',
@@ -253,7 +254,7 @@ describe('Warehouse MRX transitions', () => {
           issuedQuantity: 0,
           returnedQuantity: 0,
           remainingQuantity: 10,
-          lines: [{
+          lines: [{ frozenBaselineQuantity: 10, approvedSupplementalQuantity: 0,
             dailyLineId: 'dl-2',
             batchLineId: 'bl-1',
             ingredientId: 'ing-1',
@@ -368,56 +369,26 @@ describe('Warehouse MRX transitions', () => {
     expect(morningBtn).toHaveClass('border', 'font-semibold');
   });
 
-  it('N4: hydrates MrxSupplementalIssueModal synchronously from warm mrx_batch_dishes_ cache without refetching getBatchDishes', async () => {
-    serverStateCache.clearAll();
-    serverStateCache.set('mrx_batch_dishes_batch-1', [{
-      dishId: 'dish-1',
-      dishCode: 'MA-01',
-      dishName: 'Thịt kho tàu ấm',
-      scopes: [{ serviceDate: '2026-10-19', shiftName: 'Ca sáng', frozenServings: 100 }],
-      materials: [{
-        batchLineId: 'bl-1',
-        dailyLineId: 'dl-1',
-        ingredientId: 'ing-1',
-        ingredientCode: 'NL-01',
-        ingredientName: 'Thịt heo',
-        canonicalUnitId: 'u-1',
-        canonicalUnitName: 'kg',
-        serviceDate: '2026-10-19',
-        frozenBomQuantityPerServing: 0.1,
-        canonicalQtyPerServing: 0.1,
-      }],
-    }]);
-    const getBatchDishesSpy = vi.spyOn(mrxApi, 'getBatchDishes').mockImplementation(() => new Promise(() => {}));
-
-    render(
-      <MrxSupplementalIssueModal
-        isOpen={true}
-        onClose={() => {}}
-        activeBatchId="batch-1"
-        activeDate="2026-10-19"
-        lines={[{
-          dailyLineId: 'dl-1',
-          ingredientName: 'Thịt heo',
-          canonicalUnitName: 'kg',
-          issuedQuantity: 10,
-        }]}
-        suppMaterialId="dl-1"
-        onSuppMaterialIdChange={() => {}}
-        suppQuantity=""
-        onSuppQuantityChange={() => {}}
-        suppReason=""
-        onSuppReasonChange={() => {}}
-        suppError={null}
-        isSubmittingSupp={false}
-        onSubmit={() => {}}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', { name: 'Tính theo món ăn & suất phát sinh' }));
-    expect(screen.getByRole('option', { name: /Thịt kho tàu ấm/ })).toBeInTheDocument();
-    expect(getBatchDishesSpy).not.toHaveBeenCalled();
-    getBatchDishesSpy.mockRestore();
+  it('N4: ignores a warm aggregate dish cache and reads exact day shift variant choices for supplemental proposals', async () => {
+    serverStateCache.set('mrx_batch_dishes_batch-1', [{ dishId: 'legacy', dishName: 'Thịt kho tàu ấm', materials: [] }]);
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 1,
+      updatedAt: '2026-10-19T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    const requests = vi.spyOn(apiTransport, 'apiClient').mockImplementation(async endpoint => {
+      if (endpoint.endsWith('/fulfillment?serviceDate=2026-10-19')) return { batchId: 'batch-1', serviceDate: '2026-10-19', pendingDemandCount: 0, lines: [] };
+      if (endpoint.endsWith('/dish-options?serviceDate=2026-10-19')) return { batchId: 'batch-1', batchVersion: 2, serviceDate: '2026-10-19', canCreate: true,
+        dishes: [{ dishId: 'frozen', dishCode: 'MA-01', dishName: 'Món đóng băng đúng ca', shiftName: 'MORNING', menuVariant: 'savory' }] };
+      throw new Error(`Unexpected exact supplemental read ${endpoint}`);
+    });
+    render(<AuthProvider><MemoryRouter><MrxSupplementalIssueModal isOpen onClose={() => {}} activeBatchId="batch-1" activeDate="2026-10-19" lines={[]}
+      suppError={null} isSubmittingSupp={false} onSubmit={() => {}} /></MemoryRouter></AuthProvider>);
+    await userEvent.click(screen.getByRole('button', { name: 'Đề nghị suất phát sinh' }));
+    expect(await screen.findByRole('option', { name: 'Sáng mặn' })).toBeEnabled();
+    expect(screen.getByRole('option', { name: 'Chiều mặn' })).toBeDisabled();
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Menu hoặc tùy chọn 1' }), 'CUSTOM');
+    expect(await screen.findByRole('option', { name: /Món đóng băng đúng ca · Sáng · Mặn/ })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Thịt kho tàu ấm/ })).not.toBeInTheDocument();
+    expect(requests).toHaveBeenCalledWith('/reconciliation/supplemental-demands/batches/batch-1/dish-options?serviceDate=2026-10-19');
   });
 
   it('N6: keeps history DataGrid mounted in isPreviousData state without unmounting into WorkbenchSkeleton when switching to history tab while daily is warm in snapshot', async () => {
@@ -445,7 +416,7 @@ describe('Warehouse MRX transitions', () => {
         issuedQuantity: 10,
         returnedQuantity: 0,
         remainingQuantity: 0,
-        lines: [{
+        lines: [{ frozenBaselineQuantity: 10, approvedSupplementalQuantity: 0,
           dailyLineId: 'dl-1',
           batchLineId: 'bl-1',
           ingredientId: 'ing-1',

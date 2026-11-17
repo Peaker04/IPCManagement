@@ -1,6 +1,7 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using MySqlConnector;
 using IPCManagement.Api.Features.SystemOperation.Services;
 
 namespace IPCManagement.Api.Data.Transactions;
@@ -79,6 +80,39 @@ public sealed class EfTransactionRunner : IEfTransactionRunner
         if (!_context.Database.IsRelational())
         {
             return await operation(cancellationToken);
+        }
+
+        // A composed application command owns the transaction and its commit receipt.
+        // Domain commands join it; they must never commit or retry only part of that unit.
+        if (_context.Database.CurrentTransaction is not null)
+        {
+            var transaction = _context.Database.CurrentTransaction;
+            var savepoint = $"domain_{Guid.NewGuid():N}";
+            await transaction.CreateSavepointAsync(savepoint, cancellationToken);
+            try
+            {
+                var nestedResult = await operation(cancellationToken);
+                if (_modeGuard is not null && _requestContext?.OperationKey is { } nestedKey &&
+                    _requestContext.ExpectedModeVersion is { } nestedVersion)
+                    await _modeGuard.ValidateAsync(nestedKey, nestedVersion, _requestContext.Disposition, cancellationToken);
+                await transaction.ReleaseSavepointAsync(savepoint, cancellationToken);
+                return nestedResult;
+            }
+            catch (Exception error)
+            {
+                try
+                {
+                    // InnoDB rolls back the entire deadlock victim, including its savepoints.
+                    // The outer execution strategy needs the original error to retry the whole command.
+                    if (error.GetBaseException() is not MySqlException { ErrorCode: MySqlErrorCode.LockDeadlock })
+                        await transaction.RollbackToSavepointAsync(savepoint, cancellationToken);
+                }
+                finally
+                {
+                    _context.ChangeTracker.Clear();
+                }
+                throw;
+            }
         }
 
         var attempt = 0;

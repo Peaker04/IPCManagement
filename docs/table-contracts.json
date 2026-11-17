@@ -110,6 +110,42 @@
       "owner": "dashboard task model",
       "pagination": "scoped-snapshot",
       "primaryStatus": "pending"
+    },
+    {
+      "id": "operational-approval-queue",
+      "route": "/approvals",
+      "surface": "queue",
+      "file": "frontend/src/features/approvals/ApprovalPage.tsx",
+      "type": "action-queue",
+      "grain": "mode-target-type-target-id-stage",
+      "rowKey": "inboxItemId",
+      "owner": "OperationalApprovalService.GetPageAsync; domain handlers retain decisions",
+      "pagination": "server-cursor",
+      "primaryStatus": "current-approval-stage"
+    },
+    {
+      "id": "mrx-supplemental-demand-preview",
+      "route": "/warehouse",
+      "surface": "mrx-daily-supplemental-proposal",
+      "file": "frontend/src/features/warehouse/MrxSupplementalDemandForm.tsx",
+      "type": "aggregate",
+      "grain": "demand / exact frozen daily material",
+      "rowKey": "demandMaterialId",
+      "owner": "ReconciliationSupplementalDemandService.CreateAsync / UpdateDraftAsync server snapshot",
+      "pagination": "scoped-snapshot",
+      "primaryStatus": "supplemental-demand-status"
+    },
+    {
+      "id": "mrx-supplemental-purpose-fulfillment",
+      "route": "/warehouse",
+      "surface": "mrx-daily-supplemental-actual",
+      "file": "frontend/src/features/warehouse/MrxSupplementalFulfillmentForm.tsx",
+      "type": "action-queue",
+      "grain": "batch / service date / selected purpose or approved demand / daily material",
+      "rowKey": "dailyLineId",
+      "owner": "ReconciliationSupplementalFulfillmentQuery.GetAsync + exact approved demand version",
+      "pagination": "scoped-snapshot",
+      "primaryStatus": "purpose-remaining-or-ambiguous"
     }
   ]
 }

@@ -4,7 +4,7 @@ import { MrxDailyLinesBranch } from '../features/warehouse/branches/MrxDailyLine
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider, MemoryRouter } from 'react-router-dom';
 import { MrxSupplementalIssueModal } from '../features/warehouse/MrxSupplementalIssueModal';
 import { WarehousePage } from '../features/warehouse/WarehousePage';
 import { AuthProvider } from '../store/authContext';
@@ -67,7 +67,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
   });
 
   it('finds unaccented names within a document without dropping hidden quantity and note drafts', async () => {
-    const line = {
+    const line = { frozenBaselineQuantity: 2, approvedSupplementalQuantity: 0,
       batchLineId: '10000000-0000-0000-0000-000000000011', dailyLineId: '10000000-0000-0000-0000-000000000012',
       ingredientId: '10000000-0000-0000-0000-000000000013', canonicalUnitId: '10000000-0000-0000-0000-000000000014',
       ingredientCode: 'NL-GAO', ingredientName: 'Gạo tẻ', canonicalUnitName: 'kg', requiredQuantity: 2,
@@ -196,7 +196,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
         serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true,
         requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2,
         lastRevisionAt: '2026-10-31T01:30:00Z', lastRevisionByName: 'Nguyễn Quản Lý', lastRevisionByRole: 'MANAGER',
-        lines: [{ dailyLineId: 'daily-1', batchLineId: 'line-1', ingredientId: 'ingredient-1', ingredientCode: 'GAO', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
+        lines: [{ frozenBaselineQuantity: 2, approvedSupplementalQuantity: 0, dailyLineId: 'daily-1', batchLineId: 'line-1', ingredientId: 'ingredient-1', ingredientCode: 'GAO', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
       }],
     });
     vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
@@ -213,9 +213,9 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     { kind: 'initial', failure: '502' }, { kind: 'initial', failure: 'missing-receipt' },
     { kind: 'supplemental', failure: 'missing-receipt' },
   ] as const)('never offers stale lô A lines and fences $kind/$failure across a newer daily read', async ({ kind, failure }) => {
-    const line = { dailyLineId: 'dl-a', batchLineId: 'bl-a', ingredientId: 'i-a', ingredientName: 'Gạo A', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false };
+    const line = { frozenBaselineQuantity: 2, approvedSupplementalQuantity: 0, dailyLineId: 'dl-a', batchLineId: 'bl-a', ingredientId: 'i-a', ingredientName: 'Gạo A', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false };
     const dailyA: MrxWarehouseDaily = { batchId: 'batch-a', batchStatus: 'TRANSFERRED', sourceVersion: 3, weeklyStatus: 'IN_PROGRESS', compatibility: { canRead: true, canIssueByDate: true }, dates: [{ serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true, requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, lines: [line] }] };
-    const dailyB: MrxWarehouseDaily = { ...dailyA, batchId: 'batch-b', sourceVersion: 7, dates: [{ ...dailyA.dates[0], lines: [{ ...line, dailyLineId: 'dl-b', batchLineId: 'bl-b', ingredientName: 'Gạo B', issuedQuantity: kind === 'supplemental' ? 1 : 0 }] }] };
+    const dailyB: MrxWarehouseDaily = { ...dailyA, batchId: 'batch-b', batchStatus: kind === 'supplemental' ? 'IN_PROGRESS' : 'TRANSFERRED', sourceVersion: 7, dates: [{ ...dailyA.dates[0], lines: [{ ...line, dailyLineId: 'dl-b', batchLineId: 'bl-b', ingredientName: 'Gạo B', issuedQuantity: kind === 'supplemental' ? 1 : 0 }] }] };
     serverStateCache.set('snapshot:mrx_daily', { data: { daily: dailyA, history: null } });
     let resolveB!: (value: MrxWarehouseDaily) => void;
     const firstRead = new Promise<MrxWarehouseDaily>(resolve => { resolveB = resolve; });
@@ -224,6 +224,11 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     let resolveWrite!: (receipt: Awaited<ReturnType<typeof mrxApi.createIssue>>) => void;
     const write = new Promise<Awaited<ReturnType<typeof mrxApi.createIssue>>>((resolve, reject) => { rejectWrite = reject; resolveWrite = resolve; });
     const transport = vi.spyOn(apiTransport, 'apiClient').mockImplementation(async endpoint => {
+      if (endpoint.endsWith('/batch-b/fulfillment?serviceDate=2026-10-19')) return {
+        batchId: 'batch-b', serviceDate: '2026-10-19', pendingDemandCount: 0, lines: [{ dailyLineId: 'dl-b', ingredientId: 'i-a', canonicalUnitId: 'u-1',
+          baselineRequiredQuantity: 2, baselineIssuedQuantity: 1, baselineRemainingQuantity: 1, netIssuedQuantity: 1,
+          unplannedIssuedQuantity: 0, unallocatedIssuedQuantity: 0, hasIncompleteAllocation: false, hasAmbiguousReturn: false,
+          isDemandFulfilled: false, extraDemands: [] }] };
       if (endpoint === '/system-operation-mode') return { mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 1, updatedAt: '2026-10-19T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } };
       if (endpoint === '/reconciliation/batches/batch-b/warehouse-daily') return refreshedDaily ?? firstRead;
       if (endpoint.startsWith('/reconciliation/batches?')) return { items: ['a', 'b'].map(id => ({ batchId: `batch-${id}`, customerId: `c-${id}`, customerCode: id, customerName: id, weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'TRANSFERRED', version: 1, createdAt: '2026-10-19T00:00:00Z' })), totalCount: 2, totalPages: 1, hasNext: false, hasPrev: false, pageNumber: 1, pageSize: 50 };
@@ -241,22 +246,27 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       await userEvent.click(screen.getByRole('button', { name: 'Điền đủ toàn bộ' }));
       await userEvent.click(screen.getByRole('button', { name: 'Xác nhận xuất kho' }));
     } else {
+      refreshedDaily = { ...dailyB, sourceVersion: 8 };
       await userEvent.click(screen.getByRole('button', { name: 'Xuất bổ sung ca' }));
-      const extra = screen.getByRole('spinbutton', { name: 'Số lượng xuất thêm' });
+      await screen.findByRole('combobox', { name: 'Mục đích xuất bổ sung' });
+      await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Mục đích xuất bổ sung' }), 'UNPLANNED_EXTRA');
+      await userEvent.click(screen.getByRole('combobox', { name: 'Chọn nguyên liệu xuất bổ sung' }));
+      await userEvent.click(await screen.findByRole('option', { name: /Gạo B/ }));
+      const extra = screen.getByRole('spinbutton', { name: 'Lượng xuất bổ sung Gạo B' });
       await userEvent.type(extra, '0.0000004');
       await userEvent.type(screen.getByRole('textbox', { name: 'Lý do xuất bổ sung' }), 'Bổ sung suất ăn');
       expect(screen.getByRole('button', { name: 'Xác nhận xuất bổ sung' })).toBeDisabled();
       await userEvent.clear(extra);
       await userEvent.type(extra, '1.0000005');
       await userEvent.click(screen.getByRole('button', { name: 'Xác nhận xuất bổ sung' }));
-      expect(screen.getByRole('combobox', { name: 'Chọn nguyên liệu bổ sung' })).toBeDisabled();
-      expect(screen.getByRole('spinbutton', { name: 'Số lượng xuất thêm' })).toBeDisabled();
+      expect(screen.getByRole('combobox', { name: 'Mục đích xuất bổ sung' })).toBeDisabled();
+      expect(screen.getByRole('spinbutton', { name: 'Lượng xuất bổ sung Gạo B' })).toBeDisabled();
       expect(screen.getByRole('textbox', { name: 'Lý do xuất bổ sung' })).toBeDisabled();
-      expect(screen.getByRole('button', { name: 'Phát sinh suất ăn đột xuất' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Đề nghị suất phát sinh' })).toBeDisabled();
     }
     expect(writes()).toHaveLength(1);
     expect(writes()[0][1]?.method).toBe('POST');
-    expect(JSON.parse(writes()[0][1]?.body as string)).toEqual(expect.objectContaining({ reconciliationBatchId: 'batch-b', expectedVersion: 7, issueDate: '2026-10-19', isSupplemental: kind === 'supplemental', lines: [expect.objectContaining({ reconciliationBatchDailyLineId: 'dl-b', issuedQty: kind === 'supplemental' ? 1.000001 : 2 })] }));
+    expect(JSON.parse(writes()[0][1]?.body as string)).toEqual(expect.objectContaining({ reconciliationBatchId: 'batch-b', expectedVersion: kind === 'supplemental' ? 8 : 7, issueDate: '2026-10-19', isSupplemental: kind === 'supplemental', lines: [expect.objectContaining({ reconciliationBatchDailyLineId: 'dl-b', issuedQty: kind === 'supplemental' ? 1.000001 : 2 })] }));
     expect(screen.getByLabelText('Chọn lô đối soát xuất kho')).toBeDisabled();
     expect(screen.getByLabelText('Ngày xuất kho')).toBeDisabled();
     expect(screen.getByText(/Cả tuần/).closest('button')).toBeDisabled();
@@ -265,19 +275,20 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       else rejectWrite(failure === 'network' ? new TypeError('Failed to fetch') : new ApiError(Number(failure), 'Response lost'));
     });
     await screen.findByText('Chưa xác nhận được kết quả xuất kho');
-    refreshedDaily = { ...dailyB, sourceVersion: 8 };
+    const previousReads = transport.mock.calls.filter(([path]) => path.endsWith('/warehouse-daily')).length;
+    refreshedDaily = { ...dailyB, sourceVersion: 9 };
     await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
-    await waitFor(() => expect(transport.mock.calls.filter(([path]) => path.endsWith('/warehouse-daily'))).toHaveLength(2));
+    await waitFor(() => expect(transport.mock.calls.filter(([path]) => path.endsWith('/warehouse-daily'))).toHaveLength(previousReads + 1));
     expect(screen.getByLabelText('Chọn lô đối soát xuất kho')).toBeDisabled();
     const retry = screen.getByRole('button', { name: kind === 'initial' ? 'Xác nhận xuất kho' : 'Xác nhận xuất bổ sung' });
     expect(retry).toBeDisabled();
     if (kind === 'initial') {
       expect(screen.getByRole('textbox', { name: 'Số lượng thực xuất Gạo B' })).toHaveValue('2');
     } else {
-      const suppSelect = screen.getByRole('combobox', { name: 'Chọn nguyên liệu bổ sung' });
-      const suppQty = screen.getByRole('spinbutton', { name: 'Số lượng xuất thêm' });
+      const suppSelect = screen.getByRole('combobox', { name: 'Mục đích xuất bổ sung' });
+      const suppQty = screen.getByRole('spinbutton', { name: 'Lượng xuất bổ sung Gạo B' });
       const suppReasonInput = screen.getByRole('textbox', { name: 'Lý do xuất bổ sung' });
-      const presetBtn = screen.getByRole('button', { name: 'Phát sinh suất ăn đột xuất' });
+      const presetBtn = screen.getByRole('button', { name: 'Đề nghị suất phát sinh' });
       expect(suppSelect).toBeDisabled();
       expect(suppQty).toBeDisabled();
       expect(suppReasonInput).toBeDisabled();
@@ -336,7 +347,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
   });
 
   it.each([true, false])('keeps explicit out-of-scope dates empty but resolves an unrelated remembered day to the selected batch (explicit=$0)', async (explicit) => {
-    vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValue({ batchId: 'batch-1', batchStatus: 'TRANSFERRED', sourceVersion: 2, weeklyStatus: 'IN_PROGRESS', compatibility: { canRead: true, canIssueByDate: true }, dates: [{ serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true, requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, lines: [{ dailyLineId: 'dl-1', batchLineId: 'bl-1', ingredientId: 'i-1', ingredientName: 'Gạo', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }] }] });
+    vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValue({ batchId: 'batch-1', batchStatus: 'TRANSFERRED', sourceVersion: 2, weeklyStatus: 'IN_PROGRESS', compatibility: { canRead: true, canIssueByDate: true }, dates: [{ serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true, requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, lines: [{ frozenBaselineQuantity: 2, approvedSupplementalQuantity: 0, dailyLineId: 'dl-1', batchLineId: 'bl-1', ingredientId: 'i-1', ingredientName: 'Gạo', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }] }] });
     vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, totalPages: 0, hasNext: false, hasPrev: false, pageNumber: 1, pageSize: 25 });
     workspaceSessionStore.setScope({ batchId: 'other-batch', serviceDate: '2026-10-25' });
     renderWarehouse(`/warehouse?view=mrx-daily&batchId=batch-1${explicit ? '&date=2026-10-25' : ''}`);
@@ -375,7 +386,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       dates: [{
         serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true,
         requiredQuantity: 79.773, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 79.773,
-        lines: [{ dailyLineId: 'daily-1', batchLineId: 'line-1', ingredientId: 'ingredient-1', ingredientCode: 'GAO', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', requiredQuantity: 79.773, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 79.773, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }]
+        lines: [{ frozenBaselineQuantity: 79.773, approvedSupplementalQuantity: 0, dailyLineId: 'daily-1', batchLineId: 'line-1', ingredientId: 'ingredient-1', ingredientCode: 'GAO', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', requiredQuantity: 79.773, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 79.773, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }]
       }]
     });
     vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
@@ -422,7 +433,8 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
   });
 
   it.each([
-    { kind: 'concurrency conflict', failure: new ApiError(409, 'Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.'), uncertain: false },
+    { kind: 'concurrency conflict', failure: new ApiError(409, 'Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.', undefined, 'MRX_ISSUE_STALE'), uncertain: false },
+    { kind: 'warehouse handoff conflict', failure: new ApiError(409, 'Điều phối cần chọn “Chuyển sang Kho” trước khi xuất.'), uncertain: false },
     { kind: 'lost response', failure: new TypeError('Failed to fetch'), uncertain: true },
   ])('MRX daily workbench recovers safely after $kind', async ({ failure, uncertain }) => {
     const staleDaily = {
@@ -431,7 +443,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       dates: [{
         serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true,
         requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2,
-        lines: [{ dailyLineId: 'daily-1', batchLineId: 'line-1', ingredientId: 'ingredient-1', ingredientCode: 'GAO', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
+        lines: [{ frozenBaselineQuantity: 2, approvedSupplementalQuantity: 0, dailyLineId: 'daily-1', batchLineId: 'line-1', ingredientId: 'ingredient-1', ingredientCode: 'GAO', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
       }],
     };
     const getDaily = vi.spyOn(mrxApi, 'getWarehouseDaily')
@@ -455,12 +467,41 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       expect(screen.queryByText('Failed to fetch')).not.toBeInTheDocument();
       return;
     }
-    expect(within(alert).getByText('Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.')).toBeInTheDocument();
+    expect(within(alert).getByText(failure.message)).toBeInTheDocument();
+    expect(within(alert).getByText(failure instanceof ApiError && failure.code === 'MRX_ISSUE_STALE'
+      ? 'Dữ liệu xuất kho đã thay đổi' : 'Không thể ghi phiếu xuất')).toBeVisible();
     expect(within(alert).getByRole('button', { name: 'Tải lại dữ liệu mới nhất' })).toBeInTheDocument();
     expect(screen.getAllByRole('alert')).toHaveLength(1);
     await userEvent.click(within(alert).getByRole('button', { name: 'Tải lại dữ liệu mới nhất' }));
     await waitFor(() => expect(getDaily).toHaveBeenCalledTimes(2));
     expect(await screen.findByText('v4')).toBeInTheDocument();
+  });
+
+  it('keeps a frozen batch read-only until a refresh confirms warehouse handoff', async () => {
+    const ready: MrxWarehouseDaily = {
+      batchId: 'batch-1', batchStatus: 'READY', sourceVersion: 2, weeklyStatus: 'PENDING',
+      compatibility: { canRead: true, canIssueByDate: true },
+      dates: [{ serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true, requiredQuantity: 2,
+        issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2,
+        lines: [{ dailyLineId: 'dl-1', batchLineId: 'bl-1', ingredientId: 'i-1', ingredientName: 'Gạo',
+          canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 2, frozenBaselineQuantity: 2, approvedSupplementalQuantity: 0, issuedQuantity: 0,
+          returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }] }],
+    };
+    vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValueOnce(ready)
+      .mockResolvedValue({ ...ready, batchStatus: 'TRANSFERRED', sourceVersion: 3 });
+    vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
+    const issue = vi.spyOn(mrxApi, 'createIssue').mockRejectedValue(new ApiError(409, 'Nguồn đã đổi'));
+    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-1&date=2026-10-19');
+    expect(await screen.findByText('Lô chưa chuyển sang Kho')).toBeVisible();
+    expect(screen.getByText('Gạo')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Xác nhận xuất kho' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Điền đủ toàn bộ' })).not.toBeInTheDocument();
+    expect(issue).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: /^Làm mới$/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Điền đủ toàn bộ' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận xuất kho' }));
+    expect(issue).toHaveBeenCalledOnce();
+    expect(issue).toHaveBeenCalledWith(expect.objectContaining({ expectedVersion: 3 }));
   });
 
   it('lists source-change events once, opens their material detail, and offers no stock command', async () => {
@@ -555,8 +596,8 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       ],
       aggregatedLines: [{ ingredientId: 'i-1', ingredientName: 'Gạo', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', totalRequiredQuantity: 7, totalIssuedQuantity: 5, totalRemainingQuantity: 2,
         allocations: [
-          { batchId: 'b-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'c-1', customerName: 'Khách A', requiredQuantity: 5, issuedQuantity: 5, remainingQuantity: 0, status: 'EXACT' },
-          { batchId: 'b-2', batchLineId: 'bl-2', dailyLineId: 'dl-2', customerId: 'c-2', customerName: 'Khách B', requiredQuantity: 2, issuedQuantity: 0, remainingQuantity: 2, status: 'UNTOUCHED' },
+          {   batchId: 'b-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'c-1', unplannedIssuedQuantity: 0, customerName: 'Khách A', requiredQuantity: 5, issuedQuantity: 5, remainingQuantity: 0, status: 'EXACT' },
+          {   batchId: 'b-2', batchLineId: 'bl-2', dailyLineId: 'dl-2', customerId: 'c-2', unplannedIssuedQuantity: 0, customerName: 'Khách B', requiredQuantity: 2, issuedQuantity: 0, remainingQuantity: 2, status: 'UNTOUCHED' },
         ] }],
     };
     const read = vi.spyOn(mrxApi, 'getPreparation').mockRejectedValueOnce(new ApiError(500, 'Không tải được chuẩn bị tuần')).mockResolvedValue(preparation);
@@ -597,7 +638,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     const preparation = {
       serviceDate: '2026-06-15',
       batches: [{ batchId: 'b-1', customerId: 'c-1', customerName: 'Khách A', batchStatus: 'TRANSFERRED', batchVersion: 2, isApplicable: true, hasExistingIssue: false, requiredQuantity: 5, issuedQuantity: 0, remainingQuantity: 5 }],
-      aggregatedLines: [{ ingredientId: 'i-1', ingredientName: 'Gạo', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', totalRequiredQuantity: 5, totalIssuedQuantity: 0, totalRemainingQuantity: 5, allocations: [{ batchId: 'b-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'c-1', customerName: 'Khách A', requiredQuantity: 5, remainingQuantity: 5, status: 'UNTOUCHED' }] }]
+      aggregatedLines: [{ ingredientId: 'i-1', ingredientName: 'Gạo', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', totalRequiredQuantity: 5, totalIssuedQuantity: 0, totalRemainingQuantity: 5, allocations: [{   batchId: 'b-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'c-1', unplannedIssuedQuantity: 0, customerName: 'Khách A', requiredQuantity: 5, remainingQuantity: 5, status: 'UNTOUCHED' }] }]
     };
     vi.spyOn(apiTransport, 'apiClient').mockImplementation(async endpoint => {
       if (endpoint === '/system-operation-mode') return { mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 1, updatedAt: '2026-06-15T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } };
@@ -652,7 +693,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     );
     const exportRequest = fetch.mock.calls.find(([url]) => String(url).includes('/preparation/export-workbook'))!;
     expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.get('includeMenus')).toBe('true');
-    expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.get('isSupplemental')).toBe('false');
+    expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.has('isSupplemental')).toBe(false);
     expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.has('search')).toBe(false);
     await userEvent.click(screen.getByRole('button', { name: 'Xóa tìm kiếm' }));
     expect(screen.getByText('Gạo')).toBeVisible();
@@ -686,7 +727,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       return {
       serviceDate: date,
       batches: [{ batchId: 'b-1', customerId: 'c-1', customerName: 'Khách A', batchStatus: 'TRANSFERRED', batchVersion: 2, isApplicable: true, hasExistingIssue: false, requiredQuantity: 5, issuedQuantity: 0, remainingQuantity: 5 }],
-      aggregatedLines: [{ ingredientId: 'i-1', ingredientName: 'Gạo', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', totalRequiredQuantity: 5, totalIssuedQuantity: 0, totalRemainingQuantity: 5, allocations: [{ batchId: 'b-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'c-1', customerName: 'Khách A', requiredQuantity: 5, remainingQuantity: 5, status: 'UNTOUCHED' }] }]
+      aggregatedLines: [{ ingredientId: 'i-1', ingredientName: 'Gạo', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', totalRequiredQuantity: 5, totalIssuedQuantity: 0, totalRemainingQuantity: 5, allocations: [{   batchId: 'b-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'c-1', unplannedIssuedQuantity: 0, customerName: 'Khách A', requiredQuantity: 5, remainingQuantity: 5, status: 'UNTOUCHED' }] }]
     }; });
 
     renderWarehouse('/warehouse?view=mrx-preparation&date=ALL');
@@ -737,7 +778,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
         issuedQuantity: 0,
         returnedQuantity: 0,
         remainingQuantity: 10,
-        lines: [{
+        lines: [{ frozenBaselineQuantity: 10, approvedSupplementalQuantity: 0,
           dailyLineId: 'dl-1',
           batchLineId: 'bl-1',
           ingredientId: 'i-1',
@@ -795,7 +836,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     { rate: 0.0000005, expected: 0.000001, display: '0,000001', unmapped: false, servings: '1' },
     { rate: null, expected: 0, display: '—', unmapped: false, servings: '1' },
     { rate: 0.000123, expected: 0.000123, display: '0,000123', unmapped: true, servings: '1' },
-  ])('supplemental by-dish preserves six decimals and rejects incomplete packages ($rate/$unmapped)', async ({ rate, expected, display, unmapped, servings }) => {
+  ])('supplemental proposal preserves server precision and blocks unavailable frozen recipes ($rate/$unmapped)', async ({ rate, expected, display, unmapped, servings }) => {
     vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
       items: [{
         batchId: 'batch-in-progress-1',
@@ -829,7 +870,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
         issuedQuantity: 10,
         returnedQuantity: 0,
         remainingQuantity: 0,
-        lines: [{
+        lines: [{ frozenBaselineQuantity: 10, approvedSupplementalQuantity: 0,
           dailyLineId: 'dl-1',
           batchLineId: 'bl-1',
           ingredientId: 'i-1',
@@ -871,105 +912,86 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       hasPrev: false,
       hasNext: false,
     });
-    const createIssue = vi.spyOn(apiTransport, 'apiClient').mockImplementation(async endpoint => {
-      if (endpoint === '/system-operation-mode') return { mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 1, updatedAt: '2026-10-19T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } };
-      if (endpoint !== '/inventory-issues') throw new Error(`Unexpected dish issue request ${endpoint}`);
-      return { issueId: 'iss-supp-1', issueCode: 'PX-SUPP-001', concurrencyVersion: 1, provisions: [] };
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 1,
+      updatedAt: '2026-10-19T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    const unavailable = unmapped || rate === null;
+    const requests = vi.spyOn(apiTransport, 'apiClient').mockImplementation(async (endpoint, init) => {
+      if (endpoint.endsWith('/dish-options?serviceDate=2026-10-19')) return {
+        batchId: 'batch-in-progress-1', batchVersion: 2, serviceDate: '2026-10-19', canCreate: !unavailable,
+        dishes: [{ dishId: 'dish-1', dishCode: 'MON-1', dishName: 'Bò kho', shiftName: 'MORNING', menuVariant: 'savory',
+          blockedReason: unavailable ? 'Thiếu định lượng hoặc quy đổi BOM đóng băng.' : null }],
+      };
+      if (endpoint === '/reconciliation/supplemental-demands' && init?.method === 'POST') {
+        const body = JSON.parse(String(init.body));
+        return { demandId: body.commandId, batchId: body.batchId, serviceDate: body.serviceDate,
+          status: 'DRAFT', version: 1, batchVersion: 2, reason: body.reason, snapshotFingerprint: 'FROZEN',
+          createdBy: 'user-1', createdAt: '2026-10-19T00:00:00Z',
+          dishes: body.dishes.map((dish: object) => ({ ...dish, demandDishId: 'dd-1', dishCode: 'MON-1', dishName: 'Bò kho' })),
+          materials: [{ demandMaterialId: 'dm-1', dailyLineId: 'dl-1', ingredientId: 'i-1', canonicalUnitId: 'u-1', requiredQuantity: expected }] };
+      }
+      throw new Error(`Unexpected supplemental request ${endpoint}`);
     });
-
-    const material = { batchLineId: 'bl-1', dailyLineId: 'dl-1', serviceDate: '2026-10-19', ingredientId: 'i-1',
-      ingredientName: 'Thịt bò', ingredientCode: 'BO', canonicalUnitId: 'u-1', canonicalUnitName: 'kg',
-      grossQtyPerServing: (rate ?? 0.1) * 1000, canonicalQtyPerServing: rate,
-      quantityUnavailableReasonCode: rate === null ? 'FROZEN_UNIT_CONVERSION_MISSING' : null };
-    vi.spyOn(mrxApi, 'getBatchDishes').mockResolvedValue([
-      { dishId: 'dish-other-day', dishCode: 'MON-T3', dishName: 'Chả lá lốt', materials: [{ ...material, serviceDate: '2026-10-20', dailyLineId: 'dl-tue' }] },
-      { dishId: 'dish-1', dishCode: 'MON-1', dishName: 'Bò kho',
-        materials: unmapped ? [material, { ...material, dailyLineId: 'missing-line', ingredientName: 'Gia vị' }] : [material] },
-    ]);
     renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-in-progress-1&date=2026-10-19');
     await userEvent.click(await screen.findByRole('button', { name: 'Xuất bổ sung ca' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Tính theo món ăn & suất phát sinh' }));
-    await screen.findByRole('option', { name: 'Bò kho (MON-1)' });
-    expect(screen.queryByRole('option', { name: 'Chả lá lốt (MON-T3)' })).not.toBeInTheDocument();
-    await userEvent.type(screen.getByRole('spinbutton', { name: 'Số suất phát sinh' }), servings);
-    const packageButton = screen.getByRole('button', { name: /Xuất trọn gói cả món/ });
-    if (!unmapped && rate !== null) expect(within(screen.getByRole('dialog')).getAllByText(display, { exact: true })[0]).toBeVisible();
-    if (!unmapped && rate === 0.0000004) {
-      expect(within(screen.getByRole('dialog')).getByText('0,0000004', { exact: true })).toBeVisible();
-      expect(within(screen.getByRole('dialog')).queryByText(/4e-7/i)).not.toBeInTheDocument();
-    }
-    if (unmapped || rate === null) {
-      expect(packageButton).toBeDisabled();
-      expect(screen.getByText(/Không thể xuất trọn gói/)).toBeInTheDocument();
-      expect(createIssue.mock.calls.filter(([path]) => path === '/inventory-issues')).toHaveLength(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Đề nghị suất phát sinh' }));
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Menu hoặc tùy chọn 1' }), 'CUSTOM');
+    const option = await screen.findByRole('option', { name: /Bò kho · Sáng · Mặn/ });
+    expect(screen.queryByRole('button', { name: /Xuất trọn gói/ })).not.toBeInTheDocument();
+    if (unavailable) {
+      expect(option).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Tính nhu cầu và lưu nháp' })).toBeDisabled();
     } else {
-      await userEvent.click(packageButton);
-      expect(createIssue).toHaveBeenCalledWith('/inventory-issues', { method: 'POST', body: expect.any(String) });
-      const request = createIssue.mock.calls.find(([path]) => path === '/inventory-issues')!;
-      expect(JSON.parse(request[1]?.body as string)).toEqual(expect.objectContaining({
-        isSupplemental: true, issueDate: '2026-10-19', reconciliationBatchId: 'batch-in-progress-1',
-        lines: [expect.objectContaining({ reconciliationBatchDailyLineId: 'dl-1', issuedQty: expected, requestedQty: expected })],
-      }));
+      await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Món, ca và loại suất 1' }), JSON.stringify(['dish-1', 'MORNING', 'savory']));
+      await userEvent.type(screen.getByRole('spinbutton', { name: 'Suất tăng thêm 1' }), servings);
+      await userEvent.type(screen.getByRole('textbox', { name: 'Lý do tăng suất' }), 'Khách tăng suất');
+      await userEvent.click(screen.getByRole('button', { name: 'Tính nhu cầu và lưu nháp' }));
+      expect(await within(screen.getByRole('dialog')).findByText(display, { exact: true })).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Gửi duyệt nhu cầu' })).toBeEnabled();
     }
+    expect(requests.mock.calls.filter(([path]) => path === '/inventory-issues')).toHaveLength(0);
   });
 
-  it('never offers another batch or day\'s supplemental dishes and recovers a failed projection without blocking direct entry', async () => {
-    const material = { batchLineId: 'bl-a', dailyLineId: 'dl-a', serviceDate: '2026-10-19', ingredientId: 'i-a', ingredientName: 'Gạo', ingredientCode: 'GAO', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', grossQtyPerServing: 0.123, canonicalQtyPerServing: 0.000123 };
-    const dishA = { dishId: 'dish-a', dishCode: 'A', dishName: 'Món A', materials: [material] };
-    const dishB = { dishId: 'dish-b', dishCode: 'B', dishName: 'Món B', materials: [{ ...material, dailyLineId: 'dl-b' }] };
-    let rejectB!: (cause: Error) => void;
-    vi.spyOn(mrxApi, 'getBatchDishes').mockResolvedValueOnce([dishA])
-      .mockImplementationOnce(() => new Promise((_, reject) => { rejectB = reject; })).mockResolvedValue([dishB]);
+  it('does not retain another batch or day proposal choices and leaves direct entry usable after a read failure', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 1,
+      updatedAt: '2026-10-19T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    let failB = true;
+    vi.spyOn(apiTransport, 'apiClient').mockImplementation(async endpoint => {
+      if (endpoint.includes('/fulfillment?')) return { batchId: endpoint.includes('/batch-b/') ? 'batch-b' : 'batch-a',
+        serviceDate: endpoint.endsWith('2026-10-20') ? '2026-10-20' : '2026-10-19', pendingDemandCount: 0, lines: [] };
+      if (endpoint.includes('/batch-b/') && failB) throw new ApiError(500, 'Định mức món chưa tải được.');
+      const batch = endpoint.includes('/batch-b/') ? 'batch-b' : 'batch-a';
+      return { batchId: batch, batchVersion: 2, serviceDate: endpoint.endsWith('2026-10-20') ? '2026-10-20' : '2026-10-19', canCreate: true,
+        dishes: endpoint.endsWith('2026-10-20') ? [] : [{ dishId: batch, dishName: batch === 'batch-a' ? 'Món A' : 'Món B',
+          dishCode: batch, shiftName: 'MORNING', menuVariant: 'savory' }] };
+    });
     const props = { isOpen: true, onClose: vi.fn(), activeBatchId: 'batch-a', activeDate: '2026-10-19',
       lines: [{ dailyLineId: 'dl-a', ingredientName: 'Gạo', issuedQuantity: 1, canonicalUnitName: 'kg' }],
       suppMaterialId: 'dl-a', onSuppMaterialIdChange: vi.fn(), suppQuantity: '1', onSuppQuantityChange: vi.fn(),
-      suppReason: 'Bổ sung', onSuppReasonChange: vi.fn(), suppError: null, isSubmittingSupp: false, onSubmit: vi.fn(),
-    };
-    const { rerender } = render(<MrxSupplementalIssueModal {...props} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Tính theo món ăn & suất phát sinh' }));
-    expect(await screen.findByRole('option', { name: 'Món A (A)' })).toBeInTheDocument();
-    await userEvent.type(screen.getByRole('spinbutton', { name: 'Số suất phát sinh' }), '1');
-    rerender(<MrxSupplementalIssueModal {...props} activeBatchId="batch-b" lines={[{ ...props.lines[0], dailyLineId: 'dl-b' }]} />);
-    expect(screen.queryByRole('option', { name: 'Món A (A)' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Xuất trọn gói/ })).not.toBeInTheDocument();
-    await act(async () => { rejectB(new ApiError(500, 'Định mức món chưa tải được.')); });
-    expect(await screen.findByText('Định mức món chưa tải được.')).toBeInTheDocument();
+      suppReason: 'Bổ sung', onSuppReasonChange: vi.fn(), suppError: null, isSubmittingSupp: false, onSubmit: vi.fn() };
+    const view = (batch: string, day = '2026-10-19') => <AuthProvider><MemoryRouter><MrxSupplementalIssueModal {...props} activeBatchId={batch} activeDate={day} /></MemoryRouter></AuthProvider>;
+    const { rerender } = render(view('batch-a'));
+    await userEvent.click(screen.getByRole('button', { name: 'Đề nghị suất phát sinh' }));
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Menu hoặc tùy chọn 1' }), 'CUSTOM');
+    await screen.findByRole('option', { name: /Món A ·/ });
+    rerender(view('batch-b'));
+    expect(screen.queryByRole('option', { name: /Món A ·/ })).not.toBeInTheDocument();
+    expect(await screen.findByText('Định mức món chưa tải được.')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Nhập nguyên liệu trực tiếp' }));
-    expect(screen.getByRole('button', { name: 'Xác nhận xuất bổ sung' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Tính theo món ăn & suất phát sinh' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Tải lại định mức món' }));
-    expect(await screen.findByRole('option', { name: 'Món B (B)' })).toBeInTheDocument();
-    await userEvent.type(screen.getByRole('spinbutton', { name: 'Số suất phát sinh' }), '1');
-    await userEvent.click(screen.getByRole('button', { name: /Xuất trọn gói/ }));
-    expect(props.onSubmit).toHaveBeenCalledWith([{ dailyLineId: 'dl-b', quantity: 0.000123, reason: 'Phát sinh 1 suất món Món B' }]);
-    props.onSubmit.mockClear();
-    rerender(<MrxSupplementalIssueModal {...props} activeBatchId="batch-b" activeDate="2026-10-20" lines={[{ ...props.lines[0], dailyLineId: 'dl-tue' }]} />);
-    expect(screen.queryByRole('option', { name: 'Món B (B)' })).not.toBeInTheDocument();
-    expect(screen.getByText(/Chưa có định mức món cho ngày đang chọn/)).toBeVisible();
-    expect(screen.queryByRole('button', { name: /Xuất trọn gói/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole('combobox', { name: 'Mục đích xuất bổ sung' })).toBeEnabled();
+    failB = false;
+    await userEvent.click(screen.getByRole('button', { name: 'Đề nghị suất phát sinh' }));
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Menu hoặc tùy chọn 1' }), 'CUSTOM');
+    await screen.findByRole('option', { name: /Món B ·/ });
+    rerender(view('batch-b', '2026-10-20'));
+    expect(screen.queryByRole('option', { name: /Món B ·/ })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Menu hoặc tùy chọn 1' })).toHaveValue(''));
     expect(props.onSubmit).not.toHaveBeenCalled();
-
-    // Direct entry remains editable after a definite 400/409 rejection (isOutcomeUnknown=false, isSubmittingSupp=false)
-    await userEvent.click(screen.getByRole('button', { name: 'Nhập nguyên liệu trực tiếp' }));
-    rerender(
-      <MrxSupplementalIssueModal
-        {...props}
-        suppError="Dữ liệu không hợp lệ (400): Số lượng vượt định mức cho phép."
-        isSubmittingSupp={false}
-        isOutcomeUnknown={false}
-      />,
-    );
-    expect(screen.getByRole('combobox', { name: 'Chọn nguyên liệu bổ sung' })).toBeEnabled();
-    expect(screen.getByRole('spinbutton', { name: 'Số lượng xuất thêm' })).toBeEnabled();
-    expect(screen.getByRole('textbox', { name: 'Lý do xuất bổ sung' })).toBeEnabled();
-    const presetBtn = screen.getByRole('button', { name: 'Phát sinh suất ăn đột xuất' });
-    expect(presetBtn).toBeEnabled();
-    await userEvent.click(presetBtn);
-    expect(props.onSuppReasonChange).toHaveBeenCalledWith('Phát sinh suất ăn đột xuất');
   });
 
   it('keeps weekly totals separated by unit, sums issued days and leaves entirely untouched totals unavailable', async () => {
-    const line = { dailyLineId: 'dl-1', batchLineId: 'bl-1', ingredientId: 'i-1', ingredientCode: 'GAO', ingredientName: 'Gạo',
+    const line = { frozenBaselineQuantity: 2, approvedSupplementalQuantity: 0, dailyLineId: 'dl-1', batchLineId: 'bl-1', ingredientId: 'i-1', ingredientCode: 'GAO', ingredientName: 'Gạo',
       canonicalUnitId: 'u-1', canonicalUnitName: null, requiredQuantity: 2, issuedQuantity: null,
       returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false };
     vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValue({
@@ -977,9 +999,9 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       compatibility: { canRead: true, canIssueByDate: true }, dates: [
         { serviceDate: '2026-10-19', status: 'UNTOUCHED', isApplicable: true, requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, lines: [line] },
         { serviceDate: '2026-10-20', status: 'UNDER_ISSUED', isApplicable: true, requiredQuantity: 3, issuedQuantity: 1, returnedQuantity: 0, remainingQuantity: 2,
-          lines: [{ ...line, dailyLineId: 'dl-2', canonicalUnitId: 'u-2', canonicalUnitName: 'lít', requiredQuantity: 3, issuedQuantity: 1 }] },
+          lines: [{ ...line, dailyLineId: 'dl-2', canonicalUnitId: 'u-2', canonicalUnitName: 'lít',  requiredQuantity: 3, issuedQuantity: 1 }] },
         { serviceDate: '2026-10-21', status: 'UNTOUCHED', isApplicable: true, requiredQuantity: 4, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 4,
-          lines: [{ ...line, dailyLineId: 'dl-3', canonicalUnitId: 'u-2', canonicalUnitName: 'lít', requiredQuantity: 4, remainingQuantity: 4 }] },
+          lines: [{ ...line, dailyLineId: 'dl-3', canonicalUnitId: 'u-2', canonicalUnitName: 'lít',  requiredQuantity: 4, remainingQuantity: 4 }] },
       ],
     });
     vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
@@ -1011,7 +1033,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       dates: [{
         serviceDate: '2026-10-23', status: 'UNTOUCHED', isApplicable: true,
         requiredQuantity: 0.3, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 0.3,
-        lines: [{ dailyLineId: 'dl-2', batchLineId: 'bl-2', ingredientId: 'i-2', ingredientName: 'Thịt gà', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 0.3, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 0.3, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
+        lines: [{ frozenBaselineQuantity: 0.3, approvedSupplementalQuantity: 0, dailyLineId: 'dl-2', batchLineId: 'bl-2', ingredientId: 'i-2', ingredientName: 'Thịt gà', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 0.3, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 0.3, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
       }],
     });
     vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
@@ -1087,7 +1109,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       dates: [{
         serviceDate: '2026-10-19', status: 'UNTOUCHED', isApplicable: true,
         requiredQuantity: 10, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 10,
-        lines: [{
+        lines: [{ frozenBaselineQuantity: 10, approvedSupplementalQuantity: 0,
           dailyLineId: 'dl-a-1', batchLineId: 'bl-a-1', ingredientId: 'ing-a', ingredientCode: 'GAO-A', ingredientName: 'Gạo lô A',
           canonicalUnitId: 'u-kg', canonicalUnitName: 'kg', requiredQuantity: 10, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 10,
           quantityStatus: 'UNTOUCHED', hasValidDisposition: false,
@@ -1100,7 +1122,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       dates: [{
         serviceDate: '2026-10-26', status: 'UNTOUCHED', isApplicable: true,
         requiredQuantity: 25, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 25,
-        lines: [{
+        lines: [{ frozenBaselineQuantity: 25, approvedSupplementalQuantity: 0,
           dailyLineId: 'dl-b-1', batchLineId: 'bl-b-1', ingredientId: 'ing-b', ingredientCode: 'THIT-B', ingredientName: 'Thịt lô B',
           canonicalUnitId: 'u-kg', canonicalUnitName: 'kg', requiredQuantity: 25, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 25,
           quantityStatus: 'UNTOUCHED', hasValidDisposition: false,
@@ -1113,7 +1135,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       dates: [{
         serviceDate: '2026-11-02', status: 'UNTOUCHED', isApplicable: true,
         requiredQuantity: 12, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 12,
-        lines: [{
+        lines: [{ frozenBaselineQuantity: 12, approvedSupplementalQuantity: 0,
           dailyLineId: 'dl-u-1', batchLineId: 'bl-u-1', ingredientId: 'ing-u', ingredientCode: 'CA-U', ingredientName: 'Cá lô ngoài trang 1',
           canonicalUnitId: 'u-kg', canonicalUnitName: 'kg', requiredQuantity: 12, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 12,
           quantityStatus: 'UNTOUCHED', hasValidDisposition: false,
@@ -1279,12 +1301,12 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
         {
           serviceDate: '2026-10-19', status: 'UNTOUCHED', isApplicable: true,
           requiredQuantity: 20, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 20,
-          lines: [{ dailyLineId: 'dl-mon', batchLineId: 'bl-mon', ingredientId: 'i-1', ingredientName: 'Thịt heo', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 20, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 20, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
+          lines: [{ frozenBaselineQuantity: 20, approvedSupplementalQuantity: 0, dailyLineId: 'dl-mon', batchLineId: 'bl-mon', ingredientId: 'i-1', ingredientName: 'Thịt heo', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 20, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 20, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
         },
         {
           serviceDate: '2026-10-20', status: 'UNTOUCHED', isApplicable: true,
           requiredQuantity: 35, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 35,
-          lines: [{ dailyLineId: 'dl-tue', batchLineId: 'bl-tue', ingredientId: 'i-2', ingredientName: 'Cá hồi', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 35, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 35, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
+          lines: [{ frozenBaselineQuantity: 35, approvedSupplementalQuantity: 0, dailyLineId: 'dl-tue', batchLineId: 'bl-tue', ingredientId: 'i-2', ingredientName: 'Cá hồi', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 35, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 35, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
         },
         { serviceDate: '2026-10-21', status: 'NO_DEMAND', isApplicable: false, requiredQuantity: 0, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 0, lines: [] },
       ],
@@ -1378,7 +1400,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(document.body.style.overflow).not.toBe('hidden');
   });
 
-  it('renders variance badges (Xuất vượt / Tiết kiệm) in ReconciliationIssueDetailModal', async () => {
+  it('renders variance badges (Xuất vượt / Xuất thiếu) in ReconciliationIssueDetailModal', async () => {
     vi.spyOn(apiTransport, 'apiClient').mockResolvedValue({
       issueId: 'issue-test-1',
       issueCode: 'ISS-20261019-01',
@@ -1431,8 +1453,9 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.getByRole('cell', { name: '0,002586' })).toBeVisible();
     expect(screen.getByRole('cell', { name: '0,002587' })).toBeVisible();
     expect(screen.getByText('Rau cải ngọt')).toBeInTheDocument();
-    expect(screen.getByText(/Tiết kiệm/)).toBeInTheDocument();
-    expect(screen.getByLabelText('Đã tự động bù tồn kho: +2,5 kg')).toBeInTheDocument();
+    expect(screen.getByText(/Xuất thiếu/)).toHaveTextContent('Xuất thiếu (2)');
+    expect(screen.queryByText('Trạng thái Bếp nhận:')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Đã tự động bù tồn kho/)).not.toBeInTheDocument();
     expect(screen.queryByText(/\+99 kg/)).not.toBeInTheDocument();
 
     vi.setSystemTime(new Date('2026-11-08T08:00:00Z')); // Sunday
@@ -1444,7 +1467,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       aggregatedLines: [{
         ingredientId: 'i-1', ingredientCode: 'GAO', ingredientName: 'Gạo ST25', canonicalUnitId: 'u-1', canonicalUnitName: 'kg',
         totalRequiredQuantity: 50, totalIssuedQuantity: 0, totalRemainingQuantity: 50,
-        allocations: [{ batchId: 'b-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'c-1', customerCode: 'DAV', customerName: 'Draxlmaier', requiredQuantity: 50, remainingQuantity: 50, status: 'UNTOUCHED' }],
+        allocations: [{ batchId: 'b-1', batchLineId: 'bl-1', dailyLineId: 'dl-1', customerId: 'c-1', unplannedIssuedQuantity: 0, customerCode: 'DAV', customerName: 'Draxlmaier', requiredQuantity: 50, remainingQuantity: 50, status: 'UNTOUCHED' }],
       }],
     });
 

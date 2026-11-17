@@ -41,6 +41,13 @@ public partial class WorkflowGenerationTests
 
     [Fact]
     public async Task Admin_approval_touching_issued_day_is_rejected_and_keeps_locked_day_frozen()
+        => await AssertIssuedDayApprovalAsync(false);
+
+    [Fact]
+    public async Task Operational_hub_locked_day_preserves_correction_audit_and_replays_error_without_source_effects()
+        => await AssertIssuedDayApprovalAsync(true);
+
+    private async Task AssertIssuedDayApprovalAsync(bool throughHub)
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
@@ -139,12 +146,38 @@ public partial class WorkflowGenerationTests
 
         Func<Task> approval = () => service.DecideMrxAsync(request.MenuAmendmentId,
             new ReviewMenuAmendmentRequest { Approved = true }, adminId, ["ADMIN"]);
+        if (throughHub)
+        {
+            await context.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE IF NOT EXISTS systemoperationmodes (id INTEGER PRIMARY KEY, mode TEXT NOT NULL,
+                    version INTEGER NOT NULL, updatedBy BLOB NOT NULL, updatedAt TEXT NOT NULL, reason TEXT NULL);
+                """);
+            context.Systemoperationmodes.Add(new SystemOperationMode { Mode = "MATERIAL_RECONCILIATION", Version = 1, UpdatedBy = GuidHelper.ParseGuidString(adminId)! });
+            await context.SaveChangesAsync();
+            var actor = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity([
+                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "Admin"),
+                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, adminId)], "test"));
+            var hub = new IPCManagement.Api.Workflows.OperationalApprovals.OperationalApprovalService(context,
+                NSubstitute.Substitute.For<IPCManagement.Api.Features.Approvals.Services.IApprovalInboxService>(),
+                NSubstitute.Substitute.For<IPCManagement.Api.Features.Approvals.Services.IApprovalWorkflowService>(), service,
+                NSubstitute.Substitute.For<IPCManagement.Api.Features.Approvals.Services.IApprovalRoutingService>());
+            var detail = await hub.GetDetailAsync(actor, "mrx-source-change", request.MenuAmendmentId);
+            var command = new IPCManagement.Api.Workflows.OperationalApprovals.OperationalApprovalActionRequest {
+                CommandId = Guid.NewGuid().ToString(), ExpectedModeVersion = 1, ExpectedFingerprint = detail.Fingerprint,
+                Decision = IPCManagement.Api.Features.Approvals.Contracts.ApprovalDecision.Approve, Reason = "Đã xem xét" };
+            approval = () => hub.DecideAsync(actor, "mrx-source-change", request.MenuAmendmentId, command);
+        }
 
         // BR-MRX-EDIT-4/9: 2026-06-15 đã có phiếu xuất nên là ngày khóa; dòng đổi món chạm ngày khóa bị từ chối toàn bộ,
         // yêu cầu chuyển CORRECTION_REQUIRED, không ghi revision/delta, không đổi số đóng băng.
         var error = (await approval.Should().ThrowAsync<MrxSourceChangeException>()).Which;
         error.Code.Should().Be(MrxErrorCodes.DayLocked);
         error.LockedDates.Should().Equal(schedule.ServiceDate);
+        if (throughHub)
+        {
+            (await approval.Should().ThrowAsync<MrxSourceChangeException>()).Which.Code.Should().Be(MrxErrorCodes.DayLocked);
+            (await context.Lifecyclecommandreceipts.CountAsync(row => row.AggregateType == "OperationalApproval:MATERIAL_RECONCILIATION:mrx-source-change")).Should().Be(1);
+        }
         context.ChangeTracker.Clear();
         (await context.Menuamendments.SingleAsync()).Status.Should().Be("CORRECTION_REQUIRED");
         (await context.Reconciliationsourcerevisions.CountAsync()).Should().Be(0);
@@ -509,7 +542,7 @@ public partial class WorkflowGenerationTests
     internal static Task EnsureMrxRevisionSchemaAsync(IpcManagementContext context) => context.Database.ExecuteSqlRawAsync("""
         CREATE TABLE reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
         CREATE TABLE reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
-        CREATE TABLE reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL);
+        CREATE TABLE reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL, UNIQUE (dailyLineId, batchId, ingredientId, canonicalUnitId));
         CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, dailyLineId BLOB NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, dishId BLOB NULL, frozenShiftName TEXT NOT NULL, frozenDishCode TEXT NULL, frozenDishName TEXT NULL, frozenServings INTEGER NULL, frozenBomQuantityPerServing TEXT NULL, FrozenBomUnitToBaseRate TEXT NULL, FrozenCanonicalUnitToBaseRate TEXT NULL, frozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL, InvalidatedAt TEXT NULL, InvalidatedBySourceRevisionId BLOB NULL);
         CREATE TABLE reconciliationtolerances (toleranceId BLOB PRIMARY KEY, scopeKind TEXT NOT NULL, scopeId BLOB NULL, value TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, systemDefaultKey INTEGER NULL);
         CREATE TABLE reconciliationdailydispositions (dispositionId BLOB PRIMARY KEY, dailyLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL, invalidatedAt TEXT NULL, invalidatedBy BLOB NULL, invalidationReason TEXT NULL, ActiveOwnerKey BLOB GENERATED ALWAYS AS (CASE WHEN invalidatedAt IS NULL THEN dailyLineId ELSE NULL END) VIRTUAL);

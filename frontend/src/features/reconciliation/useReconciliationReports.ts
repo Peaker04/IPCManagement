@@ -1,3 +1,4 @@
+import { subscribeMrxReads } from '../../api/mrxCacheInvalidation';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ApiError } from '../../api/client';
 import { serverStateCache } from '../../store/serverStateCache';
@@ -113,6 +114,11 @@ export function useReconciliationReports({ activeReportTab, batchId, auditSubTab
     });
     return () => { requestId.current += 1; };
   }, [enabled, cacheKey, readReport, reportScope, tabScope, page]);
+
+  useEffect(() => {
+    if (!enabled || operationalMode !== 'MATERIAL_RECONCILIATION') return;
+    return subscribeMrxReads(() => { void fetchReport(true); });
+  }, [enabled, fetchReport, operationalMode]);
 
   const current = state?.key === cacheKey ? state : null;
   const currentData = current?.data ?? serverStateCache.get<ReportData>(cacheKey)?.data;

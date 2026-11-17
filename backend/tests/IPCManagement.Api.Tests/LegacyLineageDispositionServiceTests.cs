@@ -16,6 +16,107 @@ namespace IPCManagement.Api.Tests;
 
 public sealed class LegacyLineageDispositionServiceTests
 {
+    [Theory]
+    [InlineData("BATCH_HEADER")]
+    [InlineData("LINE_MARKER")]
+    [InlineData("RETURN_DELTA")]
+    public async Task Hub_does_not_expose_legacy_proposals_from_mrx_documents_and_owner_rejects_mrx_return_candidates(string sourceMarker)
+    {
+        await using var f = await Fixture.CreateAsync();
+        var proposal = await f.Service.CreateAsync(new CreateLegacyLineageDispositionRequest { CommandId = Guid.NewGuid().ToString(),
+            LegacyLineType = "RETURN_LINE", LegacyLineId = GuidHelper.ToGuidString(f.ReturnLine.ReturnLineId),
+            TargetLineId = GuidHelper.ToGuidString(f.IssueLine.IssueLineId), Reason = "Đối chiếu chứng từ cũ" }, GuidHelper.ToGuidString(f.Admin.UserId));
+        // A persisted proposal must not make a source from the other mode visible to DEFAULT.
+        if (sourceMarker == "BATCH_HEADER") (await f.Context.Inventoryissues.SingleAsync()).ReconciliationBatchId = GuidHelper.NewId();
+        else if (sourceMarker == "LINE_MARKER") f.IssueLine.ReconciliationBatchLineId = GuidHelper.NewId();
+        else (await f.Context.Inventoryreturns.SingleAsync()).ReconciliationSourceDeltaId = GuidHelper.NewId();
+        await f.Context.SaveChangesAsync();
+        await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.GetCandidatesAsync("RETURN_LINE", proposal.LegacyLineId));
+        Assert.Empty(await f.Service.GetAsync());
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => f.Service.ReviewAsync(proposal.DispositionId, new ReviewLegacyLineageDispositionRequest {
+            CommandId = Guid.NewGuid().ToString(), ExpectedVersion = 0, Approve = true, Reason = "Không được duyệt nhầm mode" }, GuidHelper.ToGuidString(f.Manager.UserId)));
+        var source = new IPCManagement.Api.Workflows.OperationalApprovals.OperationalLegacyLineageSource(f.Context);
+        Assert.Empty(await source.ReadAsync(new IPCManagement.Api.Features.Approvals.Contracts.ApprovalInboxQueryDto(), default));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => source.DetailAsync(proposal.DispositionId, default));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => source.HistoryAsync(proposal.DispositionId, default));
+        Assert.Null((await f.Context.Inventoryreturnlines.SingleAsync()).SourceIssueLineId);
+    }
+
+    [Fact]
+    public async Task Rejected_proposal_can_be_replaced_without_reusing_the_line_aggregate_sequence()
+    {
+        await using var f = await Fixture.CreateAsync();
+        // Match the production uniqueness fence absent from this older minimal fixture.
+        await f.Context.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX uqLifecycleTransitionsAggregateSequence ON lifecycletransitions (aggregateType, aggregateId, aggregateSequence);");
+        async Task<LegacyLineageDispositionDto> Create() => await f.Service.CreateAsync(new CreateLegacyLineageDispositionRequest {
+            CommandId = Guid.NewGuid().ToString(), LegacyLineType = "ISSUE_LINE", LegacyLineId = GuidHelper.ToGuidString(f.IssueLine.IssueLineId),
+            TargetLineId = GuidHelper.ToGuidString(f.DemandLine.RequestLineId), Reason = "Đề nghị đối chiếu lại có bằng chứng mới" }, GuidHelper.ToGuidString(f.Admin.UserId));
+        var first = await Create();
+        await f.Service.ReviewAsync(first.DispositionId, new ReviewLegacyLineageDispositionRequest { CommandId = Guid.NewGuid().ToString(),
+            ExpectedVersion = 0, Approve = false, Reason = "Bổ sung bằng chứng" }, GuidHelper.ToGuidString(f.Manager.UserId));
+        var second = await Create();
+        await f.Service.ReviewAsync(second.DispositionId, new ReviewLegacyLineageDispositionRequest { CommandId = Guid.NewGuid().ToString(),
+            ExpectedVersion = 0, Approve = true, Reason = "Đã đối chiếu lại" }, GuidHelper.ToGuidString(f.Manager.UserId));
+        await f.Service.ApplyAsync(second.DispositionId, new ApplyLegacyLineageDispositionRequest { CommandId = Guid.NewGuid().ToString(),
+            ExpectedVersion = 1, Reason = "Áp dụng đề nghị mới" }, GuidHelper.ToGuidString(f.Admin.UserId));
+        Assert.Equal(new[] { 0, 1, 2, 3, 4 }, await f.Context.Lifecycletransitions.OrderBy(x => x.AggregateSequence).Select(x => x.AggregateSequence).ToArrayAsync());
+        Assert.Equal(2, await f.Context.Legacylinedispositions.CountAsync());
+        var history = new IPCManagement.Api.Workflows.OperationalApprovals.OperationalLegacyLineageSource(f.Context);
+        Assert.Equal(2, (await history.HistoryAsync(first.DispositionId, default)).Count);
+        Assert.Equal(3, (await history.HistoryAsync(second.DispositionId.ToUpperInvariant(), default)).Count);
+    }
+
+    [Fact]
+    public async Task Hub_keeps_manager_review_separate_from_admin_apply_and_replays_each_stage_without_quantity_changes()
+    {
+        await using var f = await Fixture.CreateAsync();
+        await f.Context.Database.ExecuteSqlRawAsync("CREATE TABLE systemoperationmodes (id INTEGER PRIMARY KEY, mode TEXT NOT NULL, version INTEGER NOT NULL, updatedBy BLOB NOT NULL, updatedAt TEXT NOT NULL, reason TEXT NULL);");
+        f.Context.Systemoperationmodes.Add(new SystemOperationMode { Mode = "DEFAULT", Version = 1, UpdatedBy = f.Admin.UserId });
+        await f.Context.SaveChangesAsync();
+        var created = await f.Service.CreateAsync(new CreateLegacyLineageDispositionRequest { CommandId = Guid.NewGuid().ToString(),
+            LegacyLineType = "ISSUE_LINE", LegacyLineId = GuidHelper.ToGuidString(f.IssueLine.IssueLineId),
+            TargetLineId = GuidHelper.ToGuidString(f.DemandLine.RequestLineId), Reason = "Đối chiếu chứng từ gốc" }, GuidHelper.ToGuidString(f.Admin.UserId));
+        var requestContext = new SystemOperationRequestContext { Mode = "DEFAULT", ExpectedModeVersion = 1, OperationKey = "approvals.operational", Disposition = OperationDisposition.Retained };
+        var runner = new EfTransactionRunner(f.Context, requestContext, new SystemOperationModeGuard(f.Context));
+        var owner = new LegacyLineageDispositionService(f.Context, runner, new LifecycleTransitionRecorder(f.Context), requestContext);
+        var hub = new IPCManagement.Api.Workflows.OperationalApprovals.OperationalApprovalService(f.Context,
+            NSubstitute.Substitute.For<IPCManagement.Api.Features.Approvals.Services.IApprovalInboxService>(),
+            NSubstitute.Substitute.For<IPCManagement.Api.Features.Approvals.Services.IApprovalWorkflowService>(),
+            NSubstitute.Substitute.For<IPCManagement.Api.Features.SampleData.Services.IMenuAmendmentService>(),
+            NSubstitute.Substitute.For<IPCManagement.Api.Features.Approvals.Services.IApprovalRoutingService>(), null, null, owner);
+        System.Security.Claims.ClaimsPrincipal Actor(User u, string role) => new(new System.Security.Claims.ClaimsIdentity([
+            new(System.Security.Claims.ClaimTypes.NameIdentifier, GuidHelper.ToGuidString(u.UserId)), new(System.Security.Claims.ClaimTypes.Role, role)], "test"));
+        var manager = Actor(f.Manager, "Manager"); var admin = Actor(f.Admin, "Admin");
+        var adminPending = await hub.GetDetailAsync(admin, "legacy-lineage-disposition", created.DispositionId);
+        Assert.Empty(adminPending.AllowedActions);
+        var detail = await hub.GetDetailAsync(manager, "legacy-lineage-disposition", created.DispositionId);
+        Assert.Equal(new[] { "REVIEW_APPROVE", "REVIEW_REJECT" }, detail.AllowedActions);
+        Assert.Equal(created.LegacyLineId, detail.LegacyLineage!.LegacyLineId);
+        Assert.Equal((await f.Context.Inventoryissues.AsNoTracking().SingleAsync()).IssueCode, detail.Item.SourceDocumentCode);
+        var review = new IPCManagement.Api.Workflows.OperationalApprovals.OperationalApprovalActionRequest { CommandId = Guid.NewGuid().ToString(),
+            ExpectedModeVersion = 1, ExpectedFingerprint = detail.Fingerprint, Action = "REVIEW_APPROVE", Reason = "Đúng nguồn và đơn vị" };
+        var first = await hub.DecideAsync(manager, "legacy-lineage-disposition", created.DispositionId, review);
+        Assert.Equal("APPROVED", first.Status);
+        Assert.Null((await f.Context.Inventoryissuelines.AsNoTracking().SingleAsync()).MaterialRequestLineId);
+        Assert.Equal(first.Status, (await hub.DecideAsync(manager, "legacy-lineage-disposition", created.DispositionId, review)).Status);
+        var approved = await hub.GetDetailAsync(admin, "legacy-lineage-disposition", created.DispositionId);
+        Assert.Equal(new[] { "APPLY" }, approved.AllowedActions);
+        Assert.Empty((await hub.GetDetailAsync(manager, "legacy-lineage-disposition", created.DispositionId)).AllowedActions);
+        var apply = new IPCManagement.Api.Workflows.OperationalApprovals.OperationalApprovalActionRequest { CommandId = Guid.NewGuid().ToString(),
+            ExpectedModeVersion = 1, ExpectedFingerprint = approved.Fingerprint, Action = "APPLY", Reason = "Áp dụng mapping đã duyệt" };
+        var quantity = f.IssueLine.IssuedQty;
+        Assert.Equal("APPLIED", (await hub.DecideAsync(admin, "legacy-lineage-disposition", created.DispositionId, apply)).Status);
+        Assert.Equal("APPLIED", (await hub.DecideAsync(admin, "legacy-lineage-disposition", created.DispositionId, apply)).Status);
+        var persisted = await f.Context.Inventoryissuelines.AsNoTracking().SingleAsync();
+        Assert.Equal(quantity, persisted.IssuedQty); Assert.Equal(f.DemandLine.RequestLineId, persisted.MaterialRequestLineId);
+        Assert.Equal(3, await f.Context.Lifecycletransitions.CountAsync());
+        Assert.Equal(3, (await hub.GetHistoryAsync(admin, "legacy-lineage-disposition", created.DispositionId)).Count);
+        apply.Action = "REVIEW_APPROVE";
+        await Assert.ThrowsAsync<SystemOperationConflictException>(() => hub.DecideAsync(admin, "legacy-lineage-disposition", created.DispositionId, apply));
+        (await f.Context.Systemoperationmodes.SingleAsync()).Mode = "MATERIAL_RECONCILIATION"; await f.Context.SaveChangesAsync();
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => hub.GetDetailAsync(admin, "legacy-lineage-disposition", created.DispositionId));
+    }
+
     [Fact]
     public async Task IssueDisposition_ShouldRequireIndependentManagerThenApplyOnlyReviewedProvenance()
     {

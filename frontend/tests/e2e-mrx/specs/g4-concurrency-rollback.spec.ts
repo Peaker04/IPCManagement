@@ -15,7 +15,7 @@ function binaryId(value: string): string {
  test.describe('@G4-Rollback Real Concurrency & Mathematical Stock Invariants', () => {
   test.use({ actionTimeout: 15_000 });
   for (const kind of ['supplemental', 'initial'] as const) {
-  test(`@G4-Race Two valid warehouse browser contexts race ${kind} issues from the same version`, async ({ browser, viewport, baseURL, dieuphoiPage, adminPage, thukhoPage, dbVerifier }) => {
+  test(`@G4-Race Thủ kho and Admin race ${kind} issues from the same version`, async ({ browser, viewport, baseURL, dieuphoiPage, adminPage, thukhoPage, dbVerifier }) => {
     test.setTimeout(240_000);
     const scope = scenarioScope(dbVerifier, kind === 'supplemental' ? 2 : 3);
     const evidence = path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, kind);
@@ -64,16 +64,23 @@ function binaryId(value: string): string {
     let settled: Promise<PromiseSettledResult<unknown>[]> | undefined;
     try {
       const secondPage = await secondContext.newPage();
-      await loginRole(secondPage, 'thukho', baseURL);
+      await loginRole(secondPage, 'admin', baseURL);
       await secondPage.goto(url);
       const pages = [thukhoPage, secondPage];
+      const actors = await Promise.all(pages.map(page => page.evaluate(async () => {
+        const response = await fetch('/api/Auth/me', { headers: { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}` } });
+        if (!response.ok) throw new Error('Cannot verify actor identity.');
+        return (await response.json()).data.user as { userId: string; roleCode: string };
+      })));
+      expect(actors[1].roleCode).toBe('ADMIN');
+      expect(actors[0].roleCode).not.toBe('ADMIN');
+      expect(actors[0].userId).not.toBe(actors[1].userId);
       for (const [index, page] of pages.entries()) {
         await respectApiBudget(page);
         if (kind === 'supplemental') {
           await page.getByRole('button', { name: 'Xuất bổ sung ca', exact: true }).click();
           const dialog = page.getByRole('dialog', { name: 'Xuất kho bổ sung trong ca' });
-          await dialog.getByLabel('Chọn nguyên liệu bổ sung', { exact: true }).selectOption(source.dailyLineId);
-          await dialog.getByLabel('Số lượng xuất thêm', { exact: true }).fill(String(index + 1));
+          await dialog.getByRole('spinbutton', { name: `Lượng xuất bổ sung ${source.ingredientName}`, exact: true }).fill(String(index + 1));
           await dialog.getByLabel('Lý do xuất bổ sung', { exact: true }).fill(`${scope.reason} phiên ${index + 1}`);
         } else {
           await page.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
@@ -110,6 +117,8 @@ function binaryId(value: string): string {
       const winner = results.findIndex((response) => response.status() === 201);
       const loser = 1 - winner;
       const created = (await results[winner].json()).data;
+      expect(dbVerifier.query(`SELECT HEX(issuedBy) AS actor FROM inventoryissues WHERE issueId=UNHEX('${binaryId(created.issueId)}');`))
+        .toEqual([{ actor: binaryId(actors[winner].userId) }]);
       expect(dbVerifier.query(`SELECT CAST(issuedQty AS CHAR) AS quantity FROM inventoryissuelines WHERE issueId=UNHEX('${binaryId(created.issueId)}') AND reconciliationBatchDailyLineId=UNHEX('${binaryId(source.dailyLineId)}');`)).toEqual([{ quantity: (winner + 1).toFixed(6) }]);
       const rejected = await results[loser].json();
       expect(rejected.success).toBe(false);
@@ -117,7 +126,8 @@ function binaryId(value: string): string {
         const loserDialog = pages[loser].getByRole('dialog', { name: 'Xuất kho bổ sung trong ca' });
         await expect(loserDialog).toBeVisible();
         await expect(loserDialog.getByRole('alert')).toBeVisible();
-        await expect(loserDialog.getByLabel('Số lượng xuất thêm', { exact: true })).toHaveValue(String(loser + 1));
+        await expect(loserDialog.getByRole('spinbutton', { name: `Lượng xuất bổ sung ${source.ingredientName}`, exact: true })).toHaveValue(String(loser + 1));
+        await expect(loserDialog.getByRole('button', { name: 'Tải lại dữ liệu Kho', exact: true })).toBeVisible();
       } else {
         await expect(pages[loser].getByRole('button', { name: 'Tải lại dữ liệu mới nhất', exact: true })).toBeVisible();
         await expect(pages[loser].getByLabel(`Số lượng thực xuất ${source.ingredientName}`, { exact: true })).toHaveValue(String(loser + 1));
@@ -152,17 +162,19 @@ function binaryId(value: string): string {
         return { status: response.status, body: await response.json() };
       }, body);
       await Promise.all(pages.map((page) => respectApiBudget(page)));
-      const identicalReplays = await Promise.all(pages.map((page) => replay(page, bodies[winner])));
+      const exactReplay = await replay(pages[winner], bodies[winner]);
+      const otherActorReplay = await replay(pages[loser], bodies[winner]);
       const alteredBody: CreateMrxIssueRequest = { ...bodies[winner], lines: bodies[winner].lines.map((line) => line.reconciliationBatchDailyLineId === source.dailyLineId ? { ...line, issuedQty: 0.5 } : line) };
-      const alteredReplay = await replay(pages[loser], alteredBody);
-      for (const result of [...identicalReplays, alteredReplay]) {
-        expect(result.status).toBe(201);
-        expect(result.body.success).toBe(true);
-        expect(result.body.data.issueId).toBe(created.issueId);
-        expect(result.body.data.issueCode).toBe(created.issueCode);
+      const alteredReplay = await replay(pages[winner], alteredBody);
+      expect(exactReplay.status).toBe(201);
+      expect(exactReplay.body.data).toEqual(created);
+      for (const rejectedReplay of [otherActorReplay, alteredReplay]) {
+        expect(rejectedReplay.status).toBe(409);
+        expect(rejectedReplay.body.success).toBe(false);
+        expect(rejectedReplay.body.data).toBeFalsy();
       }
       expect(dbVerifier.query('CHECKSUM TABLE inventoryissues,inventoryissuelines,reconciliationbatches,lifecyclecommandreceipts,lifecycletransitions,currentstock,currentstocklots,stockmovements;')).toEqual(beforeReplay);
-      fs.writeFileSync(path.join(evidence, 'replay-result.json'), JSON.stringify({ batchId, commandId: bodies[winner].commandId, issueId: created.issueId, identicalReplays, alteredReplay, originalQuantity: winner + 1, attemptedAlteredQuantity: 0.5, ledgerUnchanged: true, limitation: 'Concurrent replay after observed commit, not simultaneous first-use duplicate command or dropped network response.' }, null, 2));
+      fs.writeFileSync(path.join(evidence, 'replay-result.json'), JSON.stringify({ batchId, commandId: bodies[winner].commandId, issueId: created.issueId, exactReplay, otherActorReplay, alteredReplay, originalQuantity: winner + 1, attemptedAlteredQuantity: 0.5, ledgerUnchanged: true }, null, 2));
       expect(arrivals).toHaveLength(2);
       expect(arrivals.every((arrival) => arrival <= releasedAt)).toBe(true);
       expect(new Set(bodies.map((body) => body.commandId)).size).toBe(2);
@@ -220,8 +232,10 @@ function binaryId(value: string): string {
     await managerPage.getByRole('button', { name: 'Chốt đối soát tuần', exact: true }).click();
     await thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true }).click();
     const dialog = thukhoPage.getByRole('dialog', { name: 'Xuất kho bổ sung trong ca' });
-    await dialog.getByLabel('Chọn nguyên liệu bổ sung', { exact: true }).selectOption(source.dailyLineId);
-    await dialog.getByLabel('Số lượng xuất thêm', { exact: true }).fill('1');
+    await dialog.getByLabel('Mục đích xuất bổ sung', { exact: true }).selectOption('UNPLANNED_EXTRA');
+    await dialog.getByRole('combobox', { name: 'Chọn nguyên liệu xuất bổ sung', exact: true }).fill(source.ingredientName);
+    await dialog.getByRole('option').filter({ has: thukhoPage.getByText(source.ingredientName, { exact: true }) }).click({ timeout: 15_000 });
+    await dialog.getByRole('spinbutton', { name: `Lượng xuất bổ sung ${source.ingredientName}`, exact: true }).fill('1');
     await dialog.getByLabel('Lý do xuất bổ sung', { exact: true }).fill(`${scope.reason} completion contention`);
     await respectApiBudget(thukhoPage);
     const held: Route[] = [];
