@@ -47,7 +47,7 @@ export const CANONICAL_ROUTES: RouteDef[] = [
     ],
   },
   { path: '/meal-orders', title: 'Điều phối đơn', frCode: 'FR-COORD', allowedRoles: ['Admin', 'Manager', 'Coordinator', 'Quản lý', 'Điều phối'], modes: ['DEFAULT'] },
-  { path: '/approvals', title: 'Duyệt vận hành', frCode: 'FR-APPR', allowedRoles: ADMIN_MANAGER_ROLES, modes: ['DEFAULT'] },
+  { path: '/approvals', title: 'Duyệt vận hành', frCode: 'FR-APPR', allowedRoles: ADMIN_MANAGER_ROLES, modes: ['DEFAULT', 'MATERIAL_RECONCILIATION'] },
   { path: '/purchasing', title: 'Thu mua', frCode: 'FR-PUR', allowedRoles: ['Admin', 'Manager', 'Purchasing', 'PurchaseStaff', 'ProcurementStaff', 'Quản lý', 'Thu mua'], modes: ['DEFAULT'] },
   {
     path: '/warehouse', title: 'Kho nguyên liệu', frCode: 'FR-WH', allowedRoles: WAREHOUSE_ROLES, modes: ['DEFAULT', 'MATERIAL_RECONCILIATION'],

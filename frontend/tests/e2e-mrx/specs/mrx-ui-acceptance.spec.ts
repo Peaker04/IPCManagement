@@ -3,11 +3,15 @@ import fs from 'node:fs';
 import { test, expect } from '../fixtures/mrxTest';
 import { createTransferredBatch, scenarioScope } from '../fixtures/mrxWorkflow';
 
-test('@MRX-ModalAcceptance import dialog keeps focus through nested discard confirmation', async ({ adminPage }) => {
+// The budget must include rate-limited logins before the test body starts.
+test.describe.configure({ timeout: 360_000 });
+
+test('@MRX-ModalAcceptance import dialog keeps focus through nested discard confirmation', async ({ adminPage, dbVerifier }) => {
   test.setTimeout(90_000);
-  await adminPage.goto('/weekly-menu?view=mrx-batch');
+  const scope = scenarioScope(dbVerifier, 43);
+  await adminPage.goto('/weekly-menu?view=mrx-batch&weekStartDate=' + scope.weekStartDate);
   const trigger = adminPage.getByRole('button', { name: 'Nhập Excel', exact: true });
-  await trigger.click();
+  await trigger.click({ timeout: 15_000 });
   const dialog = adminPage.getByRole('dialog', { name: 'Nhập thực đơn tuần từ file Excel' });
   await expect(dialog).toBeVisible();
   const tiers = dialog.getByRole('radiogroup', { name: 'Mốc giá suất ăn' });
@@ -37,7 +41,6 @@ test('@MRX-ModalAcceptance import dialog keeps focus through nested discard conf
 });
 
 test('@MRX-UiAcceptance responsive controls across four stations', async ({adminPage, dieuphoiPage, thukhoPage, beptruongPage, managerPage, dbVerifier}) => {
-  test.setTimeout(360000);
   const scope = scenarioScope(dbVerifier, 10);
   const {batchId} = await createTransferredBatch({ coordinator: dieuphoiPage, admin: adminPage, afterTransfer: async () => {
     const banner = dieuphoiPage.getByRole('status').filter({hasText:/Đã bàn giao/});
@@ -129,7 +132,12 @@ test('@MRX-UiAcceptance responsive controls across four stations', async ({admin
   await expect(batchHistory).toBeHidden();
   await expect(beptruongPage.getByRole('button', { name: 'Tìm lô cũ' })).toBeFocused();
   const frozenDishes = managerPage.getByRole('button', {name:'Món & BOM đã đóng băng',exact:true});
+  const frozenRead = managerPage.waitForResponse(response =>
+    new URL(response.url()).pathname.endsWith(`/batches/${batchId}/dishes`) && response.request().method() === 'GET', { timeout: 15_000 });
   await frozenDishes.click();
+  const frozenResponse = await frozenRead;
+  expect(frozenResponse.status()).toBe(200);
+  expect((await frozenResponse.json()).data.length).toBeGreaterThan(0);
   const frozenDialog = managerPage.getByRole('dialog', {name:'Món & BOM đã đóng băng',exact:true});
   await expect(frozenDialog).toBeVisible();
   await expect(frozenDialog.locator('.animate-pulse')).toHaveCount(0);
@@ -217,11 +225,14 @@ test('@MRX-UiAcceptance responsive controls across four stations', async ({admin
     expect(samples.every(sample => sample.header && !sample.pulse)).toBe(true);
     expect(new Set(samples.map(sample => sample.top)).size).toBe(1);
   }
-  const sourceChangesResponse = managerPage.waitForResponse(response =>
-    response.url().endsWith(`/api/reconciliation/batches/${batchId}/source-changes`) && response.request().method() === 'GET');
+  const sourceChangesResponse = managerPage.waitForResponse(response => {
+    const url = new URL(response.url());
+    return url.pathname.endsWith('/api/reconciliation/reports/source-changes')
+      && url.searchParams.get('batchId') === batchId && response.request().method() === 'GET';
+  }, { timeout: 15_000 });
   await managerPage.getByRole('button', { name: /Nguồn & BOM/ }).click();
   expect((await sourceChangesResponse).status()).toBe(200);
-  await expect(managerPage.getByRole('searchbox', { name: 'Tìm trong lịch sử nguồn và BOM' })).toBeVisible();
+  await expect(managerPage.getByRole('searchbox', { name: 'Tìm trong lịch sử nguồn và BOM', exact: true })).toBeVisible();
   const row = thukhoPage.getByRole('row').filter({has:thukhoPage.getByRole('textbox',{name:/Số lượng thực xuất/})}).first();
   const nextDay=thukhoPage.getByTitle(/^T3 ·/);
   const dayFrames=thukhoPage.locator('.mrx-scope-header').evaluate(async header=>{
@@ -328,8 +339,11 @@ test('@MRX-UiAcceptance responsive controls across four stations', async ({admin
   }
 
   // Select a real dashboard row, then open Chef without a batch query parameter.
-  await adminPage.goto('/');
-  const dashboardRow = adminPage.getByRole('row').filter({hasText:batchId});
+  const customerId = await dieuphoiPage.getByRole('combobox', { name: 'Chọn khách hàng MRX', exact: true }).inputValue();
+  await adminPage.goto('/?' + new URLSearchParams({ customerId, period: 'RANGE', from: scope.weekStartDate, to: scope.weekStartDate }));
+  const dashboardRow = adminPage.getByRole('row').filter({
+    has: adminPage.getByRole('button', { name: 'Sao chép ' + batchId, exact: true }),
+  });
   await expect(dashboardRow).toBeVisible();
   await dashboardRow.getByRole('button', {name:'Mở trạm làm việc'}).click();
   await adminPage.goto('/chef?view=mrx-cooking');

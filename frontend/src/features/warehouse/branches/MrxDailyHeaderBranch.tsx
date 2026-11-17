@@ -22,6 +22,7 @@ export interface MrxDailyHeaderBranchProps {
   availableDates?: string[];
   isWeeklyAll: boolean;
   hasInitialIssue: boolean;
+  canIssueBatch: boolean;
   onOpenSupplemental: () => void;
   onFillAll: () => void;
   onSubmit: () => void | Promise<void>;
@@ -46,6 +47,7 @@ export function MrxDailyHeaderBranch({
   availableDates,
   isWeeklyAll,
   hasInitialIssue,
+  canIssueBatch,
   onOpenSupplemental,
   onFillAll,
   onSubmit,
@@ -122,6 +124,8 @@ export function MrxDailyHeaderBranch({
             <Badge variant="neutral" size="default" className="h-9 px-3 text-xs flex items-center text-slate-500">
               Không có định lượng ca
             </Badge>
+          ) : !canIssueBatch ? (
+            <Badge variant="neutral" size="default">Chỉ xem</Badge>
           ) : hasInitialIssue ? (
             <Button
               variant="default"

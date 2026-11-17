@@ -209,7 +209,8 @@ public sealed class Phase30InactiveWorkflowFenceTests
     {
         var reconciliationCapabilities = SystemOperationEligibility.CapabilitiesFor(SystemOperationEligibility.MaterialReconciliation);
 
-        reconciliationCapabilities.Navigation.Should().NotContain("approvals");
+        reconciliationCapabilities.Navigation.Should().Contain("approvals");
+        SystemOperationEligibility.Classify("ApprovalHistory", "GetHistory").Should().Be(OperationDisposition.ExcludedInMaterialReconciliation);
         reconciliationCapabilities.Navigation.Should().NotContain("purchasing");
         reconciliationCapabilities.PageTabs.GetValueOrDefault("admin-data", []).Should().NotContain("cleanup");
         SystemOperationEligibility.Classify("Approvals", "Approve").Should().Be(OperationDisposition.ExcludedInMaterialReconciliation);

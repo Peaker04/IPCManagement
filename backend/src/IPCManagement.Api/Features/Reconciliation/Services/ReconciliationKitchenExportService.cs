@@ -19,10 +19,13 @@ public sealed class ReconciliationKitchenExportService(IpcManagementContext cont
             ? (await context.Reconciliationbatches.AsNoTracking().ToListAsync(token)).SingleOrDefault(item => item.BatchId.SequenceEqual(id))
             : await context.Reconciliationbatches.AsNoTracking().SingleOrDefaultAsync(item => item.BatchId == id, token);
         if (batch is null) return null;
+        var extras = await ReconciliationApprovedSupplementalQuery.LoadAsync(context, [id], token);
+        var extraDailyIds = extras.Select(x => Convert.ToHexString(x.DemandMaterial.DailyLineId)).ToHashSet(StringComparer.Ordinal);
 
         var dailyLines = inMemory
-            ? (await context.Reconciliationbatchdailylines.AsNoTracking().ToListAsync(token)).Where(item => item.BatchId.SequenceEqual(id) && item.RequiredQuantity > 0).ToList()
-            : await context.Reconciliationbatchdailylines.AsNoTracking().Where(item => item.BatchId == id && item.RequiredQuantity > 0).ToListAsync(token);
+            ? (await context.Reconciliationbatchdailylines.AsNoTracking().ToListAsync(token)).Where(item => item.BatchId.SequenceEqual(id)).ToList()
+            : await context.Reconciliationbatchdailylines.AsNoTracking().Where(item => item.BatchId == id).ToListAsync(token);
+        dailyLines = dailyLines.Where(item => item.RequiredQuantity > 0 || extraDailyIds.Contains(Convert.ToHexString(item.DailyLineId))).ToList();
         if (dailyLines.Count == 0)
             throw new InvalidOperationException("LEGACY_DAILY_LINEAGE_MISSING: Lô chưa có dữ liệu nấu ăn đóng băng theo ngày.");
         var dailyById = dailyLines.ToDictionary(item => Convert.ToHexString(item.DailyLineId), StringComparer.Ordinal);
@@ -55,6 +58,8 @@ public sealed class ReconciliationKitchenExportService(IpcManagementContext cont
             : await context.Reconciliationbatchlines.AsNoTracking().Include(item => item.Ingredient).Include(item => item.CanonicalUnit)
                 .Where(item => weeklyLineIds.Contains(item.BatchLineId)).ToListAsync(token);
         var weeklyById = weeklyLines.ToDictionary(item => Convert.ToHexString(item.BatchLineId), StringComparer.Ordinal);
+        var extraByDishMaterial = extras.ToLookup(x => (Daily: Convert.ToHexString(x.DemandMaterial.DailyLineId),
+            Dish: Convert.ToHexString(x.DemandDish.DishId), Shift: x.DemandDish.ShiftName, Variant: x.DemandDish.MenuVariant));
 
         var rows = contributors.GroupBy(item =>
         {
@@ -81,17 +86,30 @@ public sealed class ReconciliationKitchenExportService(IpcManagementContext cont
                 throw new InvalidOperationException("KITCHEN_FROZEN_LINEAGE_AMBIGUOUS: Các đóng góp cùng món/nguyên liệu không thống nhất dữ liệu đóng băng.");
             var weekly = weeklyById[Convert.ToHexString(first.BatchLineId)];
             var available = FrozenBomQuantityPolicy.TryGetCanonicalPerServing(first, out var canonicalRate);
+            var approved = extraByDishMaterial[(Convert.ToHexString(first.DailyLineId!), Convert.ToHexString(first.DishId!),
+                first.FrozenShiftName!, first.FrozenMenuVariant!)].ToList();
+            if (approved.Any(x => !group.Any(fact => fact.ContributorId.SequenceEqual(x.FrozenContributorId))
+                || x.FrozenBomQuantityPerServing != first.FrozenBomQuantityPerServing
+                || x.FrozenBomUnitToBaseRate != first.FrozenBomUnitToBaseRate
+                || x.FrozenCanonicalUnitToBaseRate != first.FrozenCanonicalUnitToBaseRate
+                || x.WasteRatePercent != (first.FrozenWasteRatePercent ?? 0)
+                || x.DemandDish.FrozenDishCode != first.FrozenDishCode || x.DemandDish.FrozenDishName != first.FrozenDishName))
+                throw new InvalidOperationException("SUPPLEMENTAL_SNAPSHOT_LINEAGE_INVALID: Phiếu bếp không thể ghép các snapshot BOM khác nhau.");
+            var extraServings = checked(approved.Sum(x => x.DemandDish.ExtraServings));
             return new ReconciliationKitchenCookingRowDto(
                 group.Key.ServiceDate,
                 Weekday(group.Key.ServiceDate.DayOfWeek),
-                Shift(first.FrozenShiftName!), first.FrozenDishCode!, first.FrozenDishName!, first.FrozenServings!.Value,
+                Shift(first.FrozenShiftName!), first.FrozenDishCode!, first.FrozenDishName!, checked(first.FrozenServings!.Value + extraServings),
                 weekly.Ingredient?.IngredientCode ?? string.Empty, weekly.Ingredient?.IngredientName ?? string.Empty,
                 CompactUnit(weekly.CanonicalUnit?.UnitName),
                 available ? canonicalRate : null,
                 first.FrozenWasteRatePercent,
-                DecimalPolicy.RoundQuantity(group.Sum(item => item.SourceQuantity)))
+                DecimalPolicy.RoundQuantity(group.Sum(item => item.SourceQuantity) + approved.Sum(ReconciliationApprovedSupplementalQuery.RequiredQuantity)))
             {
                 MenuVariant = MenuVariant(first.FrozenMenuVariant!),
+                FrozenBaselineServings = first.FrozenServings.Value,
+                ApprovedExtraServings = extraServings,
+                ApprovedDemandIds = approved.Select(x => GuidHelper.ToGuidString(x.DemandDish.DemandId)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList(),
                 QuantityUnavailableReasonCode = available ? null : FrozenBomQuantityPolicy.UnavailableReason
             };
         }).OrderBy(item => item.ServiceDate)

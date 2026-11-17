@@ -10,22 +10,22 @@ namespace IPCManagement.Api.Features.Reconciliation.Services;
 public static class PreparationWorkbookBuilder
 {
     private static readonly HashSet<int> MenuNumericColumns = [5];
-    private static readonly HashSet<int> DemandNumericColumns = [2];
+    private static readonly HashSet<int> DemandNumericColumns = [2, 3, 4];
     private static readonly HashSet<int> DetailNumericColumns = [7];
     private const string PrintSettings = "<pageMargins left=\"0.25\" right=\"0.25\" top=\"0.4\" bottom=\"0.4\" header=\"0.2\" footer=\"0.2\"/><pageSetup paperSize=\"9\" orientation=\"landscape\" fitToWidth=\"1\" fitToHeight=\"0\"/>";
 
     private static string BuildPreparationSheet(ReconciliationPreparationWorkbookDto workbook)
     {
-        const string last = "C";
+        const string last = "E";
         var duplicateNames = workbook.SummaryRows.GroupBy(row => row.IngredientName.Trim(), StringComparer.OrdinalIgnoreCase)
             .Where(group => group.Select(row => row.IngredientId).Distinct().Skip(1).Any())
             .Select(group => group.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var xml = new StringBuilder("""<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="1" width="55" customWidth="1"/><col min="2" max="2" width="18" customWidth="1"/><col min="3" max="3" width="24" customWidth="1"/></cols><sheetData>""");
+        var xml = new StringBuilder("""<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="1" width="55" customWidth="1"/><col min="2" max="2" width="18" customWidth="1"/><col min="3" max="5" width="24" customWidth="1"/></cols><sheetData>""");
         AppendXlsxRow(xml, 1, ["NHU CẦU NGUYÊN LIỆU"], true);
         AppendXlsxRow(xml, 2, [ScopeLabel(workbook)], false);
         var customerText = "Khách hàng: " + string.Join("; ", workbook.CustomerColumns);
         AppendXlsxRow(xml, 3, [customerText], false, wrap: true, height: WrappedHeight(customerText, 72));
-        AppendXlsxRow(xml, 4, ["Nguyên liệu", "ĐVT", "Tổng nhu cầu"], true);
+        AppendXlsxRow(xml, 4, ["Nguyên liệu", "ĐVT", "Tổng nhu cầu", "Còn thiếu", "Cấp ngoài nhu cầu"], true);
         var rowNumber = 5;
         var merges = new List<string> { $"A1:{last}1", $"A2:{last}2", $"A3:{last}3" };
         foreach (var supplyGroup in workbook.SummaryRows.GroupBy(row => row.PreparationGroupCode).OrderBy(group => group.Key == PreparationSupplyGroups.Unclassified ? 1 : 0).ThenBy(group => group.Key, StringComparer.Ordinal))
@@ -40,7 +40,9 @@ public static class PreparationWorkbookBuilder
             foreach (var row in supplier.OrderBy(item => item.IngredientName, StringComparer.Ordinal))
             {
                 var name = duplicateNames.Contains(row.IngredientName.Trim()) ? $"{row.IngredientName} ({row.IngredientCode})" : row.IngredientName;
-                AppendXlsxRow(xml, rowNumber++, [name, row.CanonicalUnitName, Number(row.TotalQuantity)], false, DemandNumericColumns, wrap: true);
+                AppendXlsxRow(xml, rowNumber++, [name, row.CanonicalUnitName, Number(row.TotalQuantity),
+                    row.RemainingQuantity is { } remaining ? Number(remaining) : "Chưa xác định", Number(row.UnplannedIssuedQuantity)],
+                    false, DemandNumericColumns, wrap: true);
             }
         }
         }
@@ -210,7 +212,7 @@ public static class PreparationWorkbookBuilder
             var colLetter = GetColumnLetter(index);
             var reference = $"{colLetter}{rowNumber}";
             var style = header ? " s=\"1\"" : wrap ? " s=\"3\"" : string.Empty;
-            if (numericColumns?.Contains(index) == true)
+            if (numericColumns?.Contains(index) == true && values[index] != "Chưa xác định")
                 xml.Append($"<c r=\"{reference}\" s=\"{(integer ? 4 : 2)}\" t=\"n\"><v>{values[index]}</v></c>");
             else
                 xml.Append($"<c r=\"{reference}\" t=\"inlineStr\"{style}><is><t>{SecurityElement.Escape(values[index])}</t></is></c>");

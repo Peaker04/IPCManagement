@@ -25,9 +25,13 @@ public static class AuthorizationPolicies
     public const string ReconciliationSourceReadAccess = "ReconciliationSourceReadAccess";
     public const string ReconciliationSourceEditAccess = "ReconciliationSourceEditAccess";
     public const string ReconciliationWarehouseReadAccess = "ReconciliationWarehouseReadAccess";
+    public const string ReconciliationFrozenBomReadAccess = "ReconciliationFrozenBomReadAccess";
     public const string ReconciliationKitchenAccess = "ReconciliationKitchenAccess";
     public const string ReconciliationDispositionAccess = "ReconciliationDispositionAccess";
     public const string ReconciliationCompleteAccess = "ReconciliationCompleteAccess";
+    public const string ReconciliationSupplementalDemandWriteAccess = "ReconciliationSupplementalDemandWriteAccess";
+    public const string ReconciliationSupplementalDemandReadAccess = "ReconciliationSupplementalDemandReadAccess";
+    public const string ReconciliationSupplementalDemandApproveAccess = "ReconciliationSupplementalDemandApproveAccess";
 
     public static readonly string[] AdminRoles =
     [
@@ -129,6 +133,10 @@ public static class AuthorizationPolicies
         .ToArray();
 
     public static readonly string[] ReconciliationWarehouseReadRoles = ReconciliationWarehouseIssueRoles;
+    public static readonly string[] ReconciliationSupplementalDemandReadRoles = ReconciliationReadRoles
+        .Concat(ReconciliationDecisionRoles).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    public static readonly string[] ReconciliationSupplementalDemandWriteRoles = ReconciliationWarehouseIssueRoles
+        .Concat(ReconciliationDecisionRoles).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
     public static readonly string[] ReconciliationSourceReadRoles = ReconciliationSourceEditRoles
         .Concat([

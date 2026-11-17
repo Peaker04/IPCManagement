@@ -155,6 +155,19 @@ Ma trận yêu cầu chuẩn hóa toàn diện liên kết 12 Phân hệ Backend
 | `BR-MRX-SERV-1` | Savory/Vegetarian Servings | Slot `vegetarian-*` nhân số suất Chay; slot khác nhân số suất Mặn; tổng suất bằng tổng hai loại. | Projection/fingerprint/contributor phải giữ đúng variant; không nhân mọi món với tổng suất. |
 | `BR-MRX-SERV-2` | No Fabricated Servings | Import không tự ghi số suất; thiếu split hiển thị `Chưa nhập` và chặn quantity preview/batch creation. | Cấm default `100`, fake completion hoặc nuốt lỗi quick-servings để tạo PASS giả. |
 
+### 1.2. Duyệt vận hành và nhu cầu suất phát sinh (FR-APPR / FR-WH / FR-RECON)
+
+| Rule | Hợp đồng nghiệp vụ | Biên thực thi |
+|---|---|---|
+| `BR-APPR-1` | Trung tâm `/approvals` dành cho Quản lý/Admin ở cả DEFAULT và MRX; identity gồm mode × type × target × bước. | Registry server công bố nguồn đã nối. Hồ sơ sửa nguồn MRX có bản thực đơn nền, kể cả trước khi tạo lô. Hồ sơ DEFAULT không có bản nền này và bị chặn ở các lệnh MRX; các lệnh DEFAULT chặn hồ sơ MRX. Các loại quyết định ngoài registry vẫn thuộc owner chuyên môn. |
+| `BR-APPR-2` | Duyệt, duyệt một bước, chờ áp dụng và đã áp dụng là các trạng thái khác nhau. | `allowedActions` từ server và permission của owner; không dùng một nút approve để thay review/apply/post/execute. Phiếu nhập giữ quality/self-approval/Manager-only theo owner hiện hành. |
+| `BR-APPR-3` | Quyết định gắn actor, mode version, fingerprint bằng chứng, nội dung và mã lệnh. | Replay cùng lệnh trả kết quả cũ; khác nội dung/actor bị chặn. Sau acknowledgment, lỗi tải lại không được trình bày thành lệnh chưa ghi nhận. |
+| `BR-APPR-4` | Đối chiếu liên kết chứng từ cũ: Quản lý độc lập duyệt, Admin áp dụng sau duyệt. | Chỉ chứng từ đúng DEFAULT; sửa provenance không sửa số lượng/tồn kho. Lịch sử từng proposal không lẫn các proposal khác của cùng dòng; số thứ tự lifecycle tiếp tục trên dòng chứng từ. |
+| `BR-MRX-SD-1` | Ngày đã có issue vẫn khóa món và suất gốc, kể cả sau khi trả hết hàng. Suất tăng là nhu cầu riêng. | Kho lập/gửi món × ngày × ca × mặn/chay × số suất tăng; Quản lý/Admin xác nhận nhu cầu. Admin trực tiếp xác nhận suất phát sinh được áp dụng ngay, ghi ADMIN_DIRECT cùng tài khoản, thời điểm và lý do, không tạo hồ sơ chờ người khác duyệt. Không rewrite menu, suất gốc hoặc baseline đóng băng để hợp thức hóa phát sinh. |
+| `BR-MRX-SD-2` | Định lượng phát sinh dùng đúng frozen BOM/conversion của batch/day/dish/shift/variant. | Snapshot server, cộng đóng góp trước làm tròn canonical quantity 6 số lẻ; thiếu hoặc mâu thuẫn bằng chứng quy đổi phải chặn, không dùng BOM hiện hành đoán lại. |
+| `BR-MRX-SD-3` | Thủ kho xác nhận actual sau khi duyệt nhu cầu; baseline shortage, approved extra và unplanned extra tách mục đích. | Xuất ngoài nhu cầu không tự bù thiếu baseline/extra đã duyệt. Trả hàng chỉ mở lại lượng thiếu khi xác định duy nhất mục đích; dữ liệu mơ hồ cần đối chiếu, không phân bổ theo tỷ lệ đoán. |
+| `BR-MRX-SD-4` | Kho, Bếp, chuẩn bị và đối soát đọc baseline + nhu cầu phát sinh đã duyệt cùng identity. | Pending/rejected không cộng vào nhu cầu. Pending request, thiếu theo mục đích hoặc allocation mơ hồ chặn hoàn tất. MRX không ghi tồn vật lý; DEFAULT giữ stock effects của owner. |
+
 ### 2. Functional Requirements Matrix (13 FRs — 12 BE Features <-> 14 FE Routes)
 
 | FR Code | Tên phân hệ nghiệp vụ | Phân hệ Backend (`backend/.../Features/`) | Route & Feature Frontend (`frontend/.../`) | Primary Work Object & Năng lực chính |
@@ -166,7 +179,7 @@ Ma trận yêu cầu chuẩn hóa toàn diện liên kết 12 Phân hệ Backend
 | `FR-MENU` | Lập thực đơn & Kế hoạch tuần | `Planning`, `Coordination` | `/weekly-menu`<br>(`features/planning/`, `features/coordination/`) | `WeeklyMenuWorkspaceShell` & `SplitWorkbench`: Lập thực đơn tuần, ma trận món Thứ Hai–Thứ Bảy, tổng hợp nhu cầu vật tư, bàn giao bếp, giá vốn BOM. |
 | `FR-COORD`| Điều phối suất ăn khách hàng | `Coordination` | `/meal-orders`<br>(`features/coordination/`) | `OperationalFrame`: Tiếp nhận và chốt số lượng suất ăn theo ca/ngày cho từng khách hàng, xử lý lệch suất đột xuất. |
 | `FR-CHEF` | Bếp sản xuất & Bàn giao ca | `Planning` | `/chef`<br>(`features/chef/`, `features/planning/`) | `OperationalFrame`: Theo dõi KHSX theo ca, checklist kiểm đếm nhận nguyên liệu từ kho, xác nhận bàn giao toàn bộ, tạo phiếu trả hàng thừa. |
-| `FR-APPR` | Phê duyệt vận hành | `Approvals` | `/approvals`<br>(`features/approvals/`) | `OperationalFrame`: Trung tâm duyệt tập trung các đề xuất mua hàng (Purchase Request), bảng báo giá nhà cung cấp, duyệt phiếu nhập kho. |
+| `FR-APPR` | Phê duyệt vận hành | `Approvals` | `/approvals`<br>(`features/approvals/`) | `SplitWorkbench`: Duyệt vận hành theo mode server, registry loại hồ sơ, bước quyết định, bằng chứng và lịch sử; giữ owner nghiệp vụ và quyền duyệt/áp dụng riêng. |
 | `FR-PUR`  | Thu mua & Nhà cung cấp | `Purchasing` | `/purchasing`<br>(`features/purchasing/`) | `SplitWorkbench`: Tổng hợp nhu cầu thiếu hụt từ kho, tạo đề xuất mua hàng, quản lý đơn mua (PO), theo dõi tiến độ giao hàng từ NCC. |
 | `FR-WH`   | Quản lý kho & Tồn trữ | `Inventory` | `/warehouse`<br>(`features/warehouse/`) | `OperationalFrame` & `TableViewport`: Quản lý tồn kho tức thời, lập và duyệt phiếu nhập/xuất kho, ghi sổ thẻ kho bất biến. |
 | `FR-RECON`| Đối soát nguyên liệu (MRX) | `Reconciliation` | `/reconciliation`<br>(`features/reconciliation/`) | `OperationalFrame` (MRX mode): Đối soát lượng xuất kho sổ sách với lượng tiêu hao thực tế của ca nấu ăn, lập biên bản xử lý sai lệch. |

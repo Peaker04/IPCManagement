@@ -49,13 +49,14 @@ public sealed class SystemOperationCapabilityProfileTests
         var profile = SystemOperationEligibility.CapabilitiesFor(SystemOperationEligibility.MaterialReconciliation);
 
         Assert.Equal(
-            ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings"],
+            ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings", "approvals"],
             profile.Navigation);
         Assert.Equal(["mrx-batch", "mrx-materials", "mrx-plans"], profile.PageTabs["weekly-menu"]);
         Assert.Equal(["mrx-daily", "mrx-issues"], profile.PageTabs["warehouse"]);
         Assert.Equal(["mrx-cooking"], profile.PageTabs["chef"]);
         Assert.Equal(["ingredients", "dishes", "customers"], profile.PageTabs["admin-data"]);
-        Assert.Equal(9, profile.PageTabs.Sum(group => group.Value.Count));
+        Assert.Equal(["queue", "history"], profile.PageTabs["approvals"]);
+        Assert.Equal(11, profile.PageTabs.Sum(group => group.Value.Count));
     }
 
     [Fact]
@@ -107,7 +108,7 @@ public sealed class SystemOperationCapabilityProfileTests
         var payload = Assert.IsType<ApiResponse<SystemOperationModeDto>>(ok.Value);
         Assert.NotNull(payload.Data);
         Assert.Equal(
-            ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings"],
+            ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings", "approvals"],
             payload.Data.Capabilities.Navigation);
         Assert.Equal(["mrx-batch", "mrx-materials", "mrx-plans"], payload.Data.Capabilities.PageTabs["weekly-menu"]);
         Assert.Equal(["mrx-daily", "mrx-issues"], payload.Data.Capabilities.PageTabs["warehouse"]);
@@ -147,7 +148,7 @@ public sealed class SystemOperationCapabilityProfileTests
         Assert.Equal(33, before.Capabilities.PageTabs.Sum(group => group.Value.Count));
         Assert.Equal(SystemOperationEligibility.MaterialReconciliation, after.Mode);
         Assert.Equal(
-            ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings"],
+            ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings", "approvals"],
             after.Capabilities.Navigation);
         Assert.Equal(["mrx-batch", "mrx-materials", "mrx-plans"], after.Capabilities.PageTabs["weekly-menu"]);
         Assert.Equal(["mrx-daily", "mrx-issues"], after.Capabilities.PageTabs["warehouse"]);

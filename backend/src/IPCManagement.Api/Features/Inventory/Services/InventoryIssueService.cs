@@ -108,6 +108,8 @@ public class InventoryIssueService : IInventoryIssueService
             throw new ArgumentException("Phiếu xuất phải có đúng một nguồn nhu cầu hoặc lô đối chiếu.");
         foreach (var line in dto.Lines ?? [])
         {
+            if (!hasReconciliationSource && line.Allocations.Count > 0)
+                throw new ArgumentException("Phân bổ nhu cầu MRX không được gửi vào phiếu xuất DEFAULT.");
             var hasMaterialLineSource = !string.IsNullOrWhiteSpace(line.MaterialRequestLineId);
             var hasReconciliationLineSource = !string.IsNullOrWhiteSpace(line.ReconciliationBatchLineId);
             if (hasMaterialLineSource && hasReconciliationLineSource)

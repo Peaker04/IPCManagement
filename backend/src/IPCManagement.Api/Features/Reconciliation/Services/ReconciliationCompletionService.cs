@@ -1,3 +1,4 @@
+using IPCManagement.Api.Features.Inventory.Services;
 using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
@@ -26,32 +27,7 @@ public sealed class ReconciliationCompletionService(
                 context.Entry(batch).Property(x => x.Version).OriginalValue = request.ExpectedVersion;
                 if (batch.Status != "IN_PROGRESS" || batch.Version != request.ExpectedVersion || batch.Lines.Count == 0) throw new DbUpdateConcurrencyException("Lô chưa sẵn sàng hoàn tất hoặc đã thay đổi.");
                 var dailyProjection = await batches.GetWarehouseDailyAsync(id, operationToken);
-                var usesDailyLineage = dailyProjection is not null
-                    && dailyProjection.Compatibility.ReasonCode != "LEGACY_DAILY_LINEAGE_MISSING";
-                if (usesDailyLineage && dailyProjection!.WeeklyStatus != "WEEK_COMPLETE")
-                    throw new BusinessRuleException("Chưa thể hoàn tất khi vẫn còn ngày chưa xuất đủ hoặc chênh lệch chưa xử lý.");
-                if (!usesDailyLineage)
-                {
-                    var lineIds = batch.Lines.Select(x => x.BatchLineId).ToList();
-                    var actuals = await context.Reconciliationactuals.Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(operationToken);
-                    var dispositions = await context.Reconciliationdispositions
-                        .Where(x => x.InvalidatedAt == null && lineIds.Contains(x.BatchLineId)).ToListAsync(operationToken);
-                    var linkedIssued = await batches.LoadLinkedIssuedQuantitiesForCompletionAsync(lineIds, operationToken);
-                    foreach (var line in batch.Lines)
-                    {
-                        var comparison = ReconciliationComparisonService.Map(
-                            line,
-                            actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(),
-                            dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)),
-                            ReconciliationBatchService.LinkedQuantity(linkedIssued, line.BatchLineId));
-                        if (comparison.IssuedQuantity is null) throw new BusinessRuleException("Mọi dòng phải có số lượng xuất kho liên kết.");
-                        if (comparison.Triggers.Count > 0)
-                        {
-                            var disposition = dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId));
-                            if (disposition is null || string.IsNullOrWhiteSpace(disposition.Reason)) throw new BusinessRuleException("Mọi dòng cần kiểm tra phải có hướng xử lý và lý do.");
-                        }
-                    }
-                }
+                await ReconciliationCompletionEligibility.RequireAsync(context, batch, dailyProjection, operationToken);
                 batch.Status = "COMPLETED"; batch.Version++; batch.CompletedBy = actor; batch.CompletedAt = DateTime.UtcNow;
                 await context.SaveChangesAsync(operationToken);
                 return true;

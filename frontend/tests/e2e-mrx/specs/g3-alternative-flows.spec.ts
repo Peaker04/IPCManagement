@@ -14,13 +14,15 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     await adminPage.waitForSelector('div[role="dialog"]', { timeout: 5000 });
 
     // Assert both missing BOM and full catalog template download buttons exist
-    const missingBtn = adminPage.locator('div[role="dialog"] button:has-text("Tải file Excel các món thiếu BOM")');
-    const fullBtn = adminPage.locator('div[role="dialog"] button:has-text("Tải file mẫu toàn bộ")');
+    const bomDialog = adminPage.getByRole('dialog', { name: 'Nhập định mức BOM hàng loạt từ file Excel' });
+    const missingBtn = bomDialog.getByRole('button', { name: 'Tải Excel món thiếu theo phạm vi', exact: true });
+    const fullBtn = bomDialog.getByRole('button', { name: 'Tải file toàn danh mục theo phạm vi', exact: true });
 
     await expect(missingBtn).toBeVisible();
     await expect(fullBtn).toBeVisible();
 
-    await adminPage.click('div[role="dialog"] button:has-text("Đóng")');
+    await bomDialog.getByRole('button', { name: 'Đóng', exact: true }).click();
+    await expect(bomDialog).toHaveCount(0);
   });
 
   test.describe('Submitted lifecycle', () => {
@@ -122,8 +124,7 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     await expect(dialog).toHaveCount(0);
     await expect(thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true })).toBeFocused();
     await thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true }).click();
-    await dialog.getByLabel('Chọn nguyên liệu bổ sung', { exact: true }).selectOption(line.dailyLineId);
-    await dialog.getByLabel('Số lượng xuất thêm', { exact: true }).fill('1');
+    await dialog.getByRole('spinbutton', { name: `Lượng xuất bổ sung ${line.ingredientName}`, exact: true }).fill('1');
     await expect(dialog.getByRole('button', { name: 'Xác nhận xuất bổ sung', exact: true })).toBeDisabled();
     await dialog.getByLabel('Lý do xuất bổ sung', { exact: true }).fill(scope.reason);
     const supplementalControl = dialog.getByRole('button', { name: 'Xác nhận xuất bổ sung', exact: true });
@@ -219,8 +220,10 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     await thukhoPage.goto(`/warehouse?view=mrx-daily&batchId=${batchId}&date=${overDate.toISOString().slice(0,10)}`);
     await thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true }).click();
     const extraDialog = thukhoPage.getByRole('dialog', { name: 'Xuất kho bổ sung trong ca' });
-    await extraDialog.getByLabel('Chọn nguyên liệu bổ sung', { exact: true }).selectOption(overLine!.dailyLineId);
-    await extraDialog.getByLabel('Số lượng xuất thêm', { exact: true }).fill('0.5');
+    await extraDialog.getByLabel('Mục đích xuất bổ sung', { exact: true }).selectOption('UNPLANNED_EXTRA');
+    await extraDialog.getByRole('combobox', { name: 'Chọn nguyên liệu xuất bổ sung', exact: true }).fill(overLine!.ingredientName!);
+    await extraDialog.getByRole('option').filter({ has: thukhoPage.getByText(overLine!.ingredientName!, { exact: true }) }).click({ timeout: 15_000 });
+    await extraDialog.getByRole('spinbutton', { name: `Lượng xuất bổ sung ${overLine!.ingredientName}`, exact: true }).fill('0.5');
     await extraDialog.getByLabel('Lý do xuất bổ sung', { exact: true }).fill(`${scope.reason} invalidate decision`);
     const extraPosted = thukhoPage.waitForResponse(response => response.url().endsWith('/api/inventory-issues') && response.request().method() === 'POST', { timeout: 15_000 });
     await extraDialog.getByRole('button', { name: 'Xác nhận xuất bổ sung', exact: true }).click();

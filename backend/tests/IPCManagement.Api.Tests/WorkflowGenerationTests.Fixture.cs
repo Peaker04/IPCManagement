@@ -1100,6 +1100,9 @@ public partial class WorkflowGenerationTests
                 );
                 """;
             await command.ExecuteNonQueryAsync();
+            await using var supplementalSchema = new IpcManagementContext(new DbContextOptionsBuilder<IpcManagementContext>().UseSqlite(connection).Options);
+            await Infrastructure.SupplementalDemandSqliteSchema.CreateAsync(supplementalSchema);
+            await Infrastructure.StocktakeSqliteSchema.CreateAsync(supplementalSchema);
         }
     }
 }

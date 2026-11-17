@@ -336,7 +336,7 @@ public sealed class ReconciliationBatchService(
         if (!string.Equals(requestContext.Mode, SystemOperationEligibility.MaterialReconciliation, StringComparison.Ordinal))
             throw new InvalidOperationException("Chỉ chế độ đối chiếu nguyên liệu mới được chuyển danh sách sang Kho.");
         var batchId = RequiredId(id);
-        _ = RequiredId(actorId);
+        var actor = RequiredId(actorId);
         var protection = RequiredProtection();
         var batch = await transactions.ExecuteProtectedAsync(
             protection.OperationKey,
@@ -353,6 +353,19 @@ public sealed class ReconciliationBatchService(
                     throw new DbUpdateConcurrencyException("Lô đối chiếu đã thay đổi hoặc chưa sẵn sàng chuyển sang Kho.");
                 source.Status = "TRANSFERRED";
                 source.Version++;
+                context.Auditlogs.Add(new AuditLog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = DateTime.UtcNow,
+                    ChangedBy = actor,
+                    BusinessArea = "MATERIAL_RECONCILIATION",
+                    EntityName = nameof(ReconciliationBatch),
+                    EntityId = batchId,
+                    FieldName = nameof(ReconciliationBatch.Status),
+                    OldValue = "READY",
+                    NewValue = source.Status,
+                    Reason = "Chuyển lô đối soát sang Kho."
+                });
                 await context.SaveChangesAsync(operationToken);
                 return source;
             },

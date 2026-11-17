@@ -1,3 +1,4 @@
+using IPCManagement.Api.Workflows.OperationalApprovals;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Data.Transactions;
@@ -70,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<ReconciliationActualService>();
         services.AddScoped<ReconciliationKitchenExportService>();
         services.AddScoped<ReconciliationCompletionService>();
+        services.AddScoped<ReconciliationSupplementalDemandService>();
         services.AddScoped<MrxEditScopeQuery>();
         services.AddScoped<ReconciliationSourceRevisionService>();
         services.AddScoped<ReconciliationSourceHistoryService>();
@@ -110,6 +112,8 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAdminEmployeeService, AdminEmployeeService>();
         services.AddScoped<IApprovalInboxService, ApprovalInboxService>();
+        services.AddScoped<IInventoryApprovalInboxSource, OperationalInventoryInboxSource>();
+        services.AddScoped<OperationalApprovalService>();
         services.AddScoped<IApprovalHistoryQueryService, ApprovalHistoryQueryService>();
         services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
         services.AddScoped<IApprovalRoutingService, ApprovalRoutingService>();

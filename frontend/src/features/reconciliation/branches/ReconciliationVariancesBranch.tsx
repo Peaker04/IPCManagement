@@ -16,6 +16,8 @@ export interface ReconciliationVariancesBranchProps {
 }
 
 function dispositionText(row: MrxVarianceRegisterReport['rows'][number]) {
+  if (row.varianceType === 'PURPOSE_SHORTAGE') return 'Còn thiếu theo nhu cầu';
+  if (row.varianceType === 'ALLOCATION_REQUIRES_REVIEW') return 'Cần đối chiếu phân bổ';
   if (!row.dispositionCategory) return 'Chưa xử lý';
   const category = MRX_DISPOSITION_CATEGORY_LABELS[row.dispositionCategory] ?? 'Danh mục chưa xác định';
   return `${category}: ${row.dispositionReason || '—'}`;
@@ -93,7 +95,11 @@ export function ReconciliationVariancesBranch({ report }: ReconciliationVariance
       width: '18%',
       cell: (row) => {
         const text = dispositionText(row);
-        return <span className="text-xs truncate block" title={text}>{text}</span>;
+        return <div className="text-xs">
+          <span className="block">{text}</span>
+          {row.remainingByPurpose != null && row.remainingByPurpose > 0 && <span className="block">Còn thiếu: <Num value={row.remainingByPurpose} format="plain" decimals={6} /></span>}
+          {(row.unplannedIssuedQuantity ?? 0) > 0 && <span className="block">Cấp ngoài: <Num value={row.unplannedIssuedQuantity} format="plain" decimals={6} /></span>}
+        </div>;
       },
     },
   ], []);

@@ -174,11 +174,20 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationSourceEditRoles));
     options.AddPolicy(AuthorizationPolicies.ReconciliationWarehouseReadAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationWarehouseReadRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationFrozenBomReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationWarehouseReadRoles
+            .Concat(AuthorizationPolicies.ReconciliationSourceReadRoles)));
     options.AddPolicy(AuthorizationPolicies.ReconciliationKitchenAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationKitchenRoles));
     options.AddPolicy(AuthorizationPolicies.ReconciliationDispositionAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationDecisionRoles));
     options.AddPolicy(AuthorizationPolicies.ReconciliationCompleteAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationDecisionRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationSupplementalDemandWriteAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationSupplementalDemandWriteRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationSupplementalDemandReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationSupplementalDemandReadRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationSupplementalDemandApproveAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationDecisionRoles));
 });
 

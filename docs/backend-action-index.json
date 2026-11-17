@@ -1641,6 +1641,64 @@
       ]
     },
     {
+      "actionId": "OperationalApprovals.Decide",
+      "controller": "OperationalApprovalsController",
+      "sourceMethod": "Decide",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/OperationalApprovalsController.cs",
+      "httpMethod": "POST",
+      "route": "api/operational-approvals/{targetType}/{id}/decision",
+      "policies": [
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [
+        "OperationalApprovalActionRequest"
+      ],
+      "responseTypes": [
+        "ApprovalResultDto"
+      ]
+    },
+    {
+      "actionId": "OperationalApprovals.Detail",
+      "controller": "OperationalApprovalsController",
+      "sourceMethod": "Detail",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/OperationalApprovalsController.cs",
+      "httpMethod": "GET",
+      "route": "api/operational-approvals/{targetType}/{id}",
+      "policies": [
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "OperationalApprovals.History",
+      "controller": "OperationalApprovalsController",
+      "sourceMethod": "History",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/OperationalApprovalsController.cs",
+      "httpMethod": "GET",
+      "route": "api/operational-approvals/{targetType}/{id}/history",
+      "policies": [
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ApprovalHistoryItemDto"
+      ]
+    },
+    {
+      "actionId": "OperationalApprovals.Inbox",
+      "controller": "OperationalApprovalsController",
+      "sourceMethod": "Inbox",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/OperationalApprovalsController.cs",
+      "httpMethod": "GET",
+      "route": "api/operational-approvals/inbox",
+      "policies": [
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
       "actionId": "PortionRules.CreatePortionRule",
       "controller": "PortionRulesController",
       "sourceMethod": "CreatePortionRuleAsync",
@@ -2747,6 +2805,23 @@
       ]
     },
     {
+      "actionId": "ReconciliationReports.GetSourceChanges",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "GetSourceChanges",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/source-changes",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationSourceReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "ReconciliationSourceChangeDto"
+      ]
+    },
+    {
       "actionId": "ReconciliationReports.GetTransactionsHistory",
       "controller": "ReconciliationReportsController",
       "sourceMethod": "GetTransactionsHistory",
@@ -2864,6 +2939,208 @@
       "responseTypes": [
         "PagedResponseDto",
         "ReconciliationSourceDeltaQueueItemDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSourceHistory.Detail",
+      "controller": "ReconciliationSourceHistoryController",
+      "sourceMethod": "Detail",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSourceHistoryController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/source-history/{eventId}",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationSourceHistoryDetailDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSourceHistory.List",
+      "controller": "ReconciliationSourceHistoryController",
+      "sourceMethod": "List",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSourceHistoryController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/source-history",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "ReconciliationSourceHistoryEventDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSupplementalDemands.Approve",
+      "controller": "ReconciliationSupplementalDemandsController",
+      "sourceMethod": "Approve",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/supplemental-demands/{id}/approve",
+      "policies": [
+        "ReconciliationSupplementalDemandReadAccess",
+        "ReconciliationSupplementalDemandApproveAccess"
+      ],
+      "requestTypes": [
+        "ReconciliationSupplementalDemandCommand"
+      ],
+      "responseTypes": [
+        "ReconciliationSupplementalDemandDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSupplementalDemands.Cancel",
+      "controller": "ReconciliationSupplementalDemandsController",
+      "sourceMethod": "Cancel",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/supplemental-demands/{id}/cancel",
+      "policies": [
+        "ReconciliationSupplementalDemandReadAccess",
+        "ReconciliationSupplementalDemandWriteAccess"
+      ],
+      "requestTypes": [
+        "ReconciliationSupplementalDemandCommand"
+      ],
+      "responseTypes": [
+        "ReconciliationSupplementalDemandDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSupplementalDemands.Create",
+      "controller": "ReconciliationSupplementalDemandsController",
+      "sourceMethod": "Create",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/supplemental-demands",
+      "policies": [
+        "ReconciliationSupplementalDemandReadAccess",
+        "ReconciliationSupplementalDemandWriteAccess"
+      ],
+      "requestTypes": [
+        "ReconciliationSupplementalDemandWriteRequest"
+      ],
+      "responseTypes": [
+        "ReconciliationSupplementalDemandDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSupplementalDemands.DishOptions",
+      "controller": "ReconciliationSupplementalDemandsController",
+      "sourceMethod": "DishOptions",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/supplemental-demands/batches/{batchId}/dish-options",
+      "policies": [
+        "ReconciliationSupplementalDemandReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationSupplementalDishOptionsDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSupplementalDemands.Fulfillment",
+      "controller": "ReconciliationSupplementalDemandsController",
+      "sourceMethod": "Fulfillment",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/supplemental-demands/batches/{batchId}/fulfillment",
+      "policies": [
+        "ReconciliationSupplementalDemandReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationSupplementalFulfillmentDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSupplementalDemands.Get",
+      "controller": "ReconciliationSupplementalDemandsController",
+      "sourceMethod": "Get",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/supplemental-demands/{id}",
+      "policies": [
+        "ReconciliationSupplementalDemandReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationSupplementalDemandDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSupplementalDemands.List",
+      "controller": "ReconciliationSupplementalDemandsController",
+      "sourceMethod": "List",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/supplemental-demands",
+      "policies": [
+        "ReconciliationSupplementalDemandReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "ReconciliationSupplementalDemandSummaryDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSupplementalDemands.Reject",
+      "controller": "ReconciliationSupplementalDemandsController",
+      "sourceMethod": "Reject",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/supplemental-demands/{id}/reject",
+      "policies": [
+        "ReconciliationSupplementalDemandReadAccess",
+        "ReconciliationSupplementalDemandApproveAccess"
+      ],
+      "requestTypes": [
+        "ReconciliationSupplementalDemandCommand"
+      ],
+      "responseTypes": [
+        "ReconciliationSupplementalDemandDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSupplementalDemands.Submit",
+      "controller": "ReconciliationSupplementalDemandsController",
+      "sourceMethod": "Submit",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/supplemental-demands/{id}/submit",
+      "policies": [
+        "ReconciliationSupplementalDemandReadAccess",
+        "ReconciliationSupplementalDemandWriteAccess"
+      ],
+      "requestTypes": [
+        "ReconciliationSupplementalDemandCommand"
+      ],
+      "responseTypes": [
+        "ReconciliationSupplementalDemandDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSupplementalDemands.Update",
+      "controller": "ReconciliationSupplementalDemandsController",
+      "sourceMethod": "Update",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSupplementalDemandsController.cs",
+      "httpMethod": "PUT",
+      "route": "api/reconciliation/supplemental-demands/{id}",
+      "policies": [
+        "ReconciliationSupplementalDemandReadAccess",
+        "ReconciliationSupplementalDemandWriteAccess"
+      ],
+      "requestTypes": [
+        "ReconciliationSupplementalDemandWriteRequest"
+      ],
+      "responseTypes": [
+        "ReconciliationSupplementalDemandDto"
       ]
     },
     {

@@ -72,6 +72,8 @@ internal sealed class MrxMenuAmendmentCoordinator(
         var pending = await context.Menuamendments.AsNoTracking().Include(item => item.Lines)
             .SingleOrDefaultAsync(item => item.MenuAmendmentId.SequenceEqual(id), cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy yêu cầu thay đổi thực đơn.");
+        if (pending.BaseMenuVersionId is null)
+            throw new UnauthorizedAccessException("Hồ sơ không thuộc chế độ Đối soát nguyên liệu.");
         try
         {
             var applyMode = ReadImpact(pending.ImpactSnapshotJson).SourceChangeMode == "REIMPORT"
@@ -97,6 +99,8 @@ internal sealed class MrxMenuAmendmentCoordinator(
     {
         var amendment = await context.Menuamendments.SingleOrDefaultAsync(item => item.MenuAmendmentId.SequenceEqual(id), token)
             ?? throw new KeyNotFoundException("Không tìm thấy yêu cầu thay đổi thực đơn.");
+        if (amendment.BaseMenuVersionId is null)
+            throw new UnauthorizedAccessException("Hồ sơ không thuộc chế độ Đối soát nguyên liệu.");
         if (amendment.Status is not ("PENDING_REVIEW" or "RECONCILIATION_REQUIRED"))
             throw new BusinessRuleException("Yêu cầu thay đổi không còn chờ duyệt.");
         return amendment;

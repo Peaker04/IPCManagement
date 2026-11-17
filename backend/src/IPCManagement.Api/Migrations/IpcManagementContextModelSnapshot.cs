@@ -4990,6 +4990,55 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("reconciliationdispositions", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationIssueAllocation", b =>
+                {
+                    b.Property<byte[]>("AllocationId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("DailyLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("DemandMaterialId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IssueLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.HasKey("AllocationId");
+
+                    b.HasIndex("DailyLineId");
+
+                    b.HasIndex("DemandMaterialId");
+
+                    b.HasIndex("IssueLineId", "Purpose", "DemandMaterialId");
+
+                    b.ToTable("reconciliationissueallocations", null, t =>
+                        {
+                            t.HasCheckConstraint("ckMrxIssueAllocationPurpose", "(`Purpose` = 'APPROVED_EXTRA_DEMAND' AND `DemandMaterialId` IS NOT NULL) OR (`Purpose` IN ('BASELINE_SHORTAGE','UNPLANNED_EXTRA') AND `DemandMaterialId` IS NULL)");
+
+                            t.HasCheckConstraint("ckMrxIssueAllocationQuantity", "`Quantity` > 0");
+                        });
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSourceDelta", b =>
                 {
                     b.Property<byte[]>("SourceDeltaId")
@@ -5171,6 +5220,254 @@ namespace IPCManagement.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("reconciliationsourcerevisions", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemand", b =>
+                {
+                    b.Property<byte[]>("DemandId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("BatchId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<byte[]>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<byte[]>("DecidedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateOnly>("ServiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<long>("SnapshotBatchVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SnapshotFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("DemandId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DecidedBy");
+
+                    b.HasIndex("BatchId", "ServiceDate", "Status");
+
+                    b.ToTable("reconciliationsupplementaldemands", null, t =>
+                        {
+                            t.HasCheckConstraint("ckMrxSupplementalDemandStatus", "`Status` IN ('DRAFT','PENDING','APPROVED','REJECTED','CANCELLED')");
+                        });
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandContribution", b =>
+                {
+                    b.Property<byte[]>("DemandContributionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("CanonicalQuantityPerServing")
+                        .HasPrecision(38, 24)
+                        .HasColumnType("decimal(38,24)");
+
+                    b.Property<byte[]>("DemandDishId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("DemandMaterialId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("FrozenBomQuantityPerServing")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal>("FrozenBomUnitToBaseRate")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal>("FrozenCanonicalUnitToBaseRate")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<byte[]>("FrozenContributorId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("RequiredQuantity")
+                        .HasPrecision(38, 24)
+                        .HasColumnType("decimal(38,24)");
+
+                    b.Property<decimal>("WasteRatePercent")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.HasKey("DemandContributionId");
+
+                    b.HasIndex("DemandMaterialId");
+
+                    b.HasIndex("FrozenContributorId");
+
+                    b.HasIndex("DemandDishId", "DemandMaterialId")
+                        .IsUnique();
+
+                    b.ToTable("reconciliationsupplementaldemandcontributions", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandDish", b =>
+                {
+                    b.Property<byte[]>("DemandDishId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("DemandId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("DishId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<int>("ExtraServings")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FrozenDishCode")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<string>("FrozenDishName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("MenuVariant")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("ShiftName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)");
+
+                    b.HasKey("DemandDishId");
+
+                    b.HasIndex("DishId");
+
+                    b.HasIndex("DemandId", "DishId", "ShiftName", "MenuVariant")
+                        .IsUnique();
+
+                    b.ToTable("reconciliationsupplementaldemanddishes", null, t =>
+                        {
+                            t.HasCheckConstraint("ckMrxExtraServingsPositive", "`ExtraServings` > 0");
+                        });
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandMaterial", b =>
+                {
+                    b.Property<byte[]>("DemandMaterialId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("BatchId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("CanonicalUnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("DailyLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("DemandId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("RequiredQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.HasKey("DemandMaterialId");
+
+                    b.HasIndex("DemandId", "BatchId");
+
+                    b.HasIndex("DemandId", "DailyLineId")
+                        .IsUnique();
+
+                    b.HasIndex("DailyLineId", "BatchId", "IngredientId", "CanonicalUnitId");
+
+                    b.ToTable("reconciliationsupplementaldemandmaterials", null, t =>
+                        {
+                            t.HasCheckConstraint("ckMrxExtraRequiredPositive", "`RequiredQuantity` > 0");
+                        });
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationTolerance", b =>
@@ -8015,6 +8312,32 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("BatchLine");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationIssueAllocation", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatchDailyLine", "DailyLine")
+                        .WithMany()
+                        .HasForeignKey("DailyLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandMaterial", "DemandMaterial")
+                        .WithMany()
+                        .HasForeignKey("DemandMaterialId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryIssueLine", "IssueLine")
+                        .WithMany()
+                        .HasForeignKey("IssueLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DailyLine");
+
+                    b.Navigation("DemandMaterial");
+
+                    b.Navigation("IssueLine");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSourceDelta", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationSourceRevision", "SourceRevision")
@@ -8061,6 +8384,93 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Batch");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemand", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatch", "Batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("DecidedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Batch");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandContribution", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandDish", "DemandDish")
+                        .WithMany("Contributions")
+                        .HasForeignKey("DemandDishId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandMaterial", "DemandMaterial")
+                        .WithMany("Contributions")
+                        .HasForeignKey("DemandMaterialId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_reconciliationsupplementaldemandcontributions_reconciliatio~1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatchContributor", null)
+                        .WithMany()
+                        .HasForeignKey("FrozenContributorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_reconciliationsupplementaldemandcontributions_reconciliatio~2");
+
+                    b.Navigation("DemandDish");
+
+                    b.Navigation("DemandMaterial");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandDish", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemand", "Demand")
+                        .WithMany("Dishes")
+                        .HasForeignKey("DemandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Dish", null)
+                        .WithMany()
+                        .HasForeignKey("DishId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Demand");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandMaterial", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemand", "Demand")
+                        .WithMany("Materials")
+                        .HasForeignKey("DemandId", "BatchId")
+                        .HasPrincipalKey("DemandId", "BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatchDailyLine", "DailyLine")
+                        .WithMany()
+                        .HasForeignKey("DailyLineId", "BatchId", "IngredientId", "CanonicalUnitId")
+                        .HasPrincipalKey("DailyLineId", "BatchId", "IngredientId", "CanonicalUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DailyLine");
+
+                    b.Navigation("Demand");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationTolerance", b =>
@@ -8688,6 +9098,23 @@ namespace IPCManagement.Api.Migrations
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSourceRevision", b =>
                 {
                     b.Navigation("Deltas");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemand", b =>
+                {
+                    b.Navigation("Dishes");
+
+                    b.Navigation("Materials");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandDish", b =>
+                {
+                    b.Navigation("Contributions");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSupplementalDemandMaterial", b =>
+                {
+                    b.Navigation("Contributions");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Role", b =>

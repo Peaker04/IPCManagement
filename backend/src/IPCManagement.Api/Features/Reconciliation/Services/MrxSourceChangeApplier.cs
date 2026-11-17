@@ -195,10 +195,26 @@ public sealed class MrxSourceChangeApplier(
             return existing;
         }
         if (applyMode == ApprovedRequestMode) throw new KeyNotFoundException("Không tìm thấy yêu cầu thay đổi thực đơn.");
-        amendment.Status = "APPROVED_FOR_EXECUTION";
-        context.Menuamendments.Add(amendment);
-        AddAudit(actorId, amendment.CreatedAt, nameof(MenuAmendment), amendment.MenuAmendmentId, "Status", null, amendment.Status, amendment.Reason);
-        return amendment;
+        // The supplied input survives transaction retries. EF relationship fix-up can attach
+        // existing versions/users/dishes to an attempted entity; never re-add that graph.
+        var draft = new MenuAmendment
+        {
+            MenuAmendmentId = amendment.MenuAmendmentId, CustomerId = amendment.CustomerId,
+            WeekStartDate = amendment.WeekStartDate, BaseMenuVersionId = amendment.BaseMenuVersionId,
+            Status = "APPROVED_FOR_EXECUTION", Reason = amendment.Reason, ImpactSnapshotJson = amendment.ImpactSnapshotJson,
+            CreatedBy = amendment.CreatedBy, CreatedAt = amendment.CreatedAt,
+            ReviewedBy = amendment.ReviewedBy, ReviewedAt = amendment.ReviewedAt,
+            ExecutedBy = amendment.ExecutedBy, ExecutedAt = amendment.ExecutedAt,
+            Lines = amendment.Lines.Select(line => new MenuAmendmentLine
+            {
+                MenuAmendmentLineId = line.MenuAmendmentLineId, MenuAmendmentId = amendment.MenuAmendmentId,
+                ServiceDate = line.ServiceDate, ShiftName = line.ShiftName, DishSlot = line.DishSlot,
+                OldDishId = line.OldDishId, NewDishId = line.NewDishId
+            }).ToList()
+        };
+        context.Menuamendments.Add(draft);
+        AddAudit(actorId, draft.CreatedAt, nameof(MenuAmendment), draft.MenuAmendmentId, "Status", null, draft.Status, draft.Reason);
+        return draft;
     }
 
     private MealQuantityPlanLine CreateInitialPlanLine(MenuSchedule schedule, byte[] actorId, DateTime now)

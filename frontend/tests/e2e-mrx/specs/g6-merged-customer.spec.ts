@@ -3,7 +3,7 @@ import path from 'node:path';
 import { test, expect } from '../fixtures/mrxTest';
 import { respectApiBudget } from '../fixtures/authHelpers';
 import { createTransferredBatch, scenarioScope, parseCookingFile, writeBomImportWorkbook } from '../fixtures/mrxWorkflow';
-import type { StockSnapshot } from '../core/mysqlVerifier';
+import type { DishBomLine } from '../../../src/api/bomApi';
 import type { MrxEditScope, MrxKitchenCooking, MrxWarehouseDaily } from '../../../src/api/mrxApi';
 
 test.setTimeout(360_000);
@@ -300,7 +300,8 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
     await bomPage.getByRole('button',{name:'Xem trước',exact:true}).click();
     const previewResponse=await preview;
     expect(previewResponse.status(),await previewResponse.text()).toBe(200);
-    expect((await previewResponse.json()).data.canCommit).toBe(true);
+    const inspected = (await previewResponse.json()).data;
+    expect(inspected.canCommit, JSON.stringify(inspected.rows)).toBe(true);
     const commit=bomPage.waitForResponse((r)=>r.url().endsWith('/bom-import/commit') && r.request().method()==='POST');
     await bomPage.getByRole('button',{name:'Xác nhận nhập BOM hàng loạt',exact:true}).click();
     const response=await commit;
@@ -323,10 +324,28 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   expect(dbVerifier.query(noWriteSql)).toEqual(afterBadPreparation);
   await expect(adminPage.getByText('Đơn vị nguyên liệu chưa có quy đổi chuẩn hợp lệ.',{exact:true})).toBeVisible();
   await expect(adminPage.getByRole('button',{name:'Áp dụng ngay',exact:true})).toHaveCount(0);
-  const goodFixture=await importConversionBom([{unit:units.incompatible,quantity:units.gross,status:'ARCHIVED'},{unit:units.compatible,quantity:units.convertedGross,status:'PUBLISHED'}],'compatible');
+  const archived = await bomPage.evaluate(async ({ dishId, customer, date, ingredient, unit, reason }) => {
+    const headers = { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`,
+      'X-Operational-Mode': 'MATERIAL_RECONCILIATION', 'Content-Type': 'application/json' };
+    const url = '/api/Dishes/' + dishId + '/bom';
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error(`BOM readback ${response.status}`);
+    const rows = ((await response.json()).data as DishBomLine[]).filter(line => line.customerId === customer
+      && line.effectiveFrom === date && line.effectiveTo === date && line.priceTierAmount === 25000
+      && line.ingredientCode === ingredient && line.unitCode === unit && line.bomStatus === 'PUBLISHED');
+    if (rows.length !== 1) throw new Error('Expected one published BOM for the exact conversion fixture scope');
+    const updated = await fetch(url + '/' + rows[0].bomId, {
+      method: 'PUT', headers, body: JSON.stringify({ bomStatus: 'ARCHIVED', reason }),
+    });
+    if (!updated.ok) throw new Error(`BOM archive ${updated.status}`);
+    return (await updated.json()).data as DishBomLine;
+  }, { dishId: dishes[3].dishId!, customer: customerId, date: scope.weekStartDate,
+    ingredient: units.ingredient, unit: units.incompatible, reason: scope.reason });
+  expect(archived).toMatchObject({ bomStatus: 'ARCHIVED', customerId, effectiveFrom: scope.weekStartDate });
+  const goodFixture=await importConversionBom([{unit:units.compatible,quantity:units.convertedGross,status:'PUBLISHED'}],'compatible');
   await bomPage.close();
   await applyAndCheck('valid-conversion', [dishes[1],dishes[1],dishes[0],dishes[3]].map((d)=>d.dishId!),1251);
-  fs.writeFileSync(path.join(evidence,'approved-conversion-prerequisites.json'),JSON.stringify({scope:'clone-only declared alternate-unit fixture plus customer/day BOM; no stock seeds; existing units unchanged',customerId,date:scope.weekStartDate,dishId:dishes[3].dishId,units,badFixture,goodFixture,invalidStatus:400,noOperationalWritesAfterBadFixture:true,validSourceApplied:true},null,2));
+  fs.writeFileSync(path.join(evidence,'approved-conversion-prerequisites.json'),JSON.stringify({scope:'clone-only declared alternate-unit fixture plus customer/day BOM; no stock seeds; existing units unchanged',customerId,date:scope.weekStartDate,dishId:dishes[3].dishId,units,badFixture,archivedBomId:archived.bomId,goodFixture,invalidStatus:400,noOperationalWritesAfterBadFixture:true,validSourceApplied:true},null,2));
   const acceptedSource = await readScope();
   const zeroSql = `SELECT HEX(DailyLineId) AS id, CAST(RequiredQuantity AS CHAR) AS qty FROM reconciliationbatchdailylines WHERE BatchId=UNHEX('${batchHex}') AND RequiredQuantity=0 ORDER BY id;`;
   const retainedZeros = dbVerifier.query(zeroSql);
@@ -345,18 +364,11 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
       return (await response.json()).data as MrxWarehouseDaily;
     }, batchId);
     await thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
-    const before = new Map<string, StockSnapshot>();
-    await thukhoPage.route('**/api/inventory-issues', async (route) => {
-      if (route.request().method() === 'POST') for (const line of route.request().postDataJSON().lines) {
-        const id = binaryId(line.ingredientId);
-        before.set(id, dbVerifier.captureStockSnapshot(id));
-      }
-      await route.continue();
-    });
+    const physicalLedger = () => dbVerifier.query('CHECKSUM TABLE currentstock,currentstocklots,stockmovements;');
+    const before = physicalLedger();
     const issued = thukhoPage.waitForResponse((r) => r.url().endsWith('/api/inventory-issues') && r.request().method() === 'POST');
     await thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }).click();
     const response = await issued;
-    await thukhoPage.unroute('**/api/inventory-issues');
     expect(response.status(), await response.text()).toBe(201);
     const receipt = (await response.json()).data;
     issueCodes.push(receipt.issueCode);
@@ -367,9 +379,8 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
       const frozen = expected.find((item) => item.dailyLineId === line.reconciliationBatchDailyLineId);
       expect(frozen, 'Issue must retain exact frozen daily lineage').toBeDefined();
       expect(line.issuedQty).toBe(frozen!.requiredQuantity);
-      const id = binaryId(line.ingredientId), stock = before.get(id)!;
-      expect(dbVerifier.captureStockSnapshot(id)).toEqual(stock);
     }
+    expect(physicalLedger()).toEqual(before);
     await expect(thukhoPage.getByText('Xuất kho thành công.', { exact: true })).toBeVisible();
   }
   await beptruongPage.bringToFront();
@@ -458,7 +469,6 @@ function binaryId(value: string) {
 
 test('@G6-Menu-Reimport-Ingredient catalog ingredient create is visible after reload and rejects a case variant', async ({ adminPage, dbVerifier }) => {
   const suffix = Date.now().toString(36).toUpperCase();
-  const code = `MRXCAT${suffix}`;
   const name = `Nguyên liệu MRX ${suffix}`;
   const evidence = process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
   await adminPage.goto('/admin-data?view=ingredients');
@@ -467,18 +477,23 @@ test('@G6-Menu-Reimport-Ingredient catalog ingredient create is visible after re
   await adminPage.getByRole('button', { name: 'Thêm nguyên liệu', exact: true }).click();
   const dialog = adminPage.getByRole('dialog', { name: 'Thêm nguyên liệu', exact: true });
   const unitSelector = dialog.getByRole('combobox', { name: 'Đơn vị tính nguyên liệu' });
-  const unitId = await unitSelector.locator('option:not([value=""])').first().getAttribute('value');
-  expect(unitId).toBeTruthy();
-  await dialog.getByRole('textbox', { name: 'Mã nguyên liệu', exact: true }).fill(code);
+  await expect(dialog.getByRole('textbox', { name: 'Mã nguyên liệu', exact: true })).toHaveCount(0);
   await dialog.getByRole('textbox', { name: 'Tên nguyên liệu', exact: true }).fill(name);
-  await unitSelector.selectOption(unitId!);
+  await unitSelector.click();
+  await dialog.getByRole('listbox').getByRole('option').first().click();
   await adminPage.screenshot({ path: path.join(evidence, 'catalog-ingredient-create-form.png') });
   const createResponse = adminPage.waitForResponse(response => response.url().toLowerCase().endsWith('/api/ingredients') && response.request().method() === 'POST');
-  await dialog.getByRole('button', { name: 'Lưu nguyên liệu', exact: true }).click();
-  expect((await createResponse).status()).toBe(201);
+  await dialog.getByRole('button', { name: 'Thêm nguyên liệu', exact: true }).click();
+  const created = await createResponse;
+  expect(created.status()).toBe(201);
+  expect(created.request().postDataJSON().ingredientCode).toBeUndefined();
+  const { ingredientCode: code, unitId } = (await created.json()).data as { ingredientCode: string; unitId: string };
+  expect(code).toMatch(/^ING-[A-F0-9]+$/);
+  expect(unitId).toBeTruthy();
   await expect(dialog).toHaveCount(0);
   await expect(adminPage.getByRole('row', { name: new RegExp(code) })).toBeVisible();
   await adminPage.reload();
+  await adminPage.getByPlaceholder('Tìm mã, tên nguyên liệu...').fill(code);
   await expect(adminPage.getByRole('row', { name: new RegExp(code) })).toBeVisible();
   await adminPage.screenshot({ path: path.join(evidence, 'catalog-ingredient-after-reload.png') });
 
@@ -528,7 +543,6 @@ test('@G6-Menu-Reimport-Ingredient concurrent ingredient creates retain one acti
 
 test('@G6-Menu-Reimport-BOM manual BOM editor creates ingredient without an accidental BOM write', async ({ adminPage, dbVerifier }) => {
   const suffix = Date.now().toString(36).toUpperCase();
-  const code = `MRXBOM${suffix}`;
   const name = `Nguyên liệu BOM ${suffix}`;
   const evidence = process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
   const beforeBom = dbVerifier.query('CHECKSUM TABLE dishbom;');
@@ -537,16 +551,19 @@ test('@G6-Menu-Reimport-BOM manual BOM editor creates ingredient without an acci
   const dialog = adminPage.getByRole('dialog');
   await expect(dialog.getByRole('button', { name: 'Tạo nguyên liệu mới', exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: 'Tạo nguyên liệu mới', exact: true }).click();
-  await dialog.getByLabel('Mã nguyên liệu mới', { exact: true }).fill(code);
+  await expect(dialog.getByLabel('Mã nguyên liệu mới', { exact: true })).toHaveCount(0);
   await dialog.getByLabel('Tên nguyên liệu mới', { exact: true }).fill(name);
   const unit = dialog.getByLabel('Đơn vị nguyên liệu mới', { exact: true });
-  const unitId = await unit.locator('option:not([value=""])').first().getAttribute('value');
-  expect(unitId).toBeTruthy();
-  await unit.selectOption(unitId!);
+  await unit.click();
+  await dialog.getByRole('listbox').getByRole('option').first().click();
   await adminPage.screenshot({ path: path.join(evidence, 'bom-editor-ingredient-create-form.png') });
   const createResponse = adminPage.waitForResponse(response => response.url().toLowerCase().endsWith('/api/ingredients') && response.request().method() === 'POST');
   await dialog.getByRole('button', { name: 'Lưu nguyên liệu', exact: true }).click();
-  expect((await createResponse).status()).toBe(201);
+  const created = await createResponse;
+  expect(created.status()).toBe(201);
+  expect(created.request().postDataJSON().ingredientCode).toBeUndefined();
+  const code: string = (await created.json()).data.ingredientCode;
+  expect(code).toMatch(/^ING-[A-F0-9]+$/);
   await expect(dialog.getByText('Đã tạo nguyên liệu. Nhập định mức/suất và bấm Thêm vào BOM để hoàn tất.', { exact: true })).toBeVisible();
   expect(dbVerifier.query('CHECKSUM TABLE dishbom;')).toEqual(beforeBom);
   expect(dbVerifier.query<{ code: string }>(`SELECT ingredientCode AS code FROM ingredients WHERE ingredientCode='${code}';`)).toEqual([{ code }]);

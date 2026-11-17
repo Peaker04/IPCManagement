@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { MealOrdersPage } from '../features/coordination/MealOrdersPage';
@@ -84,8 +84,10 @@ describe('Meal Orders Feature (FR-COORD — Behavioral Audit)', () => {
 
     renderMealOrders();
 
-    expect(await screen.findByText('Chưa có kế hoạch suất ăn')).toBeInTheDocument();
-    expect(screen.getByText('Chưa có kế hoạch suất ăn được chốt cho khách hàng, ngày và ca đã chọn.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Chưa có kế hoạch suất ăn')).toBeInTheDocument();
+      expect(screen.getByText('Chưa có kế hoạch suất ăn được chốt cho khách hàng, ngày và ca đã chọn.')).toBeInTheDocument();
+    });
   });
 
   it('opens customer administration from the missing-customers state', async () => {

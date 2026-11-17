@@ -8,8 +8,7 @@ import { IdentifierText } from '../ui/identifier-text';
 import { InlineBanner } from '../ui/inline-banner';
 import { mrxApi, type MrxInventoryIssueDetail } from '../../api/mrxApi';
 import { serverStateCache } from '../../store/serverStateCache';
-import { toVietnameseDate, formatVietnameseDateTime } from '../../utils/dates';
-import { formatNumber } from '../../utils/formatters';
+import { toVietnameseDate } from '../../utils/dates';
 
 export interface ReconciliationIssueDetailModalProps {
   isOpen: boolean;
@@ -103,12 +102,7 @@ function ReconciliationIssueDetailDialog({
                 <span className="text-slate-500">Mã phiếu:</span>
                 <IdentifierText value={issue.issueCode} />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500">Trạng thái Bếp nhận:</span>
-                <Badge variant={issue.receivedAt ? 'success' : 'warning'} size="sm">
-                  {issue.receivedAt ? `Đã nhận (${formatVietnameseDateTime(issue.receivedAt)})` : 'Chờ xác nhận'}
-                </Badge>
-              </div>
+
             </div>
 
             <div role="region" aria-label="Nguyên liệu phiếu xuất · cuộn để xem đầy đủ" tabIndex={0} className="flex-1 min-h-0 overflow-auto border border-slate-200 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400">
@@ -134,8 +128,7 @@ function ReconciliationIssueDetailDialog({
                       const diff = Math.round((line.issuedQty - line.requestedQty) * 1_000_000) / 1_000_000;
                       const isOver = diff > 0;
                       const isUnder = diff < 0;
-                      const provisions = issue.provisions.filter((provision) =>
-                        provision.ingredientId === line.ingredientId && provision.unitId === line.unitId);
+
 
                       return (
                         <tr key={line.issueLineId} className="hover:bg-slate-50">
@@ -151,20 +144,11 @@ function ReconciliationIssueDetailDialog({
                                 </Badge>
                               )}
                               {isUnder && (
-                                <Badge variant="neutral" size="sm">
-                                  Tiết kiệm (<Num value={diff} format="plain" decimals={6} />)
+                                <Badge variant="danger" size="sm">
+                                  Xuất thiếu (<Num value={-diff} format="plain" decimals={6} />)
                                 </Badge>
                               )}
-                              {provisions.map((provision) => (
-                                <Badge
-                                  key={provision.stockMovementId}
-                                  variant="info"
-                                  size="sm"
-                                  aria-label={`Đã tự động bù tồn kho: +${formatNumber(provision.provisionedQuantity, 'plain', 6)} ${provision.unitName || line.unitName || provision.unitId}`}
-                                >
-                                  Đã tự động bù tồn kho: +<Num value={provision.provisionedQuantity} format="plain" decimals={6} /> {provision.unitName || line.unitName || provision.unitId}
-                                </Badge>
-                              ))}
+
                             </div>
                           </td>
                           <td className="p-2.5 text-center font-mono text-slate-600">{line.unitName || 'Chưa rõ đơn vị'}</td>

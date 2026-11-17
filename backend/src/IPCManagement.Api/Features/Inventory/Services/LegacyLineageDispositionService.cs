@@ -59,7 +59,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         CancellationToken cancellationToken = default)
     {
         EnsureDefaultMode();
-        var query = _context.Legacylinedispositions.AsNoTracking().AsQueryable();
+        var query = LegacyLineageSourceScope.Filter(_context, _context.Legacylinedispositions.AsNoTracking());
         if (!string.IsNullOrWhiteSpace(status))
         {
             var normalizedStatus = NormalizeStatus(status);
@@ -137,7 +137,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
                 _context.Legacylinedispositions.Add(disposition);
                 var result = Map(disposition);
                 _lifecycleRecorder.Stage(new LifecycleTransitionRequest(
-                    aggregateType, legacyLineId, commandId, 0, null, PendingManagerReview, actorId, 0,
+                    aggregateType, legacyLineId, commandId, await NextSequenceAsync(aggregateType, legacyLineId, token), null, PendingManagerReview, actorId, 0,
                     reason, commandId, null, Serialize(result), Serialize(result)));
                 await _context.SaveChangesAsync(token);
                 return result;
@@ -189,7 +189,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
                 tracked.Version++;
                 var result = Map(tracked);
                 _lifecycleRecorder.Stage(new LifecycleTransitionRequest(
-                    aggregateType, tracked.LegacyLineId, commandId, checked((int)tracked.Version), PendingManagerReview, nextStatus,
+                    aggregateType, tracked.LegacyLineId, commandId, await NextSequenceAsync(aggregateType, tracked.LegacyLineId, token), PendingManagerReview, nextStatus,
                     actorId, request.ExpectedVersion, reviewReason, commandId, null, Serialize(result), Serialize(result)));
                 await _context.SaveChangesAsync(token);
                 return result;
@@ -239,7 +239,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
                 tracked.Version++;
                 var result = Map(tracked);
                 _lifecycleRecorder.Stage(new LifecycleTransitionRequest(
-                    aggregateType, tracked.LegacyLineId, commandId, checked((int)tracked.Version), Approved, Applied,
+                    aggregateType, tracked.LegacyLineId, commandId, await NextSequenceAsync(aggregateType, tracked.LegacyLineId, token), Approved, Applied,
                     actorId, request.ExpectedVersion, applyReason, commandId, null, Serialize(result), Serialize(result)));
                 await _context.SaveChangesAsync(token);
                 return result;
@@ -262,7 +262,8 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         var issue = await _context.Inventoryissues.AsNoTracking()
             .SingleOrDefaultAsync(item => item.IssueId.SequenceEqual(source.IssueId), cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy phiếu xuất kho của dòng legacy.");
-        if (issue.MaterialRequestId is null || issue.ReconciliationBatchId is not null)
+        if (issue.MaterialRequestId is null || issue.ReconciliationBatchId is not null
+            || !await LegacyLineageSourceScope.DefaultIssueHeaders(_context).AnyAsync(x => x.IssueId.SequenceEqual(issue.IssueId), cancellationToken))
         {
             throw new BusinessRuleException("Đối soát lineage legacy chỉ áp dụng cho phiếu xuất thuộc đúng nguồn DEFAULT.");
         }
@@ -295,6 +296,11 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         var returnDocument = await _context.Inventoryreturns.AsNoTracking()
             .SingleOrDefaultAsync(item => item.ReturnId.SequenceEqual(source.ReturnId), cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy phiếu trả kho của dòng legacy.");
+        var issue = await _context.Inventoryissues.AsNoTracking().SingleOrDefaultAsync(x => x.IssueId.SequenceEqual(returnDocument.IssueId), cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy phiếu xuất nguồn của dòng trả legacy.");
+        if (issue.ReconciliationBatchId is not null || returnDocument.ReconciliationSourceDeltaId is not null
+            || !await LegacyLineageSourceScope.DefaultIssueHeaders(_context).AnyAsync(x => x.IssueId.SequenceEqual(issue.IssueId), cancellationToken))
+            throw new BusinessRuleException("Đối chiếu lineage legacy chỉ áp dụng cho chứng từ đúng nguồn DEFAULT.");
         var targets = await _context.Inventoryissuelines.AsNoTracking()
             .Where(item => item.IssueId.SequenceEqual(returnDocument.IssueId) &&
                 item.IngredientId.SequenceEqual(source.IngredientId) && item.UnitId.SequenceEqual(source.UnitId))
@@ -368,7 +374,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
     private async Task<LegacyLineageDisposition> LoadForCommandAsync(string dispositionId, CancellationToken cancellationToken)
     {
         var id = ParseId(dispositionId, "Disposition lineage không hợp lệ.");
-        return await _context.Legacylinedispositions.AsNoTracking()
+        return await LegacyLineageSourceScope.Filter(_context, _context.Legacylinedispositions.AsNoTracking())
             .SingleOrDefaultAsync(item => item.DispositionId.SequenceEqual(id), cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy disposition lineage legacy.");
     }
@@ -389,7 +395,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
     }
 
     private async Task<LegacyLineageDisposition> LoadTrackedAsync(byte[] dispositionId, CancellationToken cancellationToken)
-        => await _context.Legacylinedispositions
+        => await LegacyLineageSourceScope.Filter(_context, _context.Legacylinedispositions)
             .SingleOrDefaultAsync(item => item.DispositionId.SequenceEqual(dispositionId), cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy disposition lineage legacy.");
 
@@ -400,7 +406,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
             ?? throw new InvalidOperationException("Lifecycle command receipt không thể đọc lại kết quả disposition.");
     }
 
-    private static LegacyLineageDispositionDto Map(LegacyLineageDisposition item)
+    internal static LegacyLineageDispositionDto Map(LegacyLineageDisposition item)
         => new()
         {
             DispositionId = GuidHelper.ToGuidString(item.DispositionId),
@@ -434,6 +440,15 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         return normalized is PendingManagerReview or Approved or Rejected or Applied
             ? normalized
             : throw new ArgumentException("Status disposition không hợp lệ.");
+    }
+
+    // Lifecycle identity is the legacy document line, while Version belongs to a proposal.
+    // A rejected proposal can be replaced; the line's unique event sequence must continue.
+    private async Task<int> NextSequenceAsync(string aggregateType, byte[] lineId, CancellationToken token)
+    {
+        var previous = await _context.Lifecycletransitions.Where(x => x.AggregateType == aggregateType && x.AggregateId == lineId)
+            .Select(x => (int?)x.AggregateSequence).MaxAsync(token);
+        return checked((previous ?? -1) + 1);
     }
 
     private static string BuildAggregateType(string legacyLineType) => $"LegacyLineageDisposition:{legacyLineType}";

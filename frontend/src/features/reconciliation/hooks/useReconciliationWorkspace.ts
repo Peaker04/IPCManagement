@@ -10,7 +10,7 @@ import {
   type MrxBatchPage,
   type ReconciliationBatchSummary,
 } from '../../../api/mrxApi';
-import { invalidateMrxCaches } from '../../../api/mrxCacheInvalidation';
+import { invalidateMrxCaches, subscribeMrxReads } from '../../../api/mrxCacheInvalidation';
 import { businessMonthRange, isServiceDate, todayInBusinessTimezone, weekStartFor } from '../../../utils/dates';
 import { weeklyMenuApi } from '../../../api/weeklyMenuApi';
 import { ApiError } from '../../../api/client';
@@ -188,19 +188,22 @@ export function useReconciliationWorkspace(auditSubTab: 'warehouse' | 'source' =
     [data]
   );
 
+  const lineReadSequence = useRef(0);
   const loadData = useCallback(async (id = batchId, date = serviceDate) => {
     if (!id) {
       setData(null);
       setIsLoading(false);
       return;
     }
+    const sequence = ++lineReadSequence.current;
+    const isCurrent = () => sequence === lineReadSequence.current && id === batchIdRef.current && date === serviceDateRef.current;
     const key = `mrx_recon_${id}_${date}`;
     const cached = serverStateCache.get<ReconciliationBatchSummary>(key);
     if (cached || data) setIsFetching(true); else setIsLoading(true);
     setError(null);
     try {
       const summary = await mrxApi.getBatchSummary(id, date);
-      if (id !== batchIdRef.current || date !== serviceDateRef.current) return;
+      if (!isCurrent()) return;
       setData(summary);
       setLoadedScope(key);
       serverStateCache.set(key, summary);
@@ -213,11 +216,11 @@ export function useReconciliationWorkspace(auditSubTab: 'warehouse' | 'source' =
         workspaceSessionStore.setScope({ batchId: id, serviceDate: summary.weekStartDate, weekStartDate: summary.weekStartDate });
       }
     } catch (cause: unknown) {
-      if (id === batchIdRef.current && date === serviceDateRef.current) {
+      if (isCurrent()) {
         setError(cause instanceof Error ? cause : new Error('Không thể tải lô đối soát nguyên liệu.'));
       }
     } finally {
-      if (id === batchIdRef.current && date === serviceDateRef.current) {
+      if (isCurrent()) {
         setIsLoading(false);
         setIsFetching(false);
       }
@@ -412,21 +415,34 @@ export function useReconciliationWorkspace(auditSubTab: 'warehouse' | 'source' =
   const needsLinkedMetadata = activeReportTab !== 'lines' && Boolean(linkedBatchId && resolvedLink !== batchId &&
     hasBatchesLoaded && !catalogLoading && !catalogError && !batches.some(item => item.batchId === batchId));
   const lastValidatedBatchRef = useRef('');
+  const [lineRefreshRevision, setLineRefreshRevision] = useState(0);
+  const lastLineRefreshRef = useRef(0);
+  useEffect(() => {
+    if (operationalMode !== 'MATERIAL_RECONCILIATION' || !batchId || activeReportTab !== 'lines') return;
+    return subscribeMrxReads(() => {
+      lineReadSequence.current += 1;
+      setLineRefreshRevision(value => value + 1);
+    });
+  }, [operationalMode, batchId, activeReportTab]);
   useEffect(() => {
     if (!batchId) return;
     if (activeReportTab !== 'lines' && !needsLinkedMetadata) return;
     const key = `mrx_recon_${batchId}_${serviceDate}`;
-    if (prefetchedKeyRef.current === key) {
+    const refreshRequested = lastLineRefreshRef.current !== lineRefreshRevision;
+    lastLineRefreshRef.current = lineRefreshRevision;
+    if (!refreshRequested && prefetchedKeyRef.current === key) {
       prefetchedKeyRef.current = '';
       return;
     }
     let ignore = false;
-    const needsFreshBatch = lastValidatedBatchRef.current !== batchId;
+    const sequence = ++lineReadSequence.current;
+    const isCurrent = () => !ignore && sequence === lineReadSequence.current;
+    const needsFreshBatch = refreshRequested || lastValidatedBatchRef.current !== batchId;
     lastValidatedBatchRef.current = batchId;
     if (needsFreshBatch) setIsFetching(true);
     mrxApi.getBatchSummary(batchId, serviceDate, needsFreshBatch)
       .then((result) => {
-        if (!ignore) {
+        if (isCurrent()) {
           setResolvedLink(batchId);
           const resolvedDate = result.weekStartDate && (weekStartFor(serviceDate) !== result.weekStartDate || !isServiceDate(serviceDate)) ? result.weekStartDate : serviceDate;
           const resolvedKey = `mrx_recon_${batchId}_${resolvedDate}`;
@@ -454,18 +470,18 @@ export function useReconciliationWorkspace(auditSubTab: 'warehouse' | 'source' =
         }
       })
       .catch((cause: unknown) => {
-        if (!ignore) {
+        if (isCurrent()) {
           setError(cause instanceof Error ? cause : new Error('Không thể tải lô đối soát nguyên liệu.'));
         }
       })
       .finally(() => {
-        if (!ignore) {
+        if (isCurrent()) {
           setIsLoading(false);
           setIsFetching(false);
         }
       });
     return () => { ignore = true; };
-  }, [batchId, serviceDate, setServiceDate, activeReportTab, needsLinkedMetadata]);
+  }, [batchId, serviceDate, setServiceDate, activeReportTab, needsLinkedMetadata, lineRefreshRevision]);
 
   const canComplete = !catalogLoading && !catalogError && !isFetching && !isPreviousData && data?.status === 'IN_PROGRESS' && data.weeklyStatus === 'WEEK_COMPLETE';
 

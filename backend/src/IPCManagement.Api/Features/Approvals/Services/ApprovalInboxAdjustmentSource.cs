@@ -23,7 +23,8 @@ internal sealed class ApprovalInboxAdjustmentSource
     public async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildItemsAsync(
         int limit,
         ApprovalInboxCursor? cursor,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int offset = 0, ApprovalInboxQueryDto? query = null)
     {
         var adjustmentQuery = _context.Quantityadjustments
             .AsNoTracking()
@@ -35,6 +36,7 @@ internal sealed class ApprovalInboxAdjustmentSource
             .Where(item => !_context.Approvalhistories.Any(history =>
                 history.TargetType == OrderAdjustmentTargetType &&
                 history.TargetId == item.AdjustmentId));
+        adjustmentQuery = ApprovalInboxSourceFilter.ByIdentity(adjustmentQuery, item => item.AdjustmentId, query);
         if (cursor is not null)
         {
             var cursorDateTime = cursor.DueDate.ToDateTime(TimeOnly.MinValue);
@@ -44,8 +46,8 @@ internal sealed class ApprovalInboxAdjustmentSource
         }
 
         var adjustments = await adjustmentQuery
-            .OrderBy(item => item.AdjustedAt)
-            .Take(limit)
+            .OrderBy(item => item.AdjustedAt).ThenBy(item => item.AdjustmentId)
+            .Skip(offset).Take(limit)
             .ToListAsync(cancellationToken);
 
         var resultList = new List<ApprovalInboxItemDto>();

@@ -22,12 +22,13 @@ public static class SystemOperationEligibility
         });
 
     private static readonly SystemOperationCapabilitiesDto MaterialReconciliationCapabilities = CreateCapabilities(
-        ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings"],
+        ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings", "approvals"],
         new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["weekly-menu"] = ["mrx-batch", "mrx-materials", "mrx-plans"],
             ["warehouse"] = ["mrx-daily", "mrx-issues"],
             ["chef"] = ["mrx-cooking"],
+            ["approvals"] = ["queue", "history"],
             ["admin-data"] = ["ingredients", "dishes", "customers"]
         });
 
