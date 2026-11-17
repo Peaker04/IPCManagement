@@ -28,7 +28,7 @@ beforeEach(() => {
   };
   vi.spyOn(client, 'apiClient').mockImplementation(async (url, init) => handler(url, init) as never);
 });
-function openPage() { render(<AuthProvider><MemoryRouter><ApprovalPage /></MemoryRouter></AuthProvider>); }
+function openPage() { return render(<AuthProvider><MemoryRouter><ApprovalPage /></MemoryRouter></AuthProvider>); }
 
 it('shows the approved legacy stage as awaiting application and sends explicit APPLY rather than another approval', async () => {
   const base = handler;
@@ -195,6 +195,62 @@ it('reconciles a lost decision response with the same command and preserves the 
   expect(bodies[1]).toBe(bodies[0]);
 });
 
+it.each(['same-actor', 'changed-role', 'other-actor', 'changed-mode-version'])('recovers the identical MRX decision after hard reload with scope %s', async recoveryScope => {
+  const base = handler;
+  const mode = 'MATERIAL_RECONCILIATION';
+  const row = { ...item, targetType: 'mrx-supplemental-demand', status: 'PENDING' };
+  const bodies: string[] = [];
+  let modeVersion = 1;
+  localStorage.setItem('ipc_v3_mode', mode);
+  handler = (url, init) => {
+    if (url === '/system-operation-mode') return { ...base(url, init) as object, mode, version: modeVersion };
+    if (url.startsWith('/operational-approvals/inbox')) return { ...page, mode, items: bodies.length ? [] : [row] };
+    if (url.endsWith('/decision')) {
+      bodies.push(String(init?.body));
+      if (bodies.length === 1) throw new TypeError('Lost after commit');
+      return { targetType: row.targetType, targetId: id, status: 'APPROVED', newStatus: 'APPROVED' };
+    }
+    if (url.endsWith('/mrx-supplemental-demand/' + id)) return { ...detail, mode, item: row };
+    return base(url, init);
+  };
+  const first = openPage();
+  await userEvent.click(await screen.findByRole('button', { name: 'Xem xét' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Phê duyệt hồ sơ' }));
+  await userEvent.type(screen.getByLabelText('Căn cứ quyết định'), 'Đã đối chiếu đúng khách hàng');
+  await userEvent.click(screen.getByRole('button', { name: 'Xác nhận phê duyệt' }));
+  await screen.findByRole('button', { name: 'Kiểm tra kết quả' });
+  first.unmount();
+  if (recoveryScope === 'changed-mode-version') {
+    modeVersion = 2;
+    localStorage.setItem('ipc_v3_mode_version', '2');
+  } else if (recoveryScope !== 'same-actor') {
+    const user = JSON.parse(localStorage.getItem('ipc_v3_user')!);
+    localStorage.setItem('ipc_v3_user', JSON.stringify(recoveryScope === 'changed-role'
+      ? { ...user, roleCode: 'MANAGER', isAdminFullAccess: false } : { ...user, userId: '30000000-0000-0000-0000-000000000001' }));
+  }
+  openPage();
+  if (recoveryScope === 'other-actor') {
+    await screen.findByText('Không có hồ sơ chờ xử lý');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(bodies).toHaveLength(1);
+    return;
+  }
+  if (recoveryScope === 'changed-role' || recoveryScope === 'changed-mode-version') {
+    expect(await screen.findByText(/Vai trò hoặc phiên bản chế độ đã thay đổi/)).toBeVisible();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tra cứu lịch sử hồ sơ' })).toBeEnabled();
+    expect(bodies).toHaveLength(1);
+    return;
+  }
+  const modal = await screen.findByRole('dialog', { name: 'Xác nhận phê duyệt' });
+  expect(within(modal).getByLabelText('Căn cứ quyết định')).toHaveValue('Đã đối chiếu đúng khách hàng');
+  expect(within(modal).getByRole('button', { name: 'Hủy bỏ' })).toBeDisabled();
+  await userEvent.click(within(modal).getByRole('button', { name: 'Kiểm tra kết quả' }));
+  await screen.findByText(/Đã ghi nhận quyết định.*Đã duyệt/);
+  expect(bodies).toHaveLength(2);
+  expect(bodies[1]).toBe(bodies[0]);
+});
+
 it('does not offer resend after an acknowledged decision and failed reload', async () => {
   const base = handler;
   let committed = false;
@@ -328,6 +384,66 @@ it('keeps the DEFAULT inbox and selected detail stable on an MRX acknowledgement
 
   expect(vi.mocked(client.apiClient).mock.calls).toHaveLength(callsBefore);
   expect(screen.getByRole('button', { name: 'Phê duyệt hồ sơ' })).toBeEnabled();
+});
+
+it('retries the currently selected MRX detail after failure without reviving a late prior selection', async () => {
+  const base = handler;
+  const mode = 'MATERIAL_RECONCILIATION';
+  const rows = ['A', 'B', 'C'].map(letter => ({ ...item, title: 'Lô ' + letter, status: 'COMPLETION_READY',
+    targetType: 'mrx-batch-review', targetId: letter, inboxItemId: letter, route: '/reconciliation?batchId=' + letter }));
+  const detailFor = (row: typeof item) => ({ ...detail, mode, item: row, allowedActions: [] });
+  let resolveB!: (value: ReturnType<typeof detailFor>) => void;
+  const slowB = new Promise<ReturnType<typeof detailFor>>(resolve => { resolveB = resolve; });
+  let callsC = 0;
+  handler = (url, init) => {
+    if (url === '/system-operation-mode') return { ...base(url, init) as object, mode };
+    if (url.startsWith('/operational-approvals/inbox')) return { ...page, mode, items: rows };
+    if (url.endsWith('/mrx-batch-review/A')) return detailFor(rows[0]);
+    if (url.endsWith('/mrx-batch-review/B')) return slowB;
+    if (url.endsWith('/mrx-batch-review/C')) {
+      if (++callsC === 1) throw new client.ApiError(500, 'Không tải được lô C');
+      return detailFor(rows[2]);
+    }
+    return base(url, init);
+  };
+  openPage();
+  for (const letter of ['A', 'B', 'C']) {
+    await userEvent.click(within(await screen.findByRole('row', { name: new RegExp('Lô ' + letter) })).getByRole('button', { name: 'Xem xét' }));
+    if (letter === 'A') await screen.findByRole('button', { name: 'Mở đối soát' });
+  }
+  expect(await screen.findByText('Không tải được lô C')).toBeVisible();
+  await act(async () => { resolveB(detailFor(rows[1])); });
+  expect(screen.queryByRole('heading', { name: 'Lô B' })).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: /Thử lại/ }));
+  expect(await screen.findByRole('heading', { name: 'Lô C' })).toBeVisible();
+  expect(callsC).toBe(2);
+  expect(screen.getByRole('button', { name: 'Mở đối soát' })).toBeEnabled();
+});
+
+it('discards pending MRX detail when changing from queue to decision history', async () => {
+  const base = handler;
+  const mode = 'MATERIAL_RECONCILIATION';
+  const row = { ...item, title: 'Lô đang chờ', status: 'COMPLETION_READY', targetType: 'mrx-batch-review', targetId: 'A', inboxItemId: 'A' };
+  const late = { ...detail, mode, item: row, allowedActions: [] };
+  let resolveDetail!: (value: typeof late) => void;
+  const pending = new Promise<typeof late>(resolve => { resolveDetail = resolve; });
+  const inboxCalls: string[] = [];
+  handler = (url, init) => {
+    if (url === '/system-operation-mode') return { ...base(url, init) as object, mode };
+    if (url.startsWith('/operational-approvals/inbox')) {
+      inboxCalls.push(url);
+      return { ...page, mode, items: url.includes('PROCESSED') ? [] : [row] };
+    }
+    if (url.endsWith('/mrx-batch-review/A')) return pending;
+    return base(url, init);
+  };
+  openPage();
+  await userEvent.click(within(await screen.findByRole('row', { name: /Lô đang chờ/ })).getByRole('button', { name: 'Xem xét' }));
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Phạm vi hàng đợi' }), 'PROCESSED');
+  await waitFor(() => expect(inboxCalls.some(url => url.includes('PROCESSED'))).toBe(true));
+  await act(async () => { resolveDetail(late); });
+  expect(screen.queryByRole('heading', { name: 'Lô đang chờ' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Mở đối soát' })).not.toBeInTheDocument();
 });
 
 it('keeps the MRX detail frame locked until the latest selected batch resolves', async () => {

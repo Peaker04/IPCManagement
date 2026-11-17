@@ -24,7 +24,8 @@ interface Props {
 }
 interface Selection { choice: string; servings: string; menu?: string }
 type Pending = { action: 'save'; body: MrxSupplementalDemandWrite; id?: string }
-  | { action: 'submit'; body: MrxSupplementalDemandCommand; id: string };
+  | { action: 'submit'; body: MrxSupplementalDemandCommand; id: string }
+  | { action: 'cancel'; body: MrxSupplementalDemandCommand; id: string };
 interface Draft { rows: Selection[]; reason: string; snapshot?: MrxSupplementalDemand; previewCurrent?: boolean; pending?: Pending; modeVersion?: number | null }
 const menus = [
   { value: 'MORNING:savory', label: 'Sáng mặn' },
@@ -42,7 +43,7 @@ export function MrxSupplementalDemandForm(props: Props) {
 }
 
 function DemandForm({ batchId, serviceDate, materialLabels, onLockChange, storageKey, actionTarget, onDirtyChange, onSubmitted, modeVersion }: Props & { storageKey: string; modeVersion: number | null }) {
-  const { canNavigate } = useAuth();
+  const { canNavigate, user } = useAuth();
   const [draft, setDraft] = useState<Draft>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || 'null') as Draft | null;
@@ -54,11 +55,15 @@ function DemandForm({ batchId, serviceDate, materialLabels, onLockChange, storag
   const [error, setError] = useState<Error | null>(null);
   const [retry, setRetry] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [cancelling, setCancelling] = useState(draft.pending?.action === 'cancel');
+  const [cancelReason, setCancelReason] = useState(draft.pending?.action === 'cancel' ? draft.pending.body.reason : '');
   const sending = useRef(false);
   const unknown = Boolean(draft.pending);
   const approved = draft.snapshot?.status === 'APPROVED';
   const submitted = Boolean(draft.snapshot && draft.snapshot.status !== 'DRAFT');
-  const dirty = !submitted && Boolean(draft.reason.trim() || draft.rows.some(row => row.menu || row.choice || row.servings));
+  const canCancel = Boolean(options?.canCreate && draft.snapshot && ['DRAFT', 'PENDING', 'APPROVED'].includes(draft.snapshot.status)
+    && (draft.snapshot.status !== 'APPROVED' || user?.isAdminFullAccess || ['ADMIN', 'MANAGER', 'Quản lý'].includes(user?.roleCode ?? '')));
+  const dirty = Boolean(cancelling && cancelReason.trim()) || !submitted && Boolean(draft.reason.trim() || draft.rows.some(row => row.menu || row.choice || row.servings));
   useEffect(() => { onDirtyChange?.(dirty); return () => onDirtyChange?.(false); }, [dirty, onDirtyChange]);
   const locked = busy || unknown || submitted;
   useEffect(() => {
@@ -103,17 +108,19 @@ function DemandForm({ batchId, serviceDate, materialLabels, onLockChange, storag
     try { localStorage.setItem(storageKey, JSON.stringify(saved)); } catch { /* Retain exact command in memory. */ }
     let acknowledged = false;
     try {
-      const result = pending.action === 'submit'
+      const result = pending.action === 'cancel' ? await mrxApi.cancelSupplementalDemand(pending.id, pending.body)
+        : pending.action === 'submit'
         ? await mrxApi.submitSupplementalDemand(pending.id, pending.body)
         : pending.id ? await mrxApi.updateSupplementalDemand(pending.id, pending.body)
           : await mrxApi.createSupplementalDemand(pending.body);
       const expectedId = pending.action === 'save' && !pending.id ? pending.body.commandId : pending.id;
       if (result.batchId !== batchId || result.serviceDate !== serviceDate || result.demandId !== expectedId || !result.version
-        || (pending.action === 'submit' ? !['PENDING', 'APPROVED'].includes(result.status) : result.status !== 'DRAFT'))
+        || (pending.action === 'cancel' ? result.status !== 'CANCELLED' : pending.action === 'submit' ? !['PENDING', 'APPROVED'].includes(result.status) : result.status !== 'DRAFT'))
         throw new Error('Phản hồi đề nghị không đúng phạm vi. Cần kiểm tra lại lệnh đã gửi.');
       setDraft(current => ({ ...current, snapshot: result, previewCurrent: true, pending: undefined }));
       acknowledged = true;
-      if (pending.action === 'submit') await onSubmitted?.();
+      if (pending.action === 'cancel') { setCancelling(false); setCancelReason(''); }
+      if (pending.action === 'submit' || pending.action === 'cancel') await onSubmitted?.();
     } catch (cause) {
       if (acknowledged) {
         setError(new Error('Nhu cầu đã được ghi nhận. Chưa tải lại được dữ liệu Kho; hãy tải lại trước khi xuất bổ sung.'));
@@ -144,6 +151,10 @@ function DemandForm({ batchId, serviceDate, materialLabels, onLockChange, storag
     } });
   };
   const action = unknown ? <Button variant="outline" disabled={busy} onClick={() => { if (draft.pending) void run(draft.pending); }}>Kiểm tra lại lệnh đã gửi</Button>
+    : cancelling && canCancel ? <Button variant="destructive" disabled={busy || !cancelReason.trim() || cancelReason.trim().length > 2000} onClick={() => {
+      if (draft.snapshot) void run({ action: 'cancel', id: draft.snapshot.demandId, body: { commandId: crypto.randomUUID(),
+        expectedVersion: draft.snapshot.version, expectedBatchVersion: draft.snapshot.batchVersion, reason: cancelReason.trim() } });
+    }}>Xác nhận hủy nhu cầu</Button>
     : submitted ? null : draft.snapshot && draft.previewCurrent ? <Button disabled={locked} onClick={() => {
       if (draft.snapshot) void run({ action: 'submit', id: draft.snapshot.demandId, body: { commandId: crypto.randomUUID(),
         expectedVersion: draft.snapshot.version, expectedBatchVersion: draft.snapshot.batchVersion, reason: draft.reason.trim() } });
@@ -154,8 +165,8 @@ function DemandForm({ batchId, serviceDate, materialLabels, onLockChange, storag
       ? 'Admin ghi nhận trực tiếp nhu cầu tăng suất. Lượng thực xuất được xác nhận riêng tại Kho.'
       : 'Quản lý/Admin xác nhận nhu cầu tăng suất. Kho xác nhận lượng thực xuất sau khi được duyệt.'}</p>
     {error && <InlineBanner variant={unknown ? 'warning' : 'error'} title={unknown ? 'Chưa xác nhận được kết quả' : undefined}
-      actionLabel={!unknown ? 'Tải lại danh sách món' : undefined}
-      onAction={!unknown ? () => { setError(null); setOptions(null); setDraft(d => ({ ...d, previewCurrent: false })); setRetry(x => x + 1); } : undefined}>{error.message}</InlineBanner>}
+      actionLabel={!unknown ? cancelling ? 'Cập nhật trạng thái nhu cầu' : 'Tải lại danh sách món' : undefined}
+      onAction={!unknown ? () => { if (cancelling) { void refreshStatus(); return; } setError(null); setOptions(null); setDraft(d => ({ ...d, previewCurrent: false })); setRetry(x => x + 1); } : undefined}>{error.message}</InlineBanner>}
     {!options && !error && <p role="status">Đang tải món đóng băng…</p>}
     {options?.blockedReason && <InlineBanner variant="warning">{options.blockedReason}</InlineBanner>}
     {options && <>
@@ -168,6 +179,13 @@ function DemandForm({ batchId, serviceDate, materialLabels, onLockChange, storag
           : <Button variant="outline" size="sm" disabled={busy || unknown} onClick={() => void refreshStatus()}>Cập nhật trạng thái đề nghị</Button>}
         {draft.snapshot?.decisionReason && <p>{draft.snapshot.decisionReason}</p>}
       </InlineBanner>}
+      {canCancel && !cancelling && <Button variant="outline" size="sm" disabled={busy || unknown} onClick={() => setCancelling(true)}>Hủy nhu cầu</Button>}
+      {cancelling && canCancel && <section className="space-y-2">
+        <InlineBanner variant="warning">Chỉ hủy khi chưa cấp nguyên liệu cho nhu cầu này. Hệ thống kiểm tra lại phiên bản và chứng từ trước khi ghi nhận.</InlineBanner>
+        <label className="block">Lý do hủy nhu cầu<Input aria-label="Lý do hủy nhu cầu" maxLength={2000} value={cancelReason} disabled={busy || unknown}
+          onChange={event => setCancelReason(event.target.value)} /></label>
+        <Button variant="outline" size="sm" disabled={busy || unknown} onClick={() => setCancelling(false)}>Giữ nhu cầu</Button>
+      </section>}
       {duplicate && <InlineBanner variant="warning">Có món trùng ca và loại suất. Bỏ lựa chọn trùng trước khi lưu.</InlineBanner>}
       {selections.map(({ row, dishes: selectedDishes }, index) => <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <label className="sm:col-span-2">Menu hoặc tùy chọn {index + 1}

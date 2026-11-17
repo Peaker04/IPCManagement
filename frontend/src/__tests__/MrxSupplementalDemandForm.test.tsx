@@ -74,6 +74,58 @@ it.each([
   expect(writes[0].body.dishes).toEqual([dishId, secondDish.dishId].map(id =>
     ({ dishId: id, shiftName, menuVariant, extraServings: 10 })));
 });
+it('blocks overlapping menu and custom tuples until the duplicate row is removed', async () => {
+  const base = vi.mocked(apiClient).getMockImplementation()!;
+  vi.mocked(apiClient).mockImplementation(async (url, init) => url.endsWith(`/dish-options?serviceDate=${day}`)
+    ? { ...choices, dishes: [choices.dishes[0], { ...choices.dishes[0], dishId: batchId, dishName: 'Canh bầu' }] } as never : base(url, init));
+  open();
+  await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Menu hoặc tùy chọn 1' }), 'MORNING:savory');
+  await userEvent.type(screen.getByRole('spinbutton', { name: 'Suất tăng thêm 1' }), '10');
+  await userEvent.type(screen.getByRole('textbox', { name: 'Lý do tăng suất' }), 'Khách tăng suất');
+  await userEvent.click(screen.getByRole('button', { name: 'Thêm món hoặc ca' }));
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Menu hoặc tùy chọn 2' }), 'CUSTOM');
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Món, ca và loại suất 2' }), JSON.stringify([dishId, 'MORNING', 'savory']));
+  await userEvent.type(screen.getByRole('spinbutton', { name: 'Suất tăng thêm 2' }), '5');
+  expect(screen.getByText(/Có món trùng ca và loại suất/)).toBeVisible();
+  const save = screen.getByRole('button', { name: 'Tính nhu cầu và lưu nháp' });
+  expect(save).toBeDisabled();
+  await userEvent.click(save);
+  expect(writes).toHaveLength(0);
+  await userEvent.click(screen.getByRole('button', { name: 'Bỏ dòng 2' }));
+  expect(save).toBeEnabled();
+  await userEvent.click(save);
+  expect(writes[0].body.dishes).toHaveLength(2);
+});
+
+it('disables empty frozen menus and cannot submit an empty group', async () => {
+  const base = vi.mocked(apiClient).getMockImplementation()!;
+  vi.mocked(apiClient).mockImplementation(async (url, init) => url.endsWith(`/dish-options?serviceDate=${day}`)
+    ? { ...choices, dishes: [] } as never : base(url, init));
+  open();
+  const menu = await screen.findByRole('combobox', { name: 'Menu hoặc tùy chọn 1' });
+  for (const value of ['MORNING:savory', 'MORNING:vegetarian', 'AFTERNOON:savory', 'AFTERNOON:vegetarian'])
+    expect(menu.querySelector(`option[value="${value}"]`)).toBeDisabled();
+  await userEvent.type(screen.getByRole('spinbutton', { name: 'Suất tăng thêm 1' }), '10');
+  await userEvent.type(screen.getByRole('textbox', { name: 'Lý do tăng suất' }), 'Khách tăng suất');
+  expect(screen.getByRole('button', { name: 'Tính nhu cầu và lưu nháp' })).toBeDisabled();
+  expect(writes).toHaveLength(0);
+});
+
+it('blocks the whole menu when one dish lacks BOM rather than submitting its healthy subset', async () => {
+  const base = vi.mocked(apiClient).getMockImplementation()!;
+  vi.mocked(apiClient).mockImplementation(async (url, init) => url.endsWith(`/dish-options?serviceDate=${day}`)
+    ? { ...choices, dishes: [choices.dishes[0], { ...choices.dishes[0], dishId: batchId, dishName: 'Canh bầu', blockedReason: 'Thiếu BOM' }] } as never : base(url, init));
+  open();
+  await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Menu hoặc tùy chọn 1' }), 'MORNING:savory');
+  await userEvent.type(screen.getByRole('spinbutton', { name: 'Suất tăng thêm 1' }), '10');
+  await userEvent.type(screen.getByRole('textbox', { name: 'Lý do tăng suất' }), 'Khách tăng suất');
+  expect(screen.getByText(/Không thể tăng cả menu.*Canh bầu/)).toBeVisible();
+  const save = screen.getByRole('button', { name: 'Tính nhu cầu và lưu nháp' });
+  expect(save).toBeDisabled();
+  await userEvent.click(save);
+  expect(writes).toHaveLength(0);
+});
+
 it('previews exact server quantities before submitting demand to the manager hub without issuing inventory', async () => {
   open(); await fill();
   await userEvent.click(screen.getByRole('button', { name: 'Tính nhu cầu và lưu nháp' }));
@@ -95,6 +147,72 @@ it('previews exact server quantities before submitting demand to the manager hub
   expect(await screen.findByText('Nhu cầu đã được duyệt')).toBeInTheDocument();
   expect(writes).toHaveLength(2);
 });
+it('cancels a pending proposal with an explicit reason and the exact server versions', async () => {
+  const base = vi.mocked(apiClient).getMockImplementation()!;
+  vi.mocked(apiClient).mockImplementation(async (url, init) => {
+    if (url.endsWith('/cancel')) {
+      writes.push({ url, body: JSON.parse(String(init?.body)) });
+      return { ...draft, demandId: url.split('/').at(-2), status: 'CANCELLED', version: 3 } as never;
+    }
+    return base(url, init);
+  });
+  open(); await fill();
+  await userEvent.click(screen.getByRole('button', { name: 'Tính nhu cầu và lưu nháp' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Gửi duyệt nhu cầu' }));
+  await screen.findByText('Đã gửi duyệt nhu cầu');
+  await userEvent.click(screen.getByRole('button', { name: 'Hủy nhu cầu' }));
+  const cancel = screen.getByRole('button', { name: 'Xác nhận hủy nhu cầu' });
+  expect(cancel).toBeDisabled();
+  await userEvent.type(screen.getByRole('textbox', { name: 'Lý do hủy nhu cầu' }), 'Khách không tăng suất nữa');
+  await userEvent.click(cancel);
+  await screen.findByText('Nhu cầu đã hủy');
+  expect(writes.at(-1)?.body).toMatchObject({ expectedVersion: 2, expectedBatchVersion: 2, reason: 'Khách không tăng suất nữa' });
+  expect(writes.at(-1)?.url).toBe(`/reconciliation/supplemental-demands/${writes[0].body.commandId}/cancel`);
+});
+
+it('retains an uncertain cancellation through remount and replays only the original cancellation command', async () => {
+  const base = vi.mocked(apiClient).getMockImplementation()!;
+  const cancellations: string[] = [];
+  vi.mocked(apiClient).mockImplementation(async (url, init) => {
+    if (url.endsWith('/cancel')) {
+      cancellations.push(String(init?.body));
+      if (cancellations.length === 1) throw new TypeError('Lost after cancel commit');
+      return { ...draft, demandId: url.split('/').at(-2), status: 'CANCELLED', version: 3 } as never;
+    }
+    return base(url, init);
+  });
+  const first = open(); await fill();
+  await userEvent.click(screen.getByRole('button', { name: 'Tính nhu cầu và lưu nháp' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Gửi duyệt nhu cầu' }));
+  await screen.findByText('Đã gửi duyệt nhu cầu');
+  await userEvent.click(screen.getByRole('button', { name: 'Hủy nhu cầu' }));
+  await userEvent.type(screen.getByRole('textbox', { name: 'Lý do hủy nhu cầu' }), 'Khách không tăng suất nữa');
+  await userEvent.click(screen.getByRole('button', { name: 'Xác nhận hủy nhu cầu' }));
+  await screen.findByRole('button', { name: 'Kiểm tra lại lệnh đã gửi' });
+  first.unmount(); open();
+  await userEvent.click(await screen.findByRole('button', { name: 'Kiểm tra lại lệnh đã gửi' }));
+  await screen.findByText('Nhu cầu đã hủy');
+  expect(cancellations).toHaveLength(2);
+  expect(cancellations[1]).toBe(cancellations[0]);
+});
+
+it('does not let Warehouse cancel a demand once the Manager has approved it', async () => {
+  const base = vi.mocked(apiClient).getMockImplementation()!;
+  vi.mocked(apiClient).mockImplementation(async (url, init) => {
+    if (url.startsWith('/reconciliation/supplemental-demands/') && !url.includes('/batches/') && !init?.method)
+      return { ...draft, demandId: writes[0].body.commandId, status: 'APPROVED', version: 3, batchVersion: 3 } as never;
+    return base(url, init);
+  });
+  open(); await fill();
+  await userEvent.click(screen.getByRole('button', { name: 'Tính nhu cầu và lưu nháp' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Gửi duyệt nhu cầu' }));
+  await screen.findByText('Đã gửi duyệt nhu cầu');
+  await userEvent.click(screen.getByRole('button', { name: 'Cập nhật trạng thái đề nghị' }));
+  await screen.findByText('Nhu cầu đã được duyệt');
+  expect(screen.queryByRole('button', { name: 'Hủy nhu cầu' })).not.toBeInTheDocument();
+  expect(writes).toHaveLength(2);
+});
+
 it('retains an uncertain proposal after the mode version changes and blocks rebuilding it as a new command', async () => {
   failCreate = true;
   const first = open(); await fill();

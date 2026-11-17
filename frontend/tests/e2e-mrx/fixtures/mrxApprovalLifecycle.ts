@@ -168,6 +168,11 @@ export async function runMultiRoleApprovalLifecycle(
     await managerPage.keyboard.press('Escape');
     await expect(approval).toBeVisible();
     await managerPage.screenshot({ path: path.join(evidenceDirectory, 'manager-decision-response-lost.png') });
+    await managerPage.reload();
+    await expect(approval).toBeVisible();
+    await expect(approval.getByLabel('Căn cứ quyết định')).toBeDisabled();
+    await expect(approval.getByRole('button', { name: 'Kiểm tra kết quả', exact: true })).toBeVisible();
+    await managerPage.screenshot({ path: path.join(evidenceDirectory, 'manager-decision-after-reload.png') });
     await managerPage.unroute(decisionPattern);
     const decided = post(managerPage, decisionPath);
     await approval.getByRole('button', { name: 'Kiểm tra kết quả', exact: true }).click();
@@ -494,7 +499,46 @@ export async function runAdminApprovalLifecycle(
     await dialog.getByRole('button', { name: 'Xác nhận xuất bổ sung', exact: true }).click();
     expect((await secondActual).status()).toBe(201);
     await expect(dialog).toHaveCount(0);
+    await adminPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Đề nghị suất phát sinh', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Lập đề nghị mới', exact: true }).click();
+    await dialog.getByRole('combobox', { name: 'Menu hoặc tùy chọn 1', exact: true }).selectOption(menu.key);
+    await dialog.getByRole('spinbutton', { name: 'Suất tăng thêm 1', exact: true }).fill('1');
+    await dialog.getByLabel('Lý do tăng suất').fill(scope.reason + ' cancellation check');
+    const cancelCreated = post(adminPage, demandPath);
+    await dialog.getByRole('button', { name: 'Tính nhu cầu và lưu nháp' }).click();
+    const cancelDraft = (await (await cancelCreated).json()).data as MrxSupplementalDemand;
+    const cancelApprovedResponse = post(adminPage, demandPath + '/' + cancelDraft.demandId + '/submit');
+    await dialog.getByRole('button', { name: 'Ghi nhận suất phát sinh', exact: true }).click();
+    const cancelApproved = (await (await cancelApprovedResponse).json()).data as MrxSupplementalDemand;
+    expect(cancelApproved.status).toBe('APPROVED');
+    const beforeCancellation = await read<MrxKitchenCooking>(adminPage, '/api/reconciliation/batches/' + batchId + '/kitchen-cooking');
+    const extraRows = beforeCancellation.rows.filter(row => row.approvedDemandIds?.includes(cancelDraft.demandId));
+    expect(extraRows.length).toBeGreaterThan(0);
+    expect(extraRows.every(row => row.approvedExtraServings === 16)).toBe(true);
+    await dialog.getByRole('button', { name: 'Hủy nhu cầu', exact: true }).click();
+    await dialog.getByLabel('Lý do hủy nhu cầu').fill(scope.reason + ' customer withdrew extra servings');
+    const originalViewport = adminPage.viewportSize();
+    for (const width of [600, 960, 1440]) {
+      await adminPage.setViewportSize({ width, height: 840 });
+      await dialog.getByRole('button', { name: 'Xác nhận hủy nhu cầu', exact: true }).scrollIntoViewIfNeeded();
+      await adminPage.screenshot({ path: path.join(evidenceDirectory, `admin-cancel-demand-${width}.png`) });
+    }
+    if (originalViewport) await adminPage.setViewportSize(originalViewport);
+    const cancellation = post(adminPage, demandPath + '/' + cancelDraft.demandId + '/cancel');
+    await dialog.getByRole('button', { name: 'Xác nhận hủy nhu cầu', exact: true }).click();
+    const cancellationResponse = await cancellation;
+    expect(cancellationResponse.ok(), await cancellationResponse.text()).toBe(true);
+    const cancelled = (await cancellationResponse.json()).data as MrxSupplementalDemand;
+    expect(cancelled.status).toBe('CANCELLED');
+    await expect(dialog.getByText('Nhu cầu đã hủy', { exact: true })).toBeVisible();
+    const cancelledHistory = await read<ApprovalHistoryItem[]>(adminPage, `/api/operational-approvals/mrx-supplemental-demand/${cancelled.demandId}/history`);
+    expect(cancelledHistory.some(row => row.newStatus === 'CANCELLED' && row.actionBy === identity.user.userId)).toBe(true);
+    fs.writeFileSync(path.join(evidenceDirectory, 'admin-cancel-demand.json'), JSON.stringify({ approved: cancelApproved, cancelled, history: cancelledHistory }, null, 2));
+    await dialog.getByRole('button', { name: 'Hủy bỏ', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
     const cooking = await read<MrxKitchenCooking>(adminPage, '/api/reconciliation/batches/' + batchId + '/kitchen-cooking');
+    expect(cooking.rows.some(row => row.approvedDemandIds?.includes(cancelled.demandId))).toBe(false);
     const increasedRows = cooking.rows.filter(row => row.approvedDemandIds?.includes(secondApproved.demandId));
     expect(increasedRows.length).toBeGreaterThan(0);
     for (const row of increasedRows) {
