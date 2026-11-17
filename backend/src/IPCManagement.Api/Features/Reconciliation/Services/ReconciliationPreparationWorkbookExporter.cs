@@ -2,6 +2,7 @@ using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
@@ -37,7 +38,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
             .Include(d => d.BatchLine).ThenInclude(bl => bl.CanonicalUnit)
             .Include(d => d.BatchLine).ThenInclude(bl => bl.Batch)
             .Include(d => d.BatchLine).ThenInclude(bl => bl.Contributors.Where(contributor => contributor.InvalidatedAt == null))
-            .Where(d => d.RequiredQuantity > 0);
+            .Where(d => d.RequiredQuantity >= 0);
 
         dailyQuery = dailyQuery.Where(d => d.ServiceDate >= start && d.ServiceDate <= end);
 
@@ -82,6 +83,10 @@ public sealed class ReconciliationPreparationWorkbookExporter(
             return new ReconciliationPreparationWorkbookDto([], [], [], 0m, 0m);
         }
 
+        var extraMaterials = await ReconciliationApprovedSupplementalQuery.LoadMaterialsAsync(context,
+            batches.Select(x => x.BatchId).ToList(), start, end, token);
+        var extraDailyIds = extraMaterials.Select(x => Convert.ToHexString(x.DailyLineId)).ToHashSet(StringComparer.Ordinal);
+        dailyLines = dailyLines.Where(x => x.RequiredQuantity > 0 || extraDailyIds.Contains(Convert.ToHexString(x.DailyLineId))).ToList();
         var netIssues = await new ReconciliationNetIssueProjection(context).LoadByDailyLineIdsAsync(
             dailyLines.Select(line => line.DailyLineId).ToList(),
             token);
@@ -89,6 +94,8 @@ public sealed class ReconciliationPreparationWorkbookExporter(
             item => item.Key,
             item => item.Value.NetIssuedQuantity,
             StringComparer.Ordinal);
+
+        var purposeBalances = await ReconciliationSupplementalFulfillmentQuery.GetManyAsync(context, dailyLines, token);
 
         var ingredientIds = dailyLines.Select(d => d.IngredientId).Distinct(ByteArrayComparer.Instance).ToList();
         var quotations = await context.Supplierquotations.AsNoTracking()
@@ -144,7 +151,12 @@ public sealed class ReconciliationPreparationWorkbookExporter(
                 .Distinct()
                 .FirstOrDefault() ?? "Cả ngày";
 
-            var issueStatus = ReconciliationDailyIssuePolicy.ResolveLineStatus(daily.RequiredQuantity, issued, false).QuantityStatus;
+            var balance = purposeBalances.GetValueOrDefault(dailyHex);
+            var hasPurpose = balance is { HasPurposeEvidence: true };
+            var baselineIssued = hasPurpose && issued.HasValue ? balance!.BaselineIssuedQuantity : issued;
+            var remaining = hasPurpose ? balance!.BaselineRemainingQuantity : Math.Max(0m, daily.RequiredQuantity - (issued ?? 0m));
+            var issueStatus = remaining is null ? "ALLOCATION_REQUIRES_REVIEW"
+                : ReconciliationDailyIssuePolicy.ResolveLineStatus(daily.RequiredQuantity, baselineIssued, false).QuantityStatus;
 
             detailRows.Add(new ReconciliationPreparationDetailRowDto(
                 menuVersion?.CustomerId is null ? string.Empty : GuidHelper.ToGuidString(menuVersion.CustomerId),
@@ -161,11 +173,33 @@ public sealed class ReconciliationPreparationWorkbookExporter(
                 daily.RequiredQuantity,
                 "Xuất ban đầu",
                 issueStatus,
-                supplier) { SupplierId = resolvedSupplier.Id, SupplierCode = resolvedSupplier.Code, PreparationGroupCode = daily.BatchLine.Ingredient.PreparationGroupCode });
+                supplier) { SupplierId = resolvedSupplier.Id, SupplierCode = resolvedSupplier.Code, PreparationGroupCode = daily.BatchLine.Ingredient.PreparationGroupCode,
+                    RemainingQuantity = remaining, UnplannedIssuedQuantity = balance?.UnplannedIssuedQuantity ?? 0m });
         }
 
         if (query.IsSupplemental != false)
         {
+            var dailyById = dailyLines.ToDictionary(x => Convert.ToHexString(x.DailyLineId), StringComparer.Ordinal);
+            foreach (var material in extraMaterials)
+            {
+                if (!dailyById.TryGetValue(Convert.ToHexString(material.DailyLineId), out var daily)) continue;
+                var batch = batches.Single(x => x.BatchId.SequenceEqual(material.BatchId));
+                var menuVersion = menuVersions[Convert.ToHexString(batch.MenuVersionId)];
+                var supplier = ResolveSupplier(material.IngredientId, daily.ServiceDate);
+                if (!string.IsNullOrWhiteSpace(query.SupplierName) && !string.Equals(supplier.Name, query.SupplierName.Trim(), StringComparison.OrdinalIgnoreCase)) continue;
+                var materialId = GuidHelper.ToGuidString(material.DemandMaterialId);
+                var balance = purposeBalances.GetValueOrDefault(Convert.ToHexString(daily.DailyLineId))?
+                    .ExtraDemands.SingleOrDefault(extra => extra.DemandMaterialId == materialId);
+                var shifts = material.Contributions.Select(x => x.DemandDish.ShiftName).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+                detailRows.Add(new ReconciliationPreparationDetailRowDto(GuidHelper.ToGuidString(menuVersion.CustomerId),
+                    menuVersion.Customer.CustomerCode, menuVersion.Customer.CustomerName, GuidHelper.ToGuidString(batch.BatchId), daily.ServiceDate,
+                    string.Join(" / ", shifts), GuidHelper.ToGuidString(material.IngredientId), daily.BatchLine.Ingredient.IngredientCode,
+                    daily.BatchLine.Ingredient.IngredientName, GuidHelper.ToGuidString(material.CanonicalUnitId), daily.BatchLine.CanonicalUnit.UnitName,
+                    material.RequiredQuantity, "Suất phát sinh đã duyệt", "Nhu cầu đã duyệt", supplier.Name)
+                    { SupplementalDemandId = GuidHelper.ToGuidString(material.DemandId), SupplierId = supplier.Id,
+                        RemainingQuantity = balance?.RemainingQuantity,
+                        SupplierCode = supplier.Code, PreparationGroupCode = daily.BatchLine.Ingredient.PreparationGroupCode });
+            }
             var deltaQuery = context.Reconciliationsourcedeltas.AsNoTracking()
                 .Include(d => d.DailyLine).ThenInclude(dl => dl!.BatchLine).ThenInclude(bl => bl.Ingredient)
                 .Include(d => d.DailyLine).ThenInclude(dl => dl!.BatchLine).ThenInclude(bl => bl.CanonicalUnit)
@@ -293,7 +327,9 @@ public sealed class ReconciliationPreparationWorkbookExporter(
                     first.CanonicalUnitId,
                     first.CanonicalUnitName,
                     customerQtys,
-                    totalQty) { SupplierId = first.SupplierId, SupplierCode = first.SupplierCode, PreparationGroupCode = first.PreparationGroupCode };
+                    totalQty) { SupplierId = first.SupplierId, SupplierCode = first.SupplierCode, PreparationGroupCode = first.PreparationGroupCode,
+                        RemainingQuantity = g.All(row => row.RemainingQuantity.HasValue) ? g.Sum(row => row.RemainingQuantity!.Value) : null,
+                        UnplannedIssuedQuantity = g.Sum(row => row.UnplannedIssuedQuantity) };
             })
             .OrderBy(s => s.SupplierName)
             .ThenBy(s => s.IngredientName)

@@ -1,195 +1,55 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { beforeEach, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { ApprovalPage } from '../features/approvals/ApprovalPage';
+import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../store/authContext';
-import { approvalsApi } from '../api/approvalsApi';
-import { systemApi } from '../api/systemApi';
-import { ApiError } from '../api/client';
-import { MOCK_APPROVALS } from '../test/fixtures';
+import { ApprovalPage } from '../features/approvals/ApprovalPage';
+import * as client from '../api/client';
+import { CANONICAL_ROUTES } from '../routes/routeRegistry';
+import { isRouteEligible } from '../routes/navigationEligibility';
 
-function renderApprovals(initialEntry = '/approvals') {
-  return render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route path="/approvals" element={<ApprovalPage />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
-  );
-}
-
-describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
-  beforeEach(() => {
-    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({
-      mode: 'DEFAULT',
-      label: 'Mặc định',
-      version: 1,
-      updatedAt: '2026-10-18T00:00:00Z',
-      reasonRequired: false,
-      capabilities: { navigation: [], pageTabs: {} },
-    });
-    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValue(MOCK_APPROVALS);
-    vi.spyOn(approvalsApi, 'getHistory').mockResolvedValue([]);
+const empty = { items: [], limit: 20, hasNext: false, nextCursor: null, mode: 'DEFAULT', modeVersion: 1, unavailableSources: [],
+  targets: [{ targetType: 'purchase-request', label: 'Đề nghị mua hàng', mode: 'DEFAULT', permission: 'purchase.request.approve' }] };
+let readInbox: () => unknown;
+function renderPage() { render(<AuthProvider><MemoryRouter><ApprovalPage /></MemoryRouter></AuthProvider>); }
+beforeEach(() => {
+  readInbox = () => empty;
+  vi.spyOn(client, 'apiClient').mockImplementation(async url => {
+    if (url === '/system-operation-mode') return { mode: 'DEFAULT', label: 'Mặc định', version: 1, updatedAt: '2026-11-16T00:00:00Z', reasonRequired: false, capabilities: { navigation: ['approvals'], pageTabs: { approvals: ['queue','history'] } } } as never;
+    if (url.startsWith('/operational-approvals/inbox')) return readInbox() as never;
+    throw new Error(`Unexpected API ${url}`);
   });
-
-  it('renders Zone 1 WorkspaceHeader (56px) with type select, date, and single primary button (Rule D7)', async () => {
-    renderApprovals();
-
-    expect(await screen.findByRole('heading', { name: 'Hàng đợi phê duyệt' })).toBeInTheDocument();
-
-    // Select type and date input
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('dd/MM/yyyy')).not.toBeInTheDocument();
-    expect(screen.getAllByText(/chờ xử lý/i).length).toBeGreaterThan(0);
-
-    // Rule D7: Single primary button hierarchy - header keeps outline refresh, drawer owns primary decision
-    expect(screen.getByRole('button', { name: 'Làm mới' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Phê duyệt yêu cầu đang chọn' })).not.toBeInTheDocument();
-    const drawerApproveBtn = (await screen.findAllByRole('button', { name: 'Phê duyệt hồ sơ' }))[0];
-    expect(drawerApproveBtn).toBeInTheDocument();
-    expect(drawerApproveBtn).toHaveClass('bg-slate-900');
-  });
-
-  it('renders Zone 2 TelemetrySubbar (44px) with filter tabs and telemetry pills', async () => {
-    renderApprovals();
-
-    // Filter tabs
-    expect(await screen.findByRole('tab', { name: /Tất cả yêu cầu/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Nhu cầu nguyên liệu/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Đơn mua hàng PO/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Phiếu nhập kho/i })).toBeInTheDocument();
-
-    // Only telemetry derivable from the authoritative inbox is shown.
-    expect(screen.getByText(/Chờ duyệt:/i)).toBeInTheDocument();
-    expect(screen.queryByText(/SLA khẩn:|Đã duyệt hôm nay:/i)).not.toBeInTheDocument();
-  });
-
-  it('restores the populated inbox when clearing an empty type filter', async () => {
-    renderApprovals();
-    const title = MOCK_APPROVALS[0].title;
-    await screen.findByRole('row', { name: new RegExp(title) });
-
-    await userEvent.click(screen.getByRole('tab', { name: /Đơn mua hàng PO/i }));
-    const reset = await screen.findByRole('button', { name: 'Xóa bộ lọc (Xem tất cả hồ sơ)' });
-    expect(screen.queryByRole('row', { name: new RegExp(title) })).not.toBeInTheDocument();
-
-    await userEvent.click(reset);
-    expect(screen.getByRole('tab', { name: /Tất cả yêu cầu/i })).toHaveAttribute('aria-selected', 'true');
-    expect(await screen.findByRole('row', { name: new RegExp(title) })).toBeInTheDocument();
-  });
-
-  it('renders SplitView with Master Queue (Left) and Detail Decision Drawer (Right) with ZERO <details> tags', async () => {
-    const { container } = renderApprovals();
-
-    // Master columns
-    expect(await screen.findByRole('columnheader', { name: 'Mã đối tượng' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /Tiêu đề yêu cầu/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Người gửi' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Hạn SLA' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Quy mô' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toBeInTheDocument();
-
-    // Detail header
-    expect(screen.getByText('Chi tiết hồ sơ phê duyệt')).toBeInTheDocument();
-
-    // Invariant: Zero <details> tags anywhere in DOM!
-    expect(container.querySelectorAll('details').length).toBe(0);
-  });
-
-  it('approves selected item and updates decision', async () => {
-    const decideSpy = vi.spyOn(approvalsApi, 'decide').mockResolvedValue({ success: true });
-    renderApprovals();
-
-    const approveBtns = await screen.findAllByRole('button', { name: 'Phê duyệt hồ sơ' });
-    expect(approveBtns.length).toBeGreaterThan(0);
-    await userEvent.click(approveBtns[0]);
-
-    // Confirm inside modal
-    const confirmBtn = await screen.findByRole('button', { name: 'Xác nhận phê duyệt' });
-    await userEvent.click(confirmBtn);
-
-    expect(decideSpy).toHaveBeenCalledWith(
-      MOCK_APPROVALS[0].targetType,
-      MOCK_APPROVALS[0].targetId,
-      'APPROVE',
-      'Phê duyệt hồ sơ theo thẩm quyền'
-    );
-  });
-
-  it('keeps loaded inbox data visible when a decision conflicts with a newer version', async () => {
-    vi.spyOn(approvalsApi, 'decide').mockRejectedValueOnce(new ApiError(409, 'Hồ sơ đã được người khác xử lý'));
-    renderApprovals();
-
-    await userEvent.click((await screen.findAllByRole('button', { name: 'Phê duyệt hồ sơ' }))[0]);
-    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận phê duyệt' }));
-
-    expect(await screen.findByText('Xung đột dữ liệu đồng thời')).toBeInTheDocument();
-    expect(screen.getByText('Hồ sơ đã được người khác xử lý')).toBeInTheDocument();
-    expect(screen.getAllByText(MOCK_APPROVALS[0].targetCode).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: 'Tải lại dữ liệu mới nhất' })).toBeInTheDocument();
-  });
-
-  it('preserves HTTP 403 as a permission-denied state', async () => {
-    vi.spyOn(approvalsApi, 'getInbox').mockRejectedValueOnce(new ApiError(403, 'Không có quyền duyệt'));
-
-    renderApprovals();
-
-    expect(await screen.findByText('Truy cập bị hạn chế')).toBeInTheDocument();
-    expect(screen.queryByText('Không thể tải dữ liệu')).not.toBeInTheDocument();
-  });
-
-  it('handles error state and provides retry action', async () => {
-    vi.spyOn(approvalsApi, 'getInbox').mockRejectedValueOnce(
-      new Error('Lỗi máy chủ phê duyệt')
-    );
-
-    renderApprovals();
-
-    expect(await screen.findByText('Không thể tải dữ liệu')).toBeInTheDocument();
-    expect(screen.getByText('Lỗi máy chủ phê duyệt')).toBeInTheDocument();
-
-    // Click retry
-    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValueOnce(MOCK_APPROVALS);
-    const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
-    await userEvent.click(retryBtn);
-
-    expect(await screen.findByText('Hàng đợi phê duyệt')).toBeInTheDocument();
-  });
-
-  it('blocks rejection without a mandatory reason according to BR-GLOBAL-03', async () => {
-    const user = userEvent.setup();
-    renderApprovals();
-
-    const rejectBtns = await screen.findAllByRole('button', { name: 'Từ chối hồ sơ' });
-    expect(rejectBtns.length).toBeGreaterThan(0);
-    await user.click(rejectBtns[0]);
-
-    const confirmRejectBtn = screen.getByRole('button', { name: 'Xác nhận từ chối' });
-    await user.click(confirmRejectBtn);
-
-    expect(screen.getByText(/Vui lòng nhập lý do từ chối hồ sơ/i)).toBeInTheDocument();
-  });
-
-  it('preserves rejection reason inside modal when rejection API call fails', async () => {
-    const user = userEvent.setup();
-    vi.spyOn(approvalsApi, 'decide').mockRejectedValueOnce(new Error('Lỗi máy chủ khi từ chối'));
-    renderApprovals();
-
-    const rejectBtns = await screen.findAllByRole('button', { name: 'Từ chối hồ sơ' });
-    await user.click(rejectBtns[0]);
-
-    const reasonInput = screen.getByPlaceholderText(/Nhập lý do từ chối/i);
-    await user.type(reasonInput, 'Hồ sơ thiếu báo giá của bên thứ ba');
-
-    const confirmRejectBtn = screen.getByRole('button', { name: 'Xác nhận từ chối' });
-    await user.click(confirmRejectBtn);
-
-    // Modal stays open, reason is preserved, and error banner is displayed
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getAllByDisplayValue('Hồ sơ thiếu báo giá của bên thứ ba').length).toBeGreaterThan(0);
-    expect(screen.getByText(/Lỗi máy chủ khi từ chối/i)).toBeInTheDocument();
-  });
+});
+it('keeps one operational workbench and displays the authoritative empty queue', async () => {
+  renderPage();
+  expect(await screen.findByText('Không có hồ sơ chờ xử lý')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Duyệt vận hành' })).toBeInTheDocument();
+  expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Tạo mới' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Phê duyệt hồ sơ' })).not.toBeInTheDocument();
+});
+it('shows server errors and retries the read', async () => {
+  readInbox = () => { throw new Error('Lỗi hàng đợi'); };
+  renderPage();
+  expect(await screen.findByText('Lỗi hàng đợi')).toBeInTheDocument();
+  readInbox = () => empty;
+  await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
+  expect(await screen.findByText('Không có hồ sơ chờ xử lý')).toBeInTheDocument();
+});
+it('shows permission denial without document content', async () => {
+  readInbox = () => { throw new client.ApiError(403, 'Không có quyền duyệt'); };
+  renderPage();
+  expect(await screen.findByText('Truy cập bị hạn chế')).toBeInTheDocument();
+  expect(screen.queryByRole('table')).not.toBeInTheDocument();
+});
+it('filters by the real wire type on the server and resets the cursor', async () => {
+  renderPage();
+  await screen.findByText('Không có hồ sơ chờ xử lý');
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Lọc loại yêu cầu phê duyệt' }), 'purchase-request');
+  await waitFor(() => expect(client.apiClient).toHaveBeenCalledWith('/operational-approvals/inbox?Limit=20&TargetType=purchase-request'));
+});
+it('makes the hub available to managers in both modes while denying warehouse navigation', () => {
+  expect(isRouteEligible(CANONICAL_ROUTES, '/approvals', '', { roleCode: 'Manager' }, 'DEFAULT')).toBe(true);
+  expect(isRouteEligible(CANONICAL_ROUTES, '/approvals', '', { roleCode: 'Manager' }, 'MATERIAL_RECONCILIATION')).toBe(true);
+  expect(isRouteEligible(CANONICAL_ROUTES, '/approvals', '', { roleCode: 'WarehouseStaff' }, 'MATERIAL_RECONCILIATION')).toBe(false);
 });

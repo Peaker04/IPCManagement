@@ -107,7 +107,7 @@ describe('MRX source edit frontend foundation', () => {
       issueDate: '2026-06-15',
       reconciliationBatchId: 'batch-1',
       isSupplemental: false,
-      lines: [{
+      lines: [{ allocations: [],
         reconciliationBatchLineId: 'line-1',
         reconciliationBatchDailyLineId: 'daily-1',
         ingredientId: 'ingredient-1',

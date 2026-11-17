@@ -5,6 +5,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -184,7 +185,7 @@ public sealed class ReconciliationReportsService(
             .Include(d => d.BatchLine).ThenInclude(bl => bl.Ingredient)
             .Include(d => d.BatchLine).ThenInclude(bl => bl.CanonicalUnit)
             .Include(d => d.BatchLine).ThenInclude(bl => bl.Batch)
-            .Where(d => d.RequiredQuantity > 0);
+            .Where(d => d.RequiredQuantity >= 0);
 
         if (!string.IsNullOrWhiteSpace(batchId))
         {
@@ -203,6 +204,12 @@ public sealed class ReconciliationReportsService(
         var dailyLines = await query.ToListAsync(token);
         if (maximumDailyLines is int maximum && dailyLines.Count > maximum)
             throw new BusinessRuleException($"Báo cáo vượt giới hạn {maximum} dòng nguồn. Hãy chọn lô hoặc tuần hẹp hơn rồi tải lại.");
+        var approvedMaterials = dailyLines.Count == 0 ? [] : await ReconciliationApprovedSupplementalQuery.LoadMaterialsAsync(context,
+            dailyLines.Select(x => x.BatchId).Distinct(ByteArrayComparer.Instance).ToList(),
+            dailyLines.Min(x => x.ServiceDate), dailyLines.Max(x => x.ServiceDate), token);
+        var extraByDaily = approvedMaterials.GroupBy(x => Convert.ToHexString(x.DailyLineId))
+            .ToDictionary(group => group.Key, group => DecimalPolicy.RoundQuantity(group.Sum(x => x.RequiredQuantity)), StringComparer.Ordinal);
+        dailyLines = dailyLines.Where(x => x.RequiredQuantity > 0 || extraByDaily.ContainsKey(Convert.ToHexString(x.DailyLineId))).ToList();
         if (dailyLines.Count == 0)
         {
             return new MrxVarianceRegisterReportDto([], 0);
@@ -257,6 +264,7 @@ public sealed class ReconciliationReportsService(
             b => menuVersions.TryGetValue(Convert.ToHexString(b.MenuVersionId), out var mv) ? mv.Customer?.CustomerName ?? "Khách hàng" : "Khách hàng",
             StringComparer.Ordinal);
 
+        var purposeBalances = await ReconciliationSupplementalFulfillmentQuery.GetManyAsync(context, dailyLines, token);
         var rows = new List<MrxVarianceRegisterRowDto>();
 
         foreach (var d in dailyLines)
@@ -264,9 +272,12 @@ public sealed class ReconciliationReportsService(
             var dHex = Convert.ToHexString(d.DailyLineId);
             if (!netIssues.TryGetValue(dHex, out var netIssue)) continue;
             var issued = netIssue.NetIssuedQuantity;
-            var diff = DecimalPolicy.RoundQuantity(issued - d.RequiredQuantity);
+            var requiredQuantity = DecimalPolicy.RoundQuantity(d.RequiredQuantity + extraByDaily.GetValueOrDefault(dHex));
+            var diff = DecimalPolicy.RoundQuantity(issued - requiredQuantity);
 
-            if (diff == 0) continue; // Only variances!
+            var balance = purposeBalances.GetValueOrDefault(dHex);
+            var status = ReconciliationDailyIssuePolicy.ResolveWithPurpose(requiredQuantity, issued, false, balance).QuantityStatus;
+            if (diff == 0 && status is not ("PURPOSE_SHORTAGE" or "ALLOCATION_REQUIRES_REVIEW")) continue;
 
             dailyDispositions.TryGetValue(dHex, out var disp);
             var notes = auditNotes.GetValueOrDefault(GuidHelper.ToGuidString(d.DailyLineId)) ?? [];
@@ -283,17 +294,18 @@ public sealed class ReconciliationReportsService(
                 d.BatchLine.Ingredient.IngredientCode,
                 d.BatchLine.Ingredient.IngredientName,
                 d.BatchLine.CanonicalUnit.UnitName,
-                d.RequiredQuantity,
+                requiredQuantity,
                 issued,
                 diff,
-                diff > 0 ? "OVER_ISSUED" : "UNDER_ISSUED",
+                status,
                 disp?.Category,
                 disp?.Reason,
                 disp?.DisposedBy is null
                     ? null
                     : disposedUsers.GetValueOrDefault(Convert.ToHexString(disp.DisposedBy)) ?? GuidHelper.ToGuidString(disp.DisposedBy),
                 disp?.DisposedAt,
-                notes));
+                notes) { RemainingByPurpose = balance is { HasPurposeEvidence: true } ? balance.RemainingByPurpose : null,
+                    UnplannedIssuedQuantity = balance?.UnplannedIssuedQuantity ?? 0m });
         }
 
         var ordered = rows.OrderBy(r => r.ServiceDate).ThenBy(r => r.IngredientName).ToList();
@@ -302,7 +314,7 @@ public sealed class ReconciliationReportsService(
 
     public static byte[] BuildVarianceRegisterCsv(IReadOnlyList<MrxVarianceRegisterRowDto> rows)
     {
-        var csv = new StringBuilder("MaLo,KhachHang,Ngay,Ca,MaNguyenLieu,TenNguyenLieu,DVT,NhuCau,ThucXuat,ChenhLech,LoaiChenhLech,DanhMucXuLy,LyDoXuLy,NguoiXuLy,NgayXuLy,GhiChuKho\r\n");
+        var csv = new StringBuilder("MaLo,KhachHang,Ngay,Ca,MaNguyenLieu,TenNguyenLieu,DVT,NhuCau,ThucXuat,ChenhLech,LoaiChenhLech,DanhMucXuLy,LyDoXuLy,NguoiXuLy,NgayXuLy,GhiChuKho,ConThieuTheoNhuCau,CapNgoaiNhuCau\r\n");
         foreach (var r in rows)
         {
             csv.AppendJoin(',',
@@ -321,7 +333,9 @@ public sealed class ReconciliationReportsService(
                 Csv(r.DispositionReason),
                 Csv(r.DisposedBy),
                 r.DisposedAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? "",
-                Csv(string.Join("; ", r.IssueNotes))).Append("\r\n");
+                Csv(string.Join("; ", r.IssueNotes)),
+                r.RemainingByPurpose is { } remaining ? Number(remaining) : string.Empty,
+                Number(r.UnplannedIssuedQuantity)).Append("\r\n");
         }
         return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray();
     }
@@ -380,9 +394,15 @@ public sealed class ReconciliationReportsService(
         var batchIds = batches.Select(batch => batch.BatchId).ToList();
         var dailyLines = await context.Reconciliationbatchdailylines.AsNoTracking()
             .Where(line => batchIds.Contains(line.BatchId))
-            .Select(line => new { line.BatchId, line.DailyLineId, line.RequiredQuantity })
+            .Select(line => new { line.BatchId, line.DailyLineId, line.RequiredQuantity, line.ServiceDate })
             .ToListAsync(token);
         var dailyIds = dailyLines.Select(line => line.DailyLineId).ToList();
+        var approvedMaterials = dailyLines.Count == 0 ? [] : await ReconciliationApprovedSupplementalQuery.LoadMaterialsAsync(context,
+            batchIds, dailyLines.Min(line => line.ServiceDate), dailyLines.Max(line => line.ServiceDate), token);
+        var extraByDaily = approvedMaterials.GroupBy(x => Convert.ToHexString(x.DailyLineId))
+            .ToDictionary(group => group.Key, group => DecimalPolicy.RoundQuantity(group.Sum(x => x.RequiredQuantity)), StringComparer.Ordinal);
+        var extraByBatch = approvedMaterials.GroupBy(x => Convert.ToHexString(x.BatchId))
+            .ToDictionary(group => group.Key, group => DecimalPolicy.RoundQuantity(group.Sum(x => x.RequiredQuantity)), StringComparer.Ordinal);
         var netIssues = await new ReconciliationNetIssueProjection(context)
             .LoadByDailyLineIdsAsync(dailyIds, token);
         var dailyLinesByBatch = dailyLines
@@ -408,12 +428,12 @@ public sealed class ReconciliationReportsService(
             var mvHex = Convert.ToHexString(b.MenuVersionId);
             menuVersions.TryGetValue(mvHex, out var mv);
 
-            var totalReq = b.Lines.Sum(l => l.RequiredQuantity);
+            var totalReq = b.Lines.Sum(l => l.RequiredQuantity) + extraByBatch.GetValueOrDefault(Convert.ToHexString(b.BatchId));
             dailyLinesByBatch.TryGetValue(Convert.ToHexString(b.BatchId), out var batchDailyLines);
             decimal? totalIss = null;
             if (batchDailyLines is { Count: > 0 }
-                && batchDailyLines.Sum(line => line.RequiredQuantity) == totalReq
-                && batchDailyLines.All(line => line.RequiredQuantity <= 0
+                && batchDailyLines.Sum(line => line.RequiredQuantity + extraByDaily.GetValueOrDefault(Convert.ToHexString(line.DailyLineId))) == totalReq
+                && batchDailyLines.All(line => line.RequiredQuantity + extraByDaily.GetValueOrDefault(Convert.ToHexString(line.DailyLineId)) <= 0
                     || netIssues.ContainsKey(Convert.ToHexString(line.DailyLineId))))
             {
                 totalIss = batchDailyLines.Sum(line =>

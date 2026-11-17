@@ -29,11 +29,14 @@ internal sealed class ApprovalInboxDemandSource
     public async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildItemsAsync(
         int limit,
         ApprovalInboxCursor? cursor,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int offset = 0, ApprovalInboxQueryDto? query = null)
     {
         var requestQuery = _context.Materialrequests
             .AsNoTracking()
             .Where(item => item.Status == "DRAFT");
+        requestQuery = ApprovalInboxSourceFilter.ByIdentity(requestQuery, item => item.RequestId, query);
+        requestQuery = ApprovalInboxSourceFilter.ByDate(requestQuery, item => item.RequestDate, query);
         if (cursor is not null)
         {
             requestQuery = requestQuery.Where(item =>
@@ -43,8 +46,8 @@ internal sealed class ApprovalInboxDemandSource
 
         var requests = await requestQuery
             .OrderBy(item => item.RequestDate)
-            .ThenBy(item => item.RequestCode)
-            .Take(limit)
+            .ThenBy(item => item.RequestCode).ThenBy(item => item.RequestId)
+            .Skip(offset).Take(limit)
             .ToListAsync(cancellationToken);
         if (requests.Count == 0)
         {

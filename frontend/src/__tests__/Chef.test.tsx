@@ -146,7 +146,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     vi.spyOn(mrxApi, 'getKitchenCooking').mockResolvedValue({
       batchId: 'batch-1',
       sourceVersion: 2,
-      rows: [{
+      rows: [{ approvedExtraServings: 0, approvedDemandIds: [],
         serviceDate: '2026-06-15',
         weekday: 'Thứ Hai',
         shiftName: 'Ca sáng',
@@ -215,11 +215,11 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
       totalCount: 1, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false };
     const cooking: MrxKitchenCooking = {
       batchId: 'batch-1', sourceVersion: 3,
-      rows: [{
+      rows: [{ approvedExtraServings: 0, approvedDemandIds: [],
         serviceDate: '2026-06-15', weekday: 'Thứ Hai', shiftName: 'Ca sáng', menuVariant: 'Mặn',
         dishCode: 'MON-01', dishName: 'Cơm sườn nướng', servings: 100,
         ingredientCode: 'SUON-01', ingredientName: 'Sườn heo', unitName: 'kg', bomQuantityPerServing: 0.15, wasteRatePercent: 5, totalRequiredQuantity: 15,
-      }, {
+      }, { approvedExtraServings: 0, approvedDemandIds: [],
         serviceDate: '2026-06-15', weekday: 'Thứ Hai', shiftName: 'Ca sáng', menuVariant: 'Chay',
         dishCode: 'MON-01', dishName: 'Cơm sườn nướng', servings: 20,
         ingredientCode: 'RAU-01', ingredientName: 'Rau củ', unitName: 'kg', bomQuantityPerServing: 0.1, wasteRatePercent: 2, totalRequiredQuantity: 2,
@@ -282,7 +282,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     { secondServings: 100, expectedTotal: '140 suất' },
     { secondServings: 130, expectedTotal: 'Chưa xác định' },
   ])('counts meal grain, not dishes, and reports inconsistent servings ($secondServings)', async ({ secondServings, expectedTotal }) => {
-    const row = {
+    const row = { approvedExtraServings: 0, approvedDemandIds: [],
       serviceDate: '2026-06-15', weekday: 'Thứ Hai', shiftName: 'Ca sáng', menuVariant: 'Mặn',
       dishCode: 'MON-01', dishName: 'Cơm sườn nướng', servings: 100,
       ingredientCode: 'SUON-01', ingredientName: 'Sườn heo', unitName: 'kg',
@@ -330,7 +330,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
         weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'COMPLETED', version: 4, createdAt: '2026-10-19T00:00:00Z' }],
       totalCount: 1, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false,
     });
-    const cached: MrxKitchenCooking = { batchId: 'batch-incomplete', sourceVersion: 3, rows: [{
+    const cached: MrxKitchenCooking = { batchId: 'batch-incomplete', sourceVersion: 3, rows: [{ approvedExtraServings: 0, approvedDemandIds: [],
       serviceDate: '2026-10-19', weekday: 'Thứ 2', shiftName: 'Ca sáng', menuVariant: 'Mặn', dishCode: 'MON-A',
       dishName: 'Món trong bản lưu trước', servings: 100, ingredientCode: 'ING-A', ingredientName: 'Gạo', unitName: 'kg',
       bomQuantityPerServing: 0.1, wasteRatePercent: 0, totalRequiredQuantity: 10,
@@ -358,7 +358,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
   });
 
   it('never shows or prints a foreign cached cooking sheet while the selected batch is loading', async () => {
-    const foreign: MrxKitchenCooking = { batchId: 'batch-foreign', sourceVersion: 2, rows: [{
+    const foreign: MrxKitchenCooking = { batchId: 'batch-foreign', sourceVersion: 2, rows: [{ approvedExtraServings: 0, approvedDemandIds: [],
       serviceDate: '2026-10-19', weekday: 'Thứ 2', shiftName: 'Ca sáng', menuVariant: 'Mặn', dishCode: 'MON-A',
       dishName: 'Món lô cũ', servings: 100, ingredientCode: 'ING-A', ingredientName: 'Gạo lô cũ', unitName: 'kg',
       bomQuantityPerServing: 0.1, wasteRatePercent: 0, totalRequiredQuantity: 10,
@@ -498,7 +498,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
           dishCode: 'M1',
           dishName: 'Thịt kho tàu',
           servings: 120,
-          rows: [{
+          rows: [{ approvedExtraServings: 0, approvedDemandIds: [],
             serviceDate: '2026-10-19',
             weekday: 'Thứ Hai',
             shiftName: 'MORNING',
@@ -546,7 +546,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     vi.spyOn(mrxApi, 'getKitchenCooking').mockResolvedValue({
       batchId: 'batch-m8',
       sourceVersion: 1,
-      rows: [{
+      rows: [{ approvedExtraServings: 0, approvedDemandIds: [],
         serviceDate: '2026-10-19',
         weekday: 'Thứ Hai',
         shiftName: 'MORNING',

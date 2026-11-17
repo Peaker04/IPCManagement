@@ -42,7 +42,7 @@ public sealed class ReconciliationPreparationService(
             .Include(d => d.BatchLine).ThenInclude(bl => bl.Ingredient).ThenInclude(i => i.Unit)
             .Include(d => d.BatchLine).ThenInclude(bl => bl.CanonicalUnit)
             .Include(d => d.BatchLine).ThenInclude(bl => bl.Batch)
-            .Where(d => d.ServiceDate >= start && d.ServiceDate <= end && d.RequiredQuantity > 0);
+            .Where(d => d.ServiceDate >= start && d.ServiceDate <= end);
 
         if (batchIds is not null && batchIds.Count > 0)
         {
@@ -53,6 +53,11 @@ public sealed class ReconciliationPreparationService(
         }
 
         var dailyLines = await query.ToListAsync(token);
+        var extraMaterials = await ReconciliationApprovedSupplementalQuery.LoadMaterialsAsync(context,
+            dailyLines.Select(x => x.BatchId).Distinct(ByteArrayComparer.Instance).ToList(), start, end, token);
+        var extraByDaily = extraMaterials.GroupBy(x => Convert.ToHexString(x.DailyLineId))
+            .ToDictionary(group => group.Key, group => DecimalPolicy.RoundQuantity(group.Sum(x => x.RequiredQuantity)), StringComparer.Ordinal);
+        dailyLines = dailyLines.Where(x => x.RequiredQuantity > 0 || extraByDaily.ContainsKey(Convert.ToHexString(x.DailyLineId))).ToList();
         if (dailyLines.Count == 0)
         {
             return new ReconciliationPreparationDto(serviceDate, [], []);
@@ -77,6 +82,7 @@ public sealed class ReconciliationPreparationService(
             dailyLines.Select(line => line.DailyLineId).ToList(), token);
         var issueLinesByDailyLineId = netIssues.ToDictionary(item => item.Key, item => item.Value.NetIssuedQuantity, StringComparer.Ordinal);
 
+        var purposeBalances = await ReconciliationSupplementalFulfillmentQuery.GetManyAsync(context, dailyLines, token);
         var existingIssueBatchIds = existingIssues
             .Select(i => Convert.ToHexString(i.ReconciliationBatchId!))
             .ToHashSet(StringComparer.Ordinal);
@@ -91,9 +97,9 @@ public sealed class ReconciliationPreparationService(
             menuVersions.TryGetValue(mvHex, out var menuVersion);
 
             var batchDailyLines = dailyLines.Where(d => d.BatchId.SequenceEqual(batch.BatchId)).ToList();
-            var batchRequired = batchDailyLines.Sum(d => d.RequiredQuantity);
+            var batchRequired = batchDailyLines.Sum(d => d.RequiredQuantity + extraByDaily.GetValueOrDefault(Convert.ToHexString(d.DailyLineId)));
             var batchIssued = batchDailyLines.Sum(d => issueLinesByDailyLineId.GetValueOrDefault(Convert.ToHexString(d.DailyLineId)));
-            var batchRemaining = Math.Max(0, batchRequired - batchIssued);
+            var batchRemaining = batchDailyLines.Select(d => Remaining(d)).ToList();
 
             batchSummaries.Add(new ReconciliationPreparationBatchSummaryDto(
                 GuidHelper.ToGuidString(batch.BatchId),
@@ -106,7 +112,8 @@ public sealed class ReconciliationPreparationService(
                 existingIssueBatchIds.Contains(bHex),
                 batchRequired,
                 batchIssued,
-                batchRemaining));
+                batchDailyLines.Select(x => Convert.ToHexString(x.CanonicalUnitId)).Distinct().Count() <= 1
+                    && batchRemaining.All(x => x.HasValue) ? batchRemaining.Sum() : null));
 
             foreach (var daily in batchDailyLines)
             {
@@ -119,8 +126,10 @@ public sealed class ReconciliationPreparationService(
 
                 var dailyHex = Convert.ToHexString(daily.DailyLineId);
                 var issued = issueLinesByDailyLineId.TryGetValue(dailyHex, out var issVal) ? issVal : (decimal?)null;
-                var remaining = Math.Max(0, daily.RequiredQuantity - (issued ?? 0));
-                var status = ReconciliationDailyIssuePolicy.ResolveLineStatus(daily.RequiredQuantity, issued, false).QuantityStatus;
+                var requiredQuantity = DecimalPolicy.RoundQuantity(daily.RequiredQuantity + extraByDaily.GetValueOrDefault(dailyHex));
+                var balance = purposeBalances.GetValueOrDefault(dailyHex);
+                var remaining = Remaining(daily);
+                var status = ReconciliationDailyIssuePolicy.ResolveWithPurpose(requiredQuantity, issued, false, balance).QuantityStatus;
 
                 allocList.Add(new ReconciliationPreparationBatchAllocationDto(
                     GuidHelper.ToGuidString(daily.BatchId),
@@ -129,10 +138,10 @@ public sealed class ReconciliationPreparationService(
                     menuVersion?.CustomerId is null ? string.Empty : GuidHelper.ToGuidString(menuVersion.CustomerId),
                     menuVersion?.Customer?.CustomerCode,
                     menuVersion?.Customer?.CustomerName,
-                    daily.RequiredQuantity,
+                    requiredQuantity,
                     issued,
                     remaining,
-                    status));
+                    status) { UnplannedIssuedQuantity = balance?.UnplannedIssuedQuantity ?? 0m });
             }
         }
 
@@ -145,7 +154,7 @@ public sealed class ReconciliationPreparationService(
                 var allocs = allocationsByIngredientKey.GetValueOrDefault(ingredientKey) ?? [];
                 var totalReq = allocs.Sum(a => a.RequiredQuantity);
                 var totalIss = allocs.Sum(a => a.IssuedQuantity ?? 0);
-                var totalRem = allocs.Sum(a => a.RemainingQuantity);
+                var totalRem = allocs.All(a => a.RemainingQuantity.HasValue) ? allocs.Sum(a => a.RemainingQuantity) : null;
 
                 return new ReconciliationPreparationAggregatedLineDto(
                     GuidHelper.ToGuidString(first.IngredientId),
@@ -162,6 +171,14 @@ public sealed class ReconciliationPreparationService(
             .ToList();
 
         return new ReconciliationPreparationDto(serviceDate, batchSummaries, aggregatedLines);
+
+        decimal? Remaining(ReconciliationBatchDailyLine line)
+        {
+            var key = Convert.ToHexString(line.DailyLineId);
+            var balance = purposeBalances.GetValueOrDefault(key);
+            return balance is { HasPurposeEvidence: true } ? balance.RemainingByPurpose
+                : Math.Max(0m, DecimalPolicy.RoundQuantity(line.RequiredQuantity + extraByDaily.GetValueOrDefault(key) - issueLinesByDailyLineId.GetValueOrDefault(key)));
+        }
     }
 
     public async Task<CoordinatedPreparationIssueResultDto> IssueCoordinatedAsync(

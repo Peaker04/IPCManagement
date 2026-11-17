@@ -27,7 +27,12 @@ internal static class ApprovalInboxQueryPolicy
              string.Equals(item.TargetType, query.TargetType.Trim(), StringComparison.OrdinalIgnoreCase)) &&
             (string.IsNullOrWhiteSpace(query.TargetId) ||
              string.Equals(item.TargetId, query.TargetId.Trim(), StringComparison.OrdinalIgnoreCase)) &&
-            (serviceDate is null || item.ServiceDate == serviceDate || item.DueDate == serviceDate) &&
+            (string.IsNullOrWhiteSpace(query.CustomerCode) ||
+             string.Equals(item.CustomerCode, query.CustomerCode.Trim(), StringComparison.OrdinalIgnoreCase)) &&
+            (serviceDate is null || item.ServiceDate == serviceDate || item.DueDate == serviceDate ||
+             item.ServiceDates.Contains(serviceDate.Value) ||
+             item.TargetType == "mrx-batch-review" && item.WeekStartDate is not null &&
+             serviceDate >= item.WeekStartDate && serviceDate <= item.WeekStartDate.Value.AddDays(6)) &&
             (weekStart is null || IsWithinWeek(item, weekStart.Value, weekEnd!.Value)) &&
             (string.IsNullOrWhiteSpace(searchKeyword) || MatchesSearch(item, searchKeyword)));
     }

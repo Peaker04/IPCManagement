@@ -1,3 +1,4 @@
+import { subscribeMrxReads } from '../api/mrxCacheInvalidation';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { serverStateCache } from '../store/serverStateCache';
 import type { StateBoundaryProps } from '../components/workbench/StateBoundary';
@@ -310,13 +311,7 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
 
   useEffect(() => {
     if (!cacheKey.startsWith('mrx_')) return;
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void refetch(true);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return subscribeMrxReads(() => { void refetch(true); });
   }, [cacheKey, refetch]);
 
   const setData = useCallback((updater: TData | null | ((prev: TData | null) => TData | null)) => {

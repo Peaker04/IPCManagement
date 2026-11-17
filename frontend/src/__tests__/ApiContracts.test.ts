@@ -427,7 +427,7 @@ describe('Frontend API contracts against backend DTOs', () => {
     await mrxApi.createIssue({
       commandId: 'issue-command-1', expectedVersion: 4, issueDate: '2026-10-19',
       reconciliationBatchId: batchId, isSupplemental: false,
-      lines: [{
+      lines: [{ allocations: [],
         reconciliationBatchLineId: 'line-1', reconciliationBatchDailyLineId: dailyLineId,
         ingredientId: 'ingredient-1', unitId: 'unit-1', requestedQty: 2, issuedQty: 2,
       }],

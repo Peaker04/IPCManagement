@@ -9,6 +9,58 @@ namespace IPCManagement.Api.Tests;
 public sealed class EfTransactionRunnerTests
 {
     [Fact]
+    public async Task Caught_nested_failure_rolls_back_its_writes_before_outer_command_continues()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        await using var context = new RetryProbeContext(new DbContextOptionsBuilder<RetryProbeContext>().UseSqlite(connection).Options);
+        await context.Database.EnsureCreatedAsync();
+        var runner = new EfTransactionRunner(context);
+        var rejected = Guid.NewGuid();
+        var correction = Guid.NewGuid();
+        await runner.ExecuteAsync(async token =>
+        {
+            try
+            {
+                await runner.ExecuteAsync(async innerToken =>
+                {
+                    context.Probes.Add(new RetryProbe { Id = rejected });
+                    await context.SaveChangesAsync(innerToken);
+                    throw new ArgumentException("domain rejected");
+                }, _ => Task.FromResult(false));
+            }
+            catch (ArgumentException)
+            {
+                context.Probes.Add(new RetryProbe { Id = correction });
+                await context.SaveChangesAsync(token);
+            }
+        }, _ => Task.FromResult(false));
+        context.ChangeTracker.Clear();
+        (await context.Probes.Select(row => row.Id).ToListAsync()).Should().Equal(correction);
+    }
+    [Fact]
+    public async Task Nested_domain_operation_joins_outer_transaction_without_committing_or_hiding_rollback()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        await using var context = new RetryProbeContext(new DbContextOptionsBuilder<RetryProbeContext>().UseSqlite(connection).Options);
+        await context.Database.EnsureCreatedAsync();
+        var runner = new EfTransactionRunner(context);
+        var id = Guid.NewGuid();
+        var execute = () => runner.ExecuteAsync(async token =>
+        {
+            await runner.ExecuteAsync(async innerToken =>
+            {
+                context.Probes.Add(new RetryProbe { Id = id });
+                await context.SaveChangesAsync(innerToken);
+            }, _ => throw new InvalidOperationException("Only the outer transaction verifies commit."));
+            throw new ArgumentException("outer rollback");
+        }, _ => Task.FromResult(false));
+        await execute.Should().ThrowAsync<ArgumentException>().WithMessage("outer rollback");
+        context.ChangeTracker.Clear();
+        (await context.Probes.CountAsync()).Should().Be(0);
+    }
+    [Fact]
     public async Task ExecuteAsync_Should_RunOnce_WithoutTransaction_ForInMemoryProvider()
     {
         var options = new DbContextOptionsBuilder<RetryProbeContext>()

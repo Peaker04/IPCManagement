@@ -116,16 +116,23 @@ public sealed record ReconciliationWarehouseTransferDto(string BatchId, string S
 public sealed record ReconciliationWarehouseTransferLineDto(string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal RequiredQuantity, long SourceVersion);
 public sealed record ReconciliationWarehouseDailyDto(string BatchId, string BatchStatus, long SourceVersion, string WeeklyStatus, ReconciliationDailyCompatibilityDto Compatibility, IReadOnlyList<ReconciliationWarehouseDayDto> Dates);
 public sealed record ReconciliationDailyCompatibilityDto(bool CanRead, bool CanIssueByDate, string? ReasonCode);
-public sealed record ReconciliationWarehouseDayDto(DateOnly ServiceDate, string Status, bool IsApplicable, decimal RequiredQuantity, decimal IssuedQuantity, decimal ReturnedQuantity, decimal RemainingQuantity, IReadOnlyList<ReconciliationWarehouseDailyLineDto> Lines)
+public sealed record ReconciliationWarehouseDayDto(DateOnly ServiceDate, string Status, bool IsApplicable, decimal RequiredQuantity, decimal IssuedQuantity, decimal ReturnedQuantity, decimal? RemainingQuantity, IReadOnlyList<ReconciliationWarehouseDailyLineDto> Lines)
 {
     public DateTime? LastRevisionAt { get; init; }
     public string? LastRevisionByName { get; init; }
     public string? LastRevisionByRole { get; init; }
 }
-public sealed record ReconciliationWarehouseDailyLineDto(string DailyLineId, string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal RequiredQuantity, decimal? IssuedQuantity, decimal ReturnedQuantity, decimal RemainingQuantity, string QuantityStatus, bool HasValidDisposition);
+public sealed record ReconciliationWarehouseDailyLineDto(string DailyLineId, string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal RequiredQuantity, decimal? IssuedQuantity, decimal ReturnedQuantity, decimal? RemainingQuantity, string QuantityStatus, bool HasValidDisposition)
+{
+    public decimal FrozenBaselineQuantity { get; init; }
+    public decimal ApprovedSupplementalQuantity { get; init; }
+}
 public sealed record ReconciliationKitchenCookingExportDto(string BatchId, long SourceVersion, IReadOnlyList<ReconciliationKitchenCookingRowDto> Rows);
 public sealed record ReconciliationKitchenCookingRowDto(DateOnly ServiceDate, string Weekday, string ShiftName, string DishCode, string DishName, int Servings, string IngredientCode, string IngredientName, string UnitName, decimal? BomQuantityPerServing, decimal? WasteRatePercent, decimal TotalRequiredQuantity)
 {
+    public int? FrozenBaselineServings { get; init; }
+    public int ApprovedExtraServings { get; init; }
+    public IReadOnlyList<string> ApprovedDemandIds { get; init; } = [];
     public string MenuVariant { get; init; } = string.Empty;
     public string? QuantityUnavailableReasonCode { get; init; }
 }
@@ -169,8 +176,11 @@ public sealed record ReconciliationPreparationBatchAllocationDto(
     string? CustomerName,
     decimal RequiredQuantity,
     decimal? IssuedQuantity,
-    decimal RemainingQuantity,
-    string Status);
+    decimal? RemainingQuantity,
+    string Status)
+{
+    public decimal UnplannedIssuedQuantity { get; init; }
+}
 
 public sealed record ReconciliationPreparationAggregatedLineDto(
     string IngredientId,
@@ -180,7 +190,7 @@ public sealed record ReconciliationPreparationAggregatedLineDto(
     string? CanonicalUnitName,
     decimal TotalRequiredQuantity,
     decimal TotalIssuedQuantity,
-    decimal TotalRemainingQuantity,
+    decimal? TotalRemainingQuantity,
     IReadOnlyList<ReconciliationPreparationBatchAllocationDto> Allocations);
 
 public sealed record ReconciliationPreparationBatchSummaryDto(
@@ -194,7 +204,7 @@ public sealed record ReconciliationPreparationBatchSummaryDto(
     bool HasExistingIssue,
     decimal RequiredQuantity,
     decimal IssuedQuantity,
-    decimal RemainingQuantity);
+    decimal? RemainingQuantity);
 
 public sealed record ReconciliationPreparationDto(
     DateOnly ServiceDate,
@@ -273,6 +283,8 @@ public sealed record ReconciliationPreparationSummaryRowDto(
     IReadOnlyDictionary<string, decimal> CustomerQuantities,
     decimal TotalQuantity)
 {
+    public decimal? RemainingQuantity { get; init; }
+    public decimal UnplannedIssuedQuantity { get; init; }
     public string? SupplierId { get; init; }
     public string? SupplierCode { get; init; }
     public string PreparationGroupCode { get; init; } = "UNCLASSIFIED";
@@ -295,6 +307,9 @@ public sealed record ReconciliationPreparationDetailRowDto(
     string IssueStatus,
     string SupplierName)
 {
+    public string? SupplementalDemandId { get; init; }
+    public decimal? RemainingQuantity { get; init; }
+    public decimal UnplannedIssuedQuantity { get; init; }
     public string? SupplierId { get; init; }
     public string? SupplierCode { get; init; }
     public string PreparationGroupCode { get; init; } = "UNCLASSIFIED";
@@ -390,7 +405,11 @@ public sealed record MrxVarianceRegisterRowDto(
     string? DispositionReason,
     string? DisposedBy,
     DateTime? DisposedAt,
-    IReadOnlyList<string> IssueNotes);
+    IReadOnlyList<string> IssueNotes)
+{
+    public decimal? RemainingByPurpose { get; init; }
+    public decimal UnplannedIssuedQuantity { get; init; }
+}
 
 public sealed record MrxVarianceRegisterReportDto(
     IReadOnlyList<MrxVarianceRegisterRowDto> Rows,

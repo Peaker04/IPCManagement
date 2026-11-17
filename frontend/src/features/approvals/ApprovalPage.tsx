@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useUrlWorkbenchState } from '../../hooks/useUrlWorkbenchState';
-import { useOperationalRecovery, executeSafeMutation } from '../../hooks/useOperationalRecovery';
-import { FileCheck } from 'lucide-react';
+import { subscribeMrxReads } from '../../api/mrxCacheInvalidation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -12,542 +11,308 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
-import { Tabs } from '../../components/ui/tabs';
 import { Input } from '../../components/ui/input';
+import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { Modal } from '../../components/ui/modal';
 import { InlineBanner } from '../../components/ui/inline-banner';
 import { ActionGuard } from '../../components/ui/action-guard';
-import { serverStateCache } from '../../store/serverStateCache';
-import {
-  approvalsApi,
-  type ApprovalInboxItem,
-  type ApprovalHistoryItem,
-} from '../../api/approvalsApi';
-
-import { formatVietnameseDateTime } from '../../utils/dates';
+import { useAuth } from '../../store/useAuth';
+import { useOperationalRecovery } from '../../hooks/useOperationalRecovery';
+import { approvalsApi, type ApprovalInboxItem, type ApprovalHistoryItem, type OperationalApprovalDetail, type OperationalApprovalFilters, type OperationalApprovalAction } from '../../api/approvalsApi';
+import { formatVietnameseDate, formatVietnameseDateTime } from '../../utils/dates';
 import { ApiError } from '../../api/client';
+import { getMrxShiftLabel } from '../../constants/mrxConstants';
+
+const decisionCopy: Record<OperationalApprovalAction, { button: string; confirm: string }> = {
+  APPROVE: { button: 'Phê duyệt hồ sơ', confirm: 'Xác nhận phê duyệt' },
+  REJECT: { button: 'Từ chối hồ sơ', confirm: 'Xác nhận từ chối' },
+  REVIEW_APPROVE: { button: 'Duyệt đối chiếu', confirm: 'Xác nhận duyệt đối chiếu' },
+  REVIEW_REJECT: { button: 'Từ chối đối chiếu', confirm: 'Xác nhận từ chối đối chiếu' },
+  APPLY: { button: 'Áp dụng liên kết', confirm: 'Xác nhận áp dụng liên kết' },
+};
+const decisionActions: OperationalApprovalAction[] = ['REJECT', 'REVIEW_REJECT', 'APPROVE', 'REVIEW_APPROVE', 'APPLY'];
+const isReject = (action: OperationalApprovalAction) => action === 'REJECT' || action === 'REVIEW_REJECT';
+
+function statusLabel(status: string, targetType?: string) {
+  if (targetType === 'mrx-batch-review' && status === 'DRAFT') return 'Đã tạo lô';
+  if (targetType === 'mrx-batch-review' && status === 'COMPLETION_READY') return 'Sẵn sàng chốt lô';
+  if (targetType === 'mrx-supplemental-demand' && status === 'DRAFT') return 'Đã lưu nháp';
+  if (targetType === 'legacy-lineage-disposition' && status === 'APPROVED') return 'Chờ áp dụng';
+  const labels: Record<string, string> = { DRAFT: 'Chờ duyệt', PENDING: 'Chờ duyệt', PENDING_REVIEW: 'Chờ xem xét',
+    PENDING_APPROVAL: 'Chờ duyệt', PENDING_MANAGER_REVIEW: 'Chờ đối chiếu', REVIEWING: 'Chờ duyệt kiểm kê', APPROVED: 'Đã duyệt', REJECTED: 'Đã từ chối',
+    PENDING_NEXT_APPROVAL: 'Chờ bước duyệt tiếp theo', APPROVED_FOR_EXECUTION: 'Đã duyệt, chờ áp dụng',
+    MANAGERAPPROVED: 'Đã duyệt nhu cầu', MANAGERREJECTED: 'Đã từ chối nhu cầu', STEP_APPROVED: 'Đã duyệt bước',
+    ADMIN_DIRECT: 'Admin ghi nhận trực tiếp', READY: 'Đã đóng băng', TRANSFERRED: 'Đã chuyển sang Kho', IN_PROGRESS: 'Đang đối soát', COMPLETED: 'Đã chốt', CANCELLED: 'Đã hủy',
+    APPLIED: 'Đã áp dụng', EXECUTED: 'Đã áp dụng', CORRECTION_REQUIRED: 'Cần điều chỉnh' };
+  return labels[status] ?? 'Đang xử lý';
+}
+
+function statusVariant(status: string, targetType?: string): 'success' | 'danger' | 'warning' | 'info' {
+  if (targetType === 'mrx-batch-review' && ['DRAFT', 'COMPLETION_READY'].includes(status)) return 'info';
+  if (targetType === 'legacy-lineage-disposition' && status === 'APPROVED') return 'info';
+  if (['APPROVED', 'MANAGERAPPROVED', 'APPLIED', 'EXECUTED', 'COMPLETED'].includes(status)) return 'success';
+  if (['REJECTED', 'CANCELLED'].includes(status)) return 'danger';
+  if (['STEP_APPROVED', 'PENDING_NEXT_APPROVAL', 'APPROVED_FOR_EXECUTION'].includes(status)) return 'info';
+  return 'warning';
+}
 
 export function ApprovalPage() {
-  const { filters, setFilter, selectedId, setSelectedId } = useUrlWorkbenchState();
-  const selectedType = filters.type || 'ALL';
-  const selectedItemId = selectedId || null;
-  const setSelectedType = (type: string) => setFilter('type', type);
-  const setSelectedItemId = (id: string | null) => setSelectedId(id);
+  const { user, operationalMode, operationalModeVersion } = useAuth();
+  const [params] = useSearchParams();
+  const scope = JSON.stringify([user?.userId, user?.roleCode, user?.permissions, operationalMode, operationalModeVersion]);
+  return <ApprovalWorkbench key={`${scope}:${params.toString()}`} scope={scope} mode={operationalMode} />;
+}
 
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-
-  const fetcher = useCallback(async (f: { type: string }) => {
-    const resp = await approvalsApi.getInbox(f.type);
-    setHasLoadedOnce(true);
-    serverStateCache.set('snapshot:approvals', {
-      selectedType: f.type,
-      selectedItemId: selectedItemId || resp[0]?.inboxItemId || null,
-      items: resp,
-    });
-    return resp;
-  }, [selectedItemId]);
-
-  const recovery = useOperationalRecovery<ApprovalInboxItem[], { type: string }>({
-    queryKey: `approval_inbox_${selectedType}`,
-    fetcher,
-    initialFilters: { type: selectedType },
-    defaultFilters: { type: 'ALL' },
-    onResetFilters: () => setSelectedType('ALL'),
+function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const initialType = params.get('targetType') || params.get('type') || 'ALL';
+  const initialState = params.get('view') === 'history' || params.get('state') === 'PROCESSED' ? 'PROCESSED' : 'PENDING';
+  const [selection, setSelection] = useState<{ type: string; id: string } | null>(() => {
+    const id = params.get('targetId'); return id && initialType !== 'ALL' ? { type: initialType, id } : null;
   });
-
-  // Sync external URL filter with recovery filter
-  const { setFilters } = recovery;
-  useEffect(() => {
-    setFilters({ type: selectedType });
-  }, [selectedType, setFilters]);
-
-  const items = useMemo(() => recovery.data || [], [recovery.data]);
+  const fetcher = useCallback((filters: OperationalApprovalFilters) => approvalsApi.getOperationalInbox(filters), []);
+  const recovery = useOperationalRecovery({ queryKey: `operational-approvals:${mode}:${scope}`, cacheByFilters: true, fetcher,
+    initialFilters: { type: initialType, cursor: '', search: '', state: initialState }, defaultFilters: { type: 'ALL', cursor: '', search: '', state: 'PENDING' } });
+  const { data, error, isLoading, isFetching, refetch } = recovery;
+  const [cursorStack, setCursorStack] = useState<string[]>([]);
+  const [search, setSearch] = useState('');
+  const [customerCode, setCustomerCode] = useState('');
+  const [serviceDate, setServiceDate] = useState('');
+  const [detail, setDetail] = useState<OperationalApprovalDetail | null>(null);
+  const [detailError, setDetailError] = useState<Error | null>(null);
+  const [detailLoading, setDetailLoading] = useState(Boolean(params.get('targetId')));
+  const [detailRevision, setDetailRevision] = useState(0);
   const [history, setHistory] = useState<ApprovalHistoryItem[]>([]);
-  const [decisionReason, setDecisionReason] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<'APPROVE' | 'REJECT' | null>(null);
-  const [actionBanner, setActionBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [historyError, setHistoryError] = useState<Error | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(Boolean(params.get('targetId')));
+  const [historyRevision, setHistoryRevision] = useState(0);
+  const [decision, setDecision] = useState<OperationalApprovalAction | null>(null);
+  const [reason, setReason] = useState('');
+  const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
+  const commandRef = useRef('');
   const [mutationError, setMutationError] = useState<Error | null>(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
-
-  const loadData = async () => {
-    await recovery.refetch();
-  };
-
-  const openConfirmModal = (decision: 'APPROVE' | 'REJECT') => {
-    setValidationError(null);
-    setMutationError(null);
-    setConfirmAction(decision);
-  };
-
-  const handleExecuteDecision = async () => {
-    if (!selectedItem || !confirmAction) return;
-    if (confirmAction === 'REJECT' && !decisionReason.trim()) {
-      setValidationError('Vui lòng nhập lý do từ chối hồ sơ (bắt buộc theo BR-GLOBAL-03)');
-      return;
-    }
-    setIsSubmitting(true);
-    setValidationError(null);
-    const finalReason = decisionReason.trim() || (confirmAction === 'APPROVE' ? 'Phê duyệt hồ sơ theo thẩm quyền' : '');
-
-    await executeSafeMutation({
-      mutationFn: async (payload: { targetType: string; targetId: string; decision: 'APPROVE' | 'REJECT'; reason: string }) => {
-        return approvalsApi.decide(payload.targetType, payload.targetId, payload.decision, payload.reason);
-      },
-      payload: {
-        targetType: selectedItem.targetType,
-        targetId: selectedItem.targetId,
-        decision: confirmAction,
-        reason: finalReason,
-      },
-      onSuccess: async () => {
-        const actionName = confirmAction === 'APPROVE' ? 'phê duyệt' : 'từ chối';
-        const targetCode = selectedItem.targetCode;
-        setDecisionReason('');
-        setMutationError(null);
-        setConfirmAction(null);
-        await recovery.refetch();
-        setActionBanner({
-          type: 'success',
-          text: `Đã ${actionName} yêu cầu ${targetCode} thành công!`,
-        });
-        setTimeout(() => setActionBanner(null), 5000);
-      },
-      onConflict: (err) => {
-        setMutationError(err);
-        setConfirmAction(null);
-      },
-      onError: (err) => {
-        setMutationError(err);
-      },
-    });
-
-    setIsSubmitting(false);
-  };
-
-  const filteredItems = useMemo(() => {
-    if (selectedType === 'ALL') return items;
-    return items.filter((i) => i.targetType === selectedType);
-  }, [items, selectedType]);
-
-  const selectedItem = items.find((i) => i.inboxItemId === selectedItemId) || filteredItems[0] || null;
+  const [accepted, setAccepted] = useState<string | null>(null);
+  const [uncertain, setUncertain] = useState(false);
 
   useEffect(() => {
-    if (!selectedItem?.targetId || !selectedItem?.targetType) return;
-    let ignore = false;
-    approvalsApi.getHistory(selectedItem.targetType, selectedItem.targetId)
-      .then((res) => {
-        if (!ignore) setHistory(res || []);
-      })
-      .catch(() => {
-        if (!ignore) setHistory([]);
-      });
-    return () => { ignore = true; };
-  }, [selectedItem?.targetId, selectedItem?.targetType]);
+    if (mode !== 'MATERIAL_RECONCILIATION') return;
+    return subscribeMrxReads(() => {
+      if (sendingRef.current) return;
+      void refetch();
+      if (!selection || decision || uncertain) return;
+      setDetailError(null); setDetailLoading(true);
+      setHistoryError(null); setHistoryLoading(true);
+      setDetailRevision(value => value + 1);
+      setHistoryRevision(value => value + 1);
+    });
+  }, [mode, refetch, selection, decision, uncertain]);
 
-  const TYPE_OPTIONS = [
-    { value: 'ALL', label: 'Tất cả loại yêu cầu' },
-    { value: 'material-demand', label: 'Nhu cầu nguyên liệu' },
-    { value: 'purchase-order', label: 'Đơn mua hàng PO' },
-    { value: 'warehouse-receipt', label: 'Phiếu nhập kho' },
-  ];
+  useEffect(() => {
+    if (!selection) return;
+    let active = true;
+    approvalsApi.getDetail(selection.type, selection.id, recovery.filters.state).then(result => {
+      if (!active) return;
+      if (result.item.targetType !== selection.type || result.item.targetId !== selection.id
+        || (mode === 'MATERIAL_RECONCILIATION' && result.mode !== mode))
+        throw new Error('Chi tiết trả về không khớp hồ sơ đang chọn.');
+      setDetail(result); setDetailLoading(false);
+    }).catch((cause: unknown) => { if (active) { setDetailError(cause instanceof Error ? cause : new Error(String(cause))); setDetailLoading(false); } });
+    return () => { active = false; };
+  }, [selection, detailRevision, recovery.filters.state, mode]);
 
-  const TAB_ITEMS = [
-    { id: 'ALL', label: 'Tất cả yêu cầu', count: items.length },
-    { id: 'material-demand', label: 'Nhu cầu nguyên liệu', count: items.filter((i) => i.targetType === 'material-demand').length },
-    { id: 'purchase-order', label: 'Đơn mua hàng PO', count: items.filter((i) => i.targetType === 'purchase-order').length },
-    { id: 'warehouse-receipt', label: 'Phiếu nhập kho', count: items.filter((i) => i.targetType === 'warehouse-receipt').length },
-  ];
+  useEffect(() => {
+    if (!selection) return;
+    let active = true;
+    approvalsApi.getHistory(selection.type, selection.id).then(result => {
+      if (active) { setHistory(result); setHistoryLoading(false); }
+    }).catch((cause: unknown) => { if (active) { setHistoryError(cause instanceof Error ? cause : new Error(String(cause))); setHistoryLoading(false); } });
+    return () => { active = false; };
+  }, [selection, historyRevision]);
+
+  const changeScope = (patch: Partial<OperationalApprovalFilters>) => {
+    setSelection(null); setDetail(null); setCursorStack([]);
+    recovery.setFilters({ ...recovery.filters, ...patch, cursor: '' });
+  };
+  const review = (item: ApprovalInboxItem) => {
+    if (isFetching || isLoading || decision !== null || sendingRef.current) return;
+    if (selection?.id === item.targetId && selection.type === item.targetType) return;
+    if (mode !== 'MATERIAL_RECONCILIATION') setDetail(null);
+    setDetailError(null); setDetailLoading(true);
+    setHistory([]); setHistoryError(null); setHistoryLoading(true);
+    setSelection({ type: item.targetType, id: item.targetId }); setReason(''); setMutationError(null); setUncertain(false);
+  };
+  const detailCurrent = Boolean(selection && detail && detail.item.targetId === selection.id
+    && detail.item.targetType === selection.type && (mode !== 'MATERIAL_RECONCILIATION' || detail.mode === mode)
+    && !detailLoading && !detailError);
+  const submit = async () => {
+    if (!detail || !detailCurrent || !decision || sendingRef.current) return;
+    if (!reason.trim()) { setMutationError(new Error('Vui lòng nhập căn cứ quyết định.')); return; }
+    sendingRef.current = true; setSending(true); setMutationError(null);
+    try {
+      const result = await approvalsApi.decideOperational(detail, decision, reason.trim(), commandRef.current);
+      const outcome = result.status === 'PENDING_NEXT_APPROVAL' ? result.status : result.newStatus || result.status;
+      setAccepted(`Đã ghi nhận quyết định · ${statusLabel(outcome, detail.item.targetType)}`);
+      setUncertain(false);
+      setDecision(null); setSelection(null); setDetail(null); setReason('');
+      await recovery.refetch();
+    } catch (cause) {
+      const failure = cause instanceof Error ? cause : new Error(String(cause));
+      setMutationError(failure);
+      if (!(failure instanceof ApiError) || failure.status >= 500 || failure.status === 0) setUncertain(true);
+      else { setUncertain(false); commandRef.current = crypto.randomUUID(); }
+    } finally { sendingRef.current = false; setSending(false); }
+  };
 
   const columns: ColumnDef<ApprovalInboxItem>[] = [
-    {
-      id: 'targetCode',
-      header: 'Mã đối tượng',
-      width: '15%',
-      minWidth: '95px',
-      cell: (row) => <IdentifierText value={row.targetCode} />,
-    },
-    {
-      id: 'title',
-      header: 'Tiêu đề yêu cầu phê duyệt',
-      width: '28%',
-      minWidth: '150px',
-      cell: (row) => (
-        <div className="flex flex-col gap-0.5">
-          <span className="font-semibold text-slate-900 text-sm truncate">{row.title}</span>
-          <span className="text-xs text-slate-400">{row.itemType} · {row.source}</span>
-        </div>
-      ),
-    },
-    {
-      id: 'submittedBy',
-      header: 'Người gửi',
-      width: '14%',
-      minWidth: '85px',
-      cell: (row) => <span className="text-slate-700 text-sm truncate block">{row.submittedBy}</span>,
-    },
-    {
-      id: 'sla',
-      header: 'Hạn SLA',
-      width: '11%',
-      minWidth: '65px',
-      cell: (row) => <span className="font-mono text-xs text-slate-600">{formatVietnameseDateTime(row.slaDeadline)}</span>,
-    },
-    {
-      id: 'total',
-      header: 'Quy mô',
-      width: '18%',
-      minWidth: '100px',
-      align: 'right',
-      cell: (row) => (
-        row.totalValue != null ? (
-          <Num value={row.totalValue} format="currency" className="font-bold text-slate-900 text-sm" />
-        ) : row.totalQuantity != null ? (
-          <Num value={row.totalQuantity} format="quantity" suffix=" kg" className="font-bold text-slate-900 text-sm" />
-        ) : (
-          <span>—</span>
-        )
-      ),
-    },
-    {
-      id: 'status',
-      header: 'Trạng thái',
-      width: '14%',
-      minWidth: '85px',
-      align: 'center',
-      cell: (row) => (
-        <Badge
-          variant={row.status === 'APPROVED' ? 'success' : row.status === 'REJECTED' ? 'danger' : 'warning'}
-          size="sm"
-          className="whitespace-nowrap"
-        >
-          {row.status === 'PENDING' ? 'Chờ duyệt' : row.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}
-        </Badge>
-      ),
-    },
+    { id: 'document', header: 'Hồ sơ / Phạm vi', minWidth: '180px', cell: row => <div className="min-w-0" title={`${row.title} · ${row.source}`}><div className="text-sm font-medium truncate leading-4">{row.title}</div><div className="flex items-center gap-1 text-xs leading-none text-slate-500"><IdentifierText value={row.targetCode} copyable={false} className="py-0 leading-none" /><span className="truncate">{row.source}</span>{row.weekStartDate && <span className="shrink-0">{formatVietnameseDate(row.weekStartDate)}</span>}</div></div> },
+    { id: 'submitted', header: 'Người gửi', minWidth: '130px', cell: row => <div className="leading-4"><span>{row.submittedBy}</span><div className="text-xs leading-none text-slate-500">{formatVietnameseDateTime(row.submittedAt)}</div></div> },
+    { id: 'status', header: 'Trạng thái', align: 'center', minWidth: '112px', cell: row => <Badge variant={statusVariant(row.status, row.targetType)} size="sm">{statusLabel(row.status, row.targetType)}</Badge> },
+    { id: 'action', header: 'Thao tác', align: 'center', minWidth: '88px', cell: row => <Button variant="outline" size="xs" disabled={isFetching || isLoading} onClick={event => { event.stopPropagation(); review(row); }}>Xem xét</Button> },
   ];
-
-  return (
-    <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
-      {/* Zone 1: WorkspaceHeader (56px / h-14) */}
-      <WorkspaceHeader
-        title="Hàng đợi phê duyệt"
-        breadcrumb="Phê duyệt · Quy trình vận hành"
-        contextSelectors={
-          <>
-            <Select
-              aria-label="Lọc loại yêu cầu phê duyệt"
-              options={TYPE_OPTIONS}
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="h-9 w-64 font-medium text-sm"
-            />
-            <Badge variant="warning" size="default" className="h-9 px-3 text-sm font-medium flex items-center">
-              {filteredItems.length} yêu cầu chờ xử lý
-            </Badge>
-          </>
-        }
-        actions={
-          <Button
-            variant="outline"
-            size="default"
-            onClick={() => loadData()}
-            className="h-9 text-sm font-medium"
-          >
-            Làm mới
-          </Button>
-        }
-      />
-
-      {/* Zone 2: TelemetrySubbar (44px / h-11) */}
-      <TelemetrySubbar
-        leftControls={
-          <Tabs
-            items={TAB_ITEMS}
-            activeId={selectedType}
-            onChange={(id) => setSelectedType(id)}
-            size="default"
-          />
-        }
-        telemetryPills={
-          <>
-            <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Chờ duyệt:</span>
-              <strong className="text-slate-900 font-mono font-bold">{filteredItems.length} hồ sơ</strong>
-            </span>
-          </>
-        }
-      />
-
-      {mutationError && confirmAction === null && (
-        <InlineBanner
-          variant={mutationError instanceof ApiError && mutationError.status === 409 ? 'conflict' : 'error'}
-          title={mutationError instanceof ApiError && mutationError.status === 409 ? 'Xung đột dữ liệu đồng thời' : 'Không có quyền thực hiện thao tác'}
-          actionLabel={mutationError instanceof ApiError && mutationError.status === 409 ? 'Tải lại dữ liệu mới nhất' : undefined}
-          onAction={mutationError instanceof ApiError && mutationError.status === 409 ? () => { setMutationError(null); void loadData(); } : undefined}
-          onClose={() => setMutationError(null)}
-          className="shrink-0"
-        >
-          {mutationError.message}
-        </InlineBanner>
-      )}
-
-      {actionBanner && (
-        <InlineBanner
-          variant={actionBanner.type === 'success' ? 'success' : 'error'}
-          onClose={() => setActionBanner(null)}
-          className="shrink-0"
-        >
-          {actionBanner.text}
-        </InlineBanner>
-      )}
-
-      {/* Zone 3: SplitView (Master 7 cols Queue | Detail 5 cols Decision Drawer) */}
-      <StateBoundary
-        isLoading={recovery.isLoading && !hasLoadedOnce}
-        isFetching={recovery.isFetching && hasLoadedOnce}
-        hasExistingData={hasLoadedOnce}
-        error={recovery.error}
-        onRetry={recovery.handleRetry}
-        isEmpty={!recovery.isLoading && filteredItems.length === 0}
-        emptyScenario={selectedType !== 'ALL' ? 'filter-empty' : 'true-empty'}
-        onResetFilters={() => setSelectedType('ALL')}
-        actionLabel={selectedType !== 'ALL' ? 'Xóa bộ lọc (Xem tất cả hồ sơ)' : 'Làm mới hàng đợi'}
-        onAction={selectedType !== 'ALL' ? () => setSelectedType('ALL') : recovery.handleRetry}
-        contextDomain="approvals"
-      >
-        <SplitView
-          masterWidthClass="w-7/12 2xl:w-8/12"
-          master={
-            <DataGrid<ApprovalInboxItem>
-              data={filteredItems}
-              columns={columns}
-              keyExtractor={(row) => row.inboxItemId}
-              selectedKey={selectedItem?.inboxItemId}
-              onRowClick={(row) => setSelectedItemId(row.inboxItemId)}
-              minWidth="min-w-[580px]"
-            />
-          }
-          detail={
-            selectedItem ? (
-              <div className="flex-1 min-h-0 flex flex-col bg-white">
-                <div className="h-10 px-4 border-b border-slate-200 bg-slate-100 flex items-center justify-between shrink-0">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
-                    Chi tiết hồ sơ phê duyệt
-                  </span>
-                  <Badge variant="warning" size="sm">
-                    {selectedItem.targetCode}
-                  </Badge>
-                </div>
-
-                <div className="p-4 space-y-4 flex-1 overflow-auto text-sm text-slate-800">
-                  <div className="space-y-1">
-                    <h3 className="text-base font-bold text-slate-900">{selectedItem.title}</h3>
-                    <p className="text-xs text-slate-500">
-                      Nguồn: {selectedItem.source} · Người lập: {selectedItem.submittedBy} ({formatVietnameseDateTime(selectedItem.submittedAt)})
-                    </p>
-                  </div>
-
-                  <div className="rounded border border-slate-200 bg-slate-50 p-3 space-y-2 text-xs font-mono">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Mã chứng từ:</span>
-                      <strong className="text-slate-900">{selectedItem.targetCode}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Hạn xử lý (SLA):</span>
-                      <strong className="text-rose-700 font-bold">{formatVietnameseDateTime(selectedItem.slaDeadline)}</strong>
-                    </div>
-                    {selectedItem.supplierName && (
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Nhà cung cấp:</span>
-                        <strong className="text-slate-900">{selectedItem.supplierName}</strong>
-                      </div>
-                    )}
-                    <div className="flex justify-between border-t border-slate-200 pt-1.5 font-medium">
-                      <span className="text-slate-600">Tổng quy mô:</span>
-                      <strong className="text-slate-900 text-sm">
-                        {selectedItem.totalValue != null
-                          ? <Num value={selectedItem.totalValue} format="currency" />
-                          : selectedItem.totalQuantity != null
-                            ? <Num value={selectedItem.totalQuantity} format="quantity" suffix=" kg" />
-                            : '—'}
-                      </strong>
-                    </div>
-                  </div>
-
-                  {selectedItem.materials && selectedItem.materials.length > 0 && (
-                    <div className="space-y-1.5">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-600">
-                        Danh sách vật tư đính kèm ({selectedItem.materials.length} mặt hàng)
-                      </h4>
-                      <div className="rounded border border-slate-200 divide-y divide-slate-100 text-xs">
-                        {selectedItem.materials.map((m, idx) => (
-                          <div key={idx} className="flex justify-between px-3 py-2">
-                            <span className="font-medium text-slate-900">{m.name}</span>
-                            <span className="font-mono text-slate-700">
-                              <Num value={m.quantity} format="quantity" suffix={` ${m.unit === 'Kilogram' || m.unit === 'Kilograms' ? 'kg' : m.unit}`} />
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {history.length > 0 && (
-                    <div className="space-y-1.5 pt-2">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-600">
-                        Lịch sử phê duyệt & xử lý ({history.length} sự kiện)
-                      </h4>
-                      <div className="rounded border border-slate-200 divide-y divide-slate-100 text-xs">
-                        {history.map((h) => (
-                          <div key={h.historyId} className="p-2.5 space-y-0.5">
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold text-slate-900">{h.actorName}</span>
-                              <span className="text-[11px] font-mono text-slate-500">
-                                {formatVietnameseDateTime(h.createdAt)}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Badge variant={h.action === 'APPROVED' ? 'success' : h.action === 'REJECTED' ? 'danger' : 'neutral'} size="sm">
-                                {h.action === 'APPROVED' ? 'Đã duyệt' : h.action === 'REJECTED' ? 'Đã từ chối' : h.action}
-                              </Badge>
-                              {h.comment && <span className="text-slate-600 truncate">{h.comment}</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-1 pt-2">
-                    <label className="block text-xs font-medium text-slate-700">
-                      Ghi chú / Căn cứ phê duyệt
-                    </label>
-                    <Input
-                      placeholder="Nhập căn cứ chấp thuận hoặc lý do từ chối hồ sơ..."
-                      value={decisionReason}
-                      onChange={(e) => setDecisionReason(e.target.value)}
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="h-12 px-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2.5 shrink-0">
-                  <ActionGuard capabilityId="APPR.DECISION" roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isSubmitting}
-                      onClick={() => openConfirmModal('REJECT')}
-                      className="text-red-600 hover:bg-red-50 border-red-200"
-                    >
-                      Từ chối hồ sơ
-                    </Button>
-                  </ActionGuard>
-                  <ActionGuard capabilityId="APPR.DECISION" roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      disabled={isSubmitting}
-                      onClick={() => openConfirmModal('APPROVE')}
-                      className="font-semibold text-xs shadow-2xs"
-                    >
-                      {isSubmitting ? 'Đang duyệt...' : 'Phê duyệt hồ sơ'}
-                    </Button>
-                  </ActionGuard>
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                <div
-                  aria-hidden="true"
-                  className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2.5 text-slate-400"
-                >
-                  <FileCheck size={20} strokeWidth={1.75} />
-                </div>
-                <p className="text-xs text-slate-500">Chọn một hồ sơ bên trái để xem nội dung thẩm định</p>
-              </div>
-            )
-          }
-        />
-      </StateBoundary>
-
-      <Modal
-        isOpen={confirmAction !== null}
-        onClose={() => {
-          if (!isSubmitting) {
-            setConfirmAction(null);
-            setValidationError(null);
-          }
-        }}
-        isDirty={decisionReason.trim().length > 0}
-        title={confirmAction === 'APPROVE' ? 'Xác nhận phê duyệt yêu cầu' : 'Xác nhận từ chối yêu cầu'}
-        description={selectedItem ? `${selectedItem.targetCode} · ${selectedItem.title}` : undefined}
-        footer={
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isSubmitting}
-              onClick={() => {
-                setConfirmAction(null);
-                setValidationError(null);
-              }}
-            >
-              Hủy bỏ
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              disabled={isSubmitting}
-              onClick={handleExecuteDecision}
-              className={confirmAction === 'REJECT' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}
-            >
-              {isSubmitting
-                ? 'Đang xử lý...'
-                : confirmAction === 'APPROVE'
-                ? 'Xác nhận phê duyệt'
-                : 'Xác nhận từ chối'}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-3 text-sm text-slate-700">
-          {mutationError && (
-            <InlineBanner variant="error" onClose={() => setMutationError(null)}>
-              {mutationError.message}
-            </InlineBanner>
-          )}
-          {confirmAction === 'APPROVE' ? (
-            <p>
-              Bạn có chắc chắn muốn phê duyệt hồ sơ{' '}
-              <strong className="text-slate-900 font-mono">{selectedItem?.targetCode}</strong> không? Hành động này sẽ
-              cập nhật trạng thái hồ sơ sang <strong className="text-emerald-700">Đã duyệt (APPROVED)</strong> và cho phép
-              các bước tiếp theo trong quy trình vận hành.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-slate-600">
-                Theo quy chuẩn <strong className="text-slate-900">BR-GLOBAL-03</strong>, việc từ chối yêu cầu bắt buộc phải
-                ghi rõ căn cứ / lý do:
-              </p>
-              <Input
-                placeholder="Nhập lý do từ chối hồ sơ (bắt buộc)..."
-                value={decisionReason}
-                onChange={(e) => {
-                  setDecisionReason(e.target.value);
-                  if (validationError) setValidationError(null);
-                }}
-                className={`h-9 ${validationError ? 'border-red-500' : ''}`}
-                autoFocus
-              />
-              {validationError && (
-                <p className="text-xs text-red-600 font-medium">{validationError}</p>
-              )}
+  const selected = data?.items.find(row => row.targetId === selection?.id && row.targetType === selection?.type);
+  const hasFilters = recovery.filters.type !== 'ALL' || Boolean(recovery.filters.search
+    || recovery.filters.customerCode || recovery.filters.date || recovery.filters.cursor);
+  return <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
+    <WorkspaceHeader responsive className={selection ? '[&_[data-slot=header-scope]]:hidden lg:[&_[data-slot=header-scope]]:flex' : undefined} title="Duyệt vận hành" breadcrumb="Điều hành" contextSelectors={<div className="flex flex-wrap items-center gap-2 min-w-0 w-full">
+      <div className="w-56 max-w-full shrink-0"><Select aria-label="Lọc loại yêu cầu phê duyệt" value={recovery.filters.type}
+        options={[{ value: 'ALL', label: 'Tất cả loại hồ sơ' }, ...(data?.targets ?? []).map(target => ({ value: target.targetType, label: target.label }))]}
+        onChange={event => changeScope({ type: event.target.value })} /></div>
+      <form className="flex flex-wrap flex-1 basis-64 items-center gap-2 min-w-0" onSubmit={event => { event.preventDefault(); changeScope({ search: search.trim(),
+        ...(mode === 'MATERIAL_RECONCILIATION' ? { customerCode: customerCode.trim().toUpperCase(), date: serviceDate } : {}) }); }}>
+        {mode === 'MATERIAL_RECONCILIATION' && <>
+          <Input aria-label="Lọc mã khách hàng" placeholder="Mã khách hàng" className="w-32" value={customerCode} onChange={event => setCustomerCode(event.target.value)} />
+          <VietnameseDateInput aria-label="Lọc ngày phục vụ" className="w-40" value={serviceDate} onChange={setServiceDate} />
+        </>}
+        <Input aria-label="Tìm hồ sơ" className="flex-1 basis-40 min-w-0" placeholder="Tìm mã, khách hàng, nguyên liệu..." value={search} onChange={event => setSearch(event.target.value)} />
+        <Button variant="outline" type="submit">Tìm</Button>
+      </form>
+    </div>} actions={<Button variant="outline" disabled={isFetching} onClick={() => { setSelection(null); void recovery.refetch(); }}>Làm mới</Button>} />
+    <TelemetrySubbar responsive className={selection ? 'hidden lg:flex' : undefined} leftControls={<div className="w-48"><Select aria-label="Phạm vi hàng đợi" value={recovery.filters.state}
+      options={[{ value: 'PENDING', label: 'Chờ xử lý' }, { value: 'PROCESSED', label: 'Lịch sử quyết định' }]}
+      onChange={event => changeScope({ state: event.target.value as 'PENDING' | 'PROCESSED' })} /></div>}
+      telemetryPills={<span>{data ? `${data.items.length} hồ sơ trên trang` : 'Đang tải hàng đợi'}</span>}
+      rightActions={<><Button variant="outline" size="sm" disabled={!cursorStack.length || isFetching} onClick={() => {
+        const previous = cursorStack.at(-1) || ''; setCursorStack(stack => stack.slice(0, -1)); setSelection(null);
+        recovery.updateFilter('cursor', previous);
+      }}>Trang trước</Button><Button variant="outline" size="sm" disabled={!data?.hasNext || isFetching} onClick={() => {
+        if (!data?.nextCursor) return; setCursorStack(stack => [...stack, recovery.filters.cursor]); setSelection(null);
+        recovery.updateFilter('cursor', data.nextCursor);
+      }}>Trang sau</Button></>} />
+    {accepted && <InlineBanner variant="success" onClose={() => setAccepted(null)}>{accepted}</InlineBanner>}
+    {(data?.unavailableSources ?? []).map(source => <InlineBanner key={source.targetType} variant="warning"
+      actionLabel="Tải lại hàng đợi" onAction={() => {
+        if (recovery.filters.cursor) changeScope({ cursor: '' });
+        else void recovery.refetch();
+      }}>{source.message}</InlineBanner>)}
+    <StateBoundary isLoading={isLoading} isFetching={isFetching} error={error} onRetry={recovery.handleRetry}
+      isForbidden={error instanceof ApiError && error.status === 403} isEmpty={Boolean(data && !data.items.length)}
+      emptyTitle={data?.unavailableSources?.length ? 'Chưa đọc đủ hàng đợi' : recovery.filters.state === 'PROCESSED' ? 'Chưa có quyết định trong phạm vi này' : 'Không có hồ sơ chờ xử lý'} emptyDescription="Hồ sơ trong phạm vi đã chọn sẽ hiển thị tại đây."
+      emptyScenario={hasFilters ? 'filter-empty' : 'true-empty'}
+      actionLabel={hasFilters ? 'Xóa bộ lọc' : 'Tải lại danh sách'}
+      onAction={hasFilters ? undefined : () => void recovery.refetch()}
+      onResetFilters={() => { setSearch(''); setCustomerCode(''); setServiceDate(''); changeScope({ type: 'ALL', search: '', customerCode: '', date: '' }); }} contextDomain="approvals">
+      <SplitView masterWidthClass={selection ? 'w-full lg:w-1/2' : 'w-full'} hasActiveDetail={Boolean(selection)} onBackToMaster={() => setSelection(null)}
+        master={<DataGrid data={data?.items ?? []} columns={columns} keyExtractor={row => row.inboxItemId}
+          selectedKey={selected?.inboxItemId} onRowClick={isFetching ? undefined : review} minWidth="min-w-[510px]" />}
+        detail={selection ? <StateBoundary isLoading={detailLoading && !detail} error={detailError} onRetry={() => { setDetailError(null); setDetailLoading(true); setDetailRevision(value => value + 1); }} contextDomain="approvals">
+          {detail && <div className="flex-1 min-h-0 flex flex-col bg-white" aria-busy={!detailCurrent}>
+            <div className="px-4 py-3 border-b border-slate-200"><h2 className="font-semibold text-base">{detail.item.title}</h2>{!detailCurrent && <p role="status" className="text-sm text-slate-600">Đang tải hồ sơ đã chọn. Bên dưới là hồ sơ trước.</p>}<IdentifierText value={detail.item.targetCode} /></div>
+            <div className="flex-1 min-h-0 overflow-auto p-4 space-y-5 text-sm">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><dt className="text-xs text-slate-500">Nguồn / Khách hàng</dt><dd>{detail.item.source}</dd></div>
+                <div><dt className="text-xs text-slate-500">Trạng thái</dt><dd><Badge variant={statusVariant(detail.item.status, detail.item.targetType)}>{statusLabel(detail.item.status, detail.item.targetType)}</Badge></dd></div>
+                <div><dt className="text-xs text-slate-500">Người gửi</dt><dd>{detail.item.submittedBy}</dd></div>
+                <div><dt className="text-xs text-slate-500">Thời điểm gửi</dt><dd>{formatVietnameseDateTime(detail.item.submittedAt)}</dd></div>
+                {detail.item.weekStartDate && <div><dt className="text-xs text-slate-500">Tuần phục vụ</dt><dd>{formatVietnameseDate(detail.item.weekStartDate)}</dd></div>}
+                {detail.supplementalDemand && <div><dt className="text-xs text-slate-500">Ngày phục vụ</dt><dd>{formatVietnameseDate(detail.supplementalDemand.serviceDate)}</dd></div>}
+                <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Lý do</dt><dd className="break-words">{detail.item.reason || '—'}</dd></div>
+              </dl>
+              {detail.legacyLineage && <section className="space-y-3">
+                <h3 className="font-semibold">Liên kết chứng từ đã đối chiếu</h3>
+                <p className="text-slate-600">Duyệt đối chiếu chưa gắn liên kết. Admin áp dụng sau khi duyệt; thao tác không thay đổi số lượng hoặc tồn kho.</p>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><dt className="text-xs text-slate-500">Loại dòng chứng từ</dt><dd>{detail.legacyLineage.legacyLineType === 'ISSUE_LINE' ? 'Dòng xuất kho' : 'Dòng trả kho'}</dd></div>
+                  <div><dt className="text-xs text-slate-500">Phiên bản hồ sơ</dt><dd><Num value={detail.legacyLineage.version} format="plain" decimals={0} /></dd></div>
+                  <div className="min-w-0"><dt className="text-xs text-slate-500">Dòng chứng từ cũ</dt><dd><IdentifierText value={detail.legacyLineage.legacyLineId} className="max-w-full break-all whitespace-normal text-left" /></dd></div>
+                  <div className="min-w-0"><dt className="text-xs text-slate-500">Dòng nguồn đã đối chiếu</dt><dd><IdentifierText value={detail.legacyLineage.targetMaterialRequestLineId || detail.legacyLineage.targetIssueLineId || '—'} className="max-w-full break-all whitespace-normal text-left" /></dd></div>
+                </dl>
+                {detail.legacyLineage.reviewReason && <p className="break-words">Căn cứ duyệt: {detail.legacyLineage.reviewReason}</p>}
+              </section>}
+              {detail.stocktake && <section><h3 className="font-semibold mb-2">Chênh lệch kiểm kê</h3>
+                <p className="mb-2">Duyệt kiểm kê sẽ điều chỉnh tồn kho vật lý theo chênh lệch đã kiểm đếm.</p>
+                <DataGrid data={detail.stocktake.lines} keyExtractor={row => row.lineId} columns={[
+                  { id: 'ingredient', header: 'Nguyên liệu', cell: row => <div>{row.ingredientName}<div className="text-xs text-slate-500">{row.unitName}</div></div> },
+                  { id: 'system', header: 'Tồn hệ thống', align: 'right', cell: row => <Num value={row.systemQty} format="plain" decimals={6} /> },
+                  { id: 'actual', header: 'Kiểm đếm', align: 'right', cell: row => <Num value={row.actualQty} format="plain" decimals={6} /> },
+                  { id: 'variance', header: 'Chênh lệch', align: 'right', cell: row => <Num value={row.discrepancyQty} format="plain" decimals={6} /> },
+                  { id: 'reason', header: 'Ghi chú', cell: row => row.reason || '—' },
+                ]} />
+              </section>}
+              {detail.sourceChange && <section className="space-y-3"><h3 className="font-semibold">Nội dung thay đổi nguồn</h3>
+                <DataGrid data={detail.sourceChange.impactLines} keyExtractor={(_, index) => String(index)} columns={[
+                  { id: 'date', header: 'Ngày / Ca', cell: row => <div>{formatVietnameseDate(row.serviceDate)}<div className="text-xs text-slate-500">{getMrxShiftLabel(row.shiftName)}</div></div> },
+                  { id: 'savoryBefore', header: 'Mặn trước', align: 'right', cell: row => <Num value={row.currentSavoryServings} format="plain" decimals={0} /> },
+                  { id: 'savoryAfter', header: 'Mặn sau', align: 'right', cell: row => <Num value={row.newSavoryServings} format="plain" decimals={0} /> },
+                  { id: 'vegetarianBefore', header: 'Chay trước', align: 'right', cell: row => <Num value={row.currentVegetarianServings} format="plain" decimals={0} /> },
+                  { id: 'vegetarianAfter', header: 'Chay sau', align: 'right', cell: row => <Num value={row.newVegetarianServings} format="plain" decimals={0} /> },
+                ]} />
+                {detail.sourceChange.impactLines.filter(row => row.oldDishId !== row.newDishId).map((row, index) =>
+                  <div key={index} className="space-y-2 border-b border-slate-200 pb-2">
+                    <p className="font-medium">{formatVietnameseDate(row.serviceDate)} · {getMrxShiftLabel(row.shiftName)}</p>
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div><dt className="text-xs text-slate-500">Món trước</dt><dd>{detail.sourceDishNames?.[row.oldDishId] || <IdentifierText value={row.oldDishId} />}</dd></div>
+                    <div><dt className="text-xs text-slate-500">Món sau</dt><dd>{detail.sourceDishNames?.[row.newDishId] || <IdentifierText value={row.newDishId} />}</dd></div>
+                    </dl>
+                  </div>)}
+              </section>}
+              {detail.supplementalDemand && <section><h3 className="font-semibold mb-2">Suất phát sinh đề nghị</h3>
+                <DataGrid data={detail.supplementalDemand.dishes} keyExtractor={row => row.demandDishId}
+                  columns={[{ id: 'dish', header: 'Món ăn', cell: row => row.dishName },
+                    { id: 'scope', header: 'Ca / Loại suất', cell: row => `${getMrxShiftLabel(row.shiftName)} · ${row.menuVariant === 'vegetarian' ? 'Chay' : row.menuVariant === 'savory' ? 'Mặn' : row.menuVariant}` },
+                    { id: 'servings', header: 'Suất thêm', align: 'right', cell: row => <Num value={row.extraServings} format="plain" decimals={0} /> }]} />
+              </section>}
+              {detail.item.materials?.length ? <section><h3 className="font-semibold mb-2">Nội dung yêu cầu</h3><DataGrid data={detail.item.materials} keyExtractor={(_, index) => String(index)}
+                columns={[{ id: 'name', header: 'Nguyên liệu', cell: row => row.name },
+                  { id: 'quantity', header: 'Số lượng', align: 'right', cell: row => <Num value={row.quantity} format="plain" decimals={6} /> },
+                  { id: 'unit', header: 'Đơn vị', cell: row => row.unit }]} /></section> : null}
+              {detail.materialImpact.length > 0 && <section><h3 className="font-semibold mb-2">Ảnh hưởng nguyên liệu</h3>
+                <DataGrid data={detail.materialImpact} keyExtractor={(row, index) => `${row.ingredientCode}-${row.serviceDate}-${index}`} columns={[
+                  { id: 'name', header: 'Nguyên liệu / Đơn vị', cell: row => <div>{row.ingredientName}<div className="text-xs text-slate-500">{row.unitName}</div></div> },
+                  { id: 'before', header: 'Trước', align: 'right', cell: row => <Num value={row.previousQuantity} format="plain" decimals={6} /> },
+                  { id: 'after', header: 'Sau', align: 'right', cell: row => <Num value={row.newQuantity} format="plain" decimals={6} /> },
+                  { id: 'delta', header: 'Chênh lệch', align: 'right', cell: row => <Num value={row.newQuantity - row.previousQuantity} format="plain" decimals={6} /> }]} /></section>}
+              {detail.blockedReasons.map(message => <InlineBanner key={message} variant="warning">{message}</InlineBanner>)}
+              <section><h3 className="font-semibold mb-2">Lịch sử xử lý</h3>
+                {historyLoading || !detailCurrent ? <p role="status">Đang tải lịch sử...</p> : historyError ? <InlineBanner variant="error" actionLabel="Tải lại lịch sử" onAction={() => { setHistoryError(null); setHistoryLoading(true); setHistoryRevision(value => value + 1); }}>{historyError.message}</InlineBanner> :
+                  history.length ? <ol className="space-y-3">{history.map(event => <li key={event.historyId} className="border-b border-slate-200 pb-2">
+                    <div className="flex flex-wrap justify-between gap-2"><strong>{event.actionByName}</strong><span>{formatVietnameseDateTime(event.actionAt)}</span></div>
+                    <p>{statusLabel(['STEP_APPROVED', 'ADMIN_DIRECT'].includes(event.decision) ? event.decision : event.newStatus || event.decision, detail.item.targetType)}</p>{event.reason && <p className="text-slate-600 break-words">{event.reason}</p>}
+                  </li>)}</ol> : <p className="text-slate-500">Chưa có quyết định được ghi nhận.</p>}
+              </section>
             </div>
-          )}
-        </div>
-      </Modal>
-    </div>
-  );
+            <div className="border-t border-slate-200 p-3 flex flex-wrap justify-end gap-2">
+              {detail.item.targetType === 'mrx-batch-review' && <Button disabled={!detailCurrent} onClick={() => navigate(detail.item.route)}>Mở đối soát</Button>}
+              {decisionActions.map(action => <ActionGuard key={action} capabilityId="APPR.DECISION" roles={action === 'APPLY' ? ['ADMIN'] : action.startsWith('REVIEW_') ? ['MANAGER', 'Quản lý'] : ['ADMIN', 'MANAGER', 'Quản lý']} allowedActions={[...detail.allowedActions]} requiredAction={action}>
+                <Button variant={isReject(action) ? 'outline' : 'default'} disabled={!detailCurrent || sending || uncertain || historyLoading || Boolean(historyError)} title={uncertain ? 'Chưa xác định kết quả gửi. Kiểm tra lịch sử trước khi thực hiện lại.' : historyError ? 'Tải lại lịch sử trước khi quyết định.' : undefined}
+                  onClick={() => { commandRef.current = crypto.randomUUID(); setMutationError(null); setDecision(action); }}>{decisionCopy[action].button}</Button>
+              </ActionGuard>)}
+            </div>
+          </div>}
+        </StateBoundary> : null} />
+    </StateBoundary>
+    <Modal isOpen={decision !== null} onClose={() => { setDecision(null); setReason(''); }} isDirty={Boolean(reason.trim())} closeDisabled={sending || uncertain}
+      title={decisionCopy[decision || 'APPROVE'].confirm} description={detail?.item.targetCode}
+      footer={requestClose => <><Button variant="outline" disabled={sending || uncertain} onClick={requestClose}>Hủy bỏ</Button>
+        <Button disabled={sending || uncertain || !reason.trim()} loading={sending} onClick={() => void submit()}>{decisionCopy[decision || 'APPROVE'].confirm}</Button></>}>
+      <div className="space-y-3 text-sm">
+        <p>Quyết định được ghi nhận theo bước duyệt và thẩm quyền của hồ sơ.</p>
+        {uncertain ? <InlineBanner variant="warning" title="Chưa xác định kết quả duyệt" actionLabel="Kiểm tra kết quả"
+          isActionLoading={sending} onAction={() => void submit()}>Kiểm tra lại bằng mã lệnh đã gửi trước khi thực hiện quyết định khác.</InlineBanner>
+          : mutationError && <InlineBanner variant={mutationError instanceof ApiError && mutationError.status === 409 ? 'conflict' : 'error'}>{mutationError.message}</InlineBanner>}
+        <label className="block space-y-1"><span>Căn cứ quyết định</span><Input value={reason} disabled={sending || uncertain} onChange={event => setReason(event.target.value)} /></label>
+      </div>
+    </Modal>
+  </div>;
 }

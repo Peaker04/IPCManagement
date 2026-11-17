@@ -20,6 +20,53 @@ namespace IPCManagement.Api.Tests;
 
 public sealed class ReconciliationPreparationWorkbookTests
 {
+    [Theory]
+    [InlineData("APPROVED", 12, 6)]
+    [InlineData("PENDING", 10, 4)]
+    [InlineData("REJECTED", 10, 4)]
+    [InlineData("CANCELLED", 10, 4)]
+    public async Task Preparation_and_purchase_workbook_add_only_approved_extra_snapshot_in_selected_customer_scope(string status, int combinedQuantity, int customerQuantity)
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var (customerA, customerB, batchA, batchB, ingredient, _, _, date) = await SetupWorkbookFixtureAsync(fixture, context);
+        var daily = await context.Reconciliationbatchdailylines.Include(x => x.BatchLine).ThenInclude(x => x.Batch)
+            .SingleAsync(x => x.BatchId == batchA && x.IngredientId == ingredient);
+        daily.BatchLine.Batch.Status = "IN_PROGRESS";
+        var source = new ReconciliationBatchContributor { ContributorId = GuidHelper.NewId(), BatchLineId = daily.BatchLineId,
+            DailyLineId = daily.DailyLineId, DishId = fixture.DishWithBomId, MenuScheduleId = GuidHelper.NewId(),
+            MealQuantityPlanLineId = GuidHelper.NewId(), DishBomId = GuidHelper.NewId(), FrozenDishCode = "DISH-EXTRA", FrozenDishName = "Món tăng suất",
+            FrozenShiftName = "MORNING", FrozenMenuVariant = "savory", FrozenServings = 20, SourceQuantity = 4m,
+            FrozenBomQuantityPerServing = 0.2m, FrozenBomUnitToBaseRate = 1, FrozenCanonicalUnitToBaseRate = 1 };
+        context.Reconciliationbatchcontributors.Add(source);
+        var snapshot = ReconciliationSupplementalSnapshotBuilder.Build(daily.BatchLine.Batch, date,
+            [new(GuidHelper.ToGuidString(fixture.DishWithBomId), "MORNING", "savory", 10)], [daily], [source]);
+        var demand = new ReconciliationSupplementalDemand { DemandId = GuidHelper.NewId(), BatchId = batchA, ServiceDate = date,
+            Status = status, Version = 3, SnapshotBatchVersion = 1, SnapshotFingerprint = snapshot.Fingerprint,
+            CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow, Reason = "Khách tăng suất" };
+        foreach (var dish in snapshot.Dishes) { dish.DemandId = demand.DemandId; demand.Dishes.Add(dish); }
+        foreach (var material in snapshot.Materials) { material.DemandId = demand.DemandId; demand.Materials.Add(material); }
+        context.Reconciliationsupplementaldemands.Add(demand); await context.SaveChangesAsync();
+        var exporter = new ReconciliationPreparationWorkbookExporter(context);
+        var combined = await exporter.GetWorkbookAsync(new() { ServiceDate = date, BatchIds = [GuidHelper.ToGuidString(batchA), GuidHelper.ToGuidString(batchB)] });
+        Assert.Equal(combinedQuantity, combined.SummaryRows.Single(x => x.IngredientId == GuidHelper.ToGuidString(ingredient)).TotalQuantity);
+        var selected = await exporter.GetWorkbookAsync(new() { ServiceDate = date, CustomerIds = [GuidHelper.ToGuidString(customerA)] });
+        Assert.Equal(customerQuantity, selected.SummaryRows.Single(x => x.IngredientId == GuidHelper.ToGuidString(ingredient)).TotalQuantity);
+        var withoutA = await exporter.GetWorkbookAsync(new() { ServiceDate = date, CustomerIds = [GuidHelper.ToGuidString(customerB)] });
+        Assert.Equal(6m, withoutA.SummaryRows.Single(x => x.IngredientId == GuidHelper.ToGuidString(ingredient)).TotalQuantity);
+        if (status == "APPROVED")
+        {
+            var extra = Assert.Single(selected.DetailRows, x => x.SupplementalDemandId != null);
+            Assert.Equal(GuidHelper.ToGuidString(demand.DemandId), extra.SupplementalDemandId);
+            Assert.Equal(2m, extra.Quantity);
+        }
+        else Assert.DoesNotContain(selected.DetailRows, x => x.SupplementalDemandId != null);
+        var board = await new ReconciliationPreparationService(context, new ImmediateTransactionRunner(),
+            Substitute.For<IOperationalWarehouseResolver>()).GetPreparationAsync(date, [GuidHelper.ToGuidString(batchA)]);
+        Assert.Equal(customerQuantity, board.AggregatedLines.Single(x => x.IngredientId == GuidHelper.ToGuidString(ingredient)).TotalRequiredQuantity);
+        Assert.Equal(4m, (await context.Reconciliationbatchdailylines.SingleAsync(x => x.DailyLineId == daily.DailyLineId)).RequiredQuantity);
+        Assert.Empty(context.Inventoryissues);
+    }
     [Fact]
     public async Task Three_customer_week_keeps_third_only_item_and_routes_supplier_by_service_date()
     {
@@ -352,7 +399,7 @@ public sealed class ReconciliationPreparationWorkbookTests
         Assert.Contains(xml.Descendants(ns + "t"), cell => includeMenus ? cell.Value.Contains("BB · Trùng tên") : cell.Value == "BB · Trùng tên");
         var row = Assert.Single(xml.Descendants(ns + "row"), item => item.Elements(ns + "c").Any(cell => cell.Value == (includeMenus ? "Rau Muống" : "ING-SINGLE")));
         var quantities = row.Elements(ns + "c").Skip(includeMenus ? 2 : 4).ToArray();
-        Assert.Equal(includeMenus ? new[] { "5.5" } : new[] { "2.5", "3", "5.5" }, quantities.Select(cell => cell.Element(ns + "v")!.Value));
+        Assert.Equal(includeMenus ? new[] { "5.5", "5.5", "0" } : new[] { "2.5", "3", "5.5" }, quantities.Select(cell => cell.Element(ns + "v")!.Value));
         Assert.All(quantities, cell => Assert.Equal("n", (string?)cell.Attribute("t")));
     }
 
@@ -501,7 +548,7 @@ public sealed class ReconciliationPreparationWorkbookTests
             menuXml.Descendants(ns + "t").Select(t => t.Value).Should().Contain(["Món Khách A", "Món Khách B"]);
             var matRow = Assert.Single(xml.Descendants(ns + "row"), r => r.Elements(ns + "c").Any(c => c.Value == "Rau Muống"));
             var numericCells = matRow.Elements(ns + "c").Skip(2).ToArray();
-            numericCells.Select(c => c.Element(ns + "v")!.Value).Should().Equal("2.5");
+            numericCells.Select(c => c.Element(ns + "v")!.Value).Should().Equal("2.5", "2.5", "0");
         }
 
         var unmatchedSupplierQuery = new ReconciliationPreparationWorkbookQuery
@@ -696,7 +743,8 @@ public sealed class ReconciliationPreparationWorkbookTests
         menuRows.Should().HaveCount(2);
         menuRows.Select(row => row.Elements(ns + "c").Last().Element(ns + "v")!.Value).Should().Equal("100", "50");
         var materialRow = System.Xml.Linq.XDocument.Parse(summaryXml).Descendants(ns + "row").Single(row => row.Elements(ns + "c").Any(cell => cell.Value == "Rau Muống"));
-        materialRow.Elements(ns + "c").Last().Element(ns + "v")!.Value.Should().Be("5.123456");
+        materialRow.Elements(ns + "c").Skip(2).Select(cell => cell.Element(ns + "v")!.Value)
+            .Should().Equal("5.123456", "5.123456", "0");
         var dailyQuery = new ReconciliationPreparationWorkbookQuery { ServiceDate = monday, BatchIds = query.BatchIds, IncludeMenus = true, IsSupplemental = false };
         var dayWorkbook = await service.GetWorkbookAsync(dailyQuery);
         dayWorkbook.MenuRows.Should().ContainSingle().Which.DishName.Should().Be("Món đóng băng");
@@ -987,7 +1035,7 @@ public sealed class ReconciliationPreparationWorkbookTests
         CREATE TABLE IF NOT EXISTS systemoperationmodes (Id INTEGER PRIMARY KEY, Mode TEXT NOT NULL, Version INTEGER NOT NULL, UpdatedAt TEXT NOT NULL, UpdatedBy BLOB NOT NULL, Reason TEXT NULL);
         CREATE TABLE IF NOT EXISTS reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
         CREATE TABLE IF NOT EXISTS reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
-        CREATE TABLE IF NOT EXISTS reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL, UNIQUE (dailyLineId, batchId, ingredientId, canonicalUnitId));
         CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, dailyLineId BLOB NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, dishId BLOB NULL, frozenShiftName TEXT NOT NULL, frozenDishCode TEXT NULL, frozenDishName TEXT NULL, frozenServings INTEGER NULL, frozenBomQuantityPerServing TEXT NULL, FrozenBomUnitToBaseRate TEXT NULL, FrozenCanonicalUnitToBaseRate TEXT NULL, frozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL, InvalidatedAt TEXT NULL, InvalidatedBySourceRevisionId BLOB NULL);
         CREATE TABLE IF NOT EXISTS reconciliationsourcedeltas (SourceDeltaId BLOB PRIMARY KEY, SourceRevisionId BLOB NOT NULL, BatchId BLOB NOT NULL, DailyLineId BLOB NULL, ServiceDate TEXT NOT NULL, IngredientId BLOB NOT NULL, CanonicalUnitId BLOB NOT NULL, PreviousRequiredQuantity TEXT NOT NULL, NewRequiredQuantity TEXT NOT NULL, DeltaQuantity TEXT NOT NULL, WorkKind TEXT NOT NULL, Status TEXT NOT NULL, Version INTEGER NOT NULL, CreatedAt TEXT NOT NULL, ResolvedAt TEXT NULL, ResolvedBy BLOB NULL, ResolutionEntity TEXT NULL, ResolutionId BLOB NULL, ResolutionCommandId TEXT NULL);
         CREATE TABLE IF NOT EXISTS reconciliationdailydispositions (DispositionId BLOB PRIMARY KEY, DailyLineId BLOB NOT NULL, Category TEXT NOT NULL, Reason TEXT NOT NULL, Version INTEGER NOT NULL, DisposedBy BLOB NOT NULL, DisposedAt TEXT NOT NULL, InvalidatedAt TEXT NULL, InvalidatedBy BLOB NULL, InvalidationReason TEXT NULL, ActiveOwnerKey BLOB NULL);

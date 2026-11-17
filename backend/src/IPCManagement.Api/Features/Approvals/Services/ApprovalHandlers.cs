@@ -11,7 +11,7 @@ using IPCManagement.Api.Exceptions;
 
 namespace IPCManagement.Api.Features.Approvals.Services;
 
-public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
+public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler, IApprovalTargetPersistenceHandler
     where TEntity : class
 {
     protected readonly IpcManagementContext Context;
@@ -38,6 +38,7 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
         ApprovalResultDto? transactionResult = null;
         async Task<ApprovalResultDto?> ExecuteAsync(CancellationToken _)
         {
+            await ApprovalTargetLock.AcquireAsync(Context, TargetType, entityId);
             transactionResult = await HandleCoreAsync(entityId, request, actorId);
             if (transactionResult is null)
             {
@@ -63,6 +64,12 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
     }
 
     protected abstract Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId);
+
+    public async Task<ApprovalResultDto?> StageAsync(string targetId, ApprovalRequest request, byte[] actorId)
+    {
+        var entityId = GuidHelper.ParseGuidString(targetId);
+        return entityId is null ? null : await HandleCoreAsync(entityId, request, actorId);
+    }
 
     protected async Task<ApprovalResultDto> SaveHistoryAsync(
         string targetType,
@@ -370,14 +377,8 @@ public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<Invent
 
         if (receipt is null) return null;
 
-        if (receipt.Status != "PENDING_APPROVAL" || receipt.QualityStatus is not ("ACCEPTED" or "PARTIALLY_ACCEPTED"))
-        {
-            throw new BusinessRuleException("Chỉ phiếu nhập đã kiểm tra chất lượng và chờ duyệt mới được Quản lý quyết định.");
-        }
-        if (receipt.CreatedBy.SequenceEqual(actorId))
-        {
-            throw new BusinessRuleException("Người tạo phiếu nhập không được tự duyệt.");
-        }
+        var blockedReason = InventoryReceiptApprovalPolicy.BlockedReason(receipt.Status, receipt.QualityStatus, receipt.CreatedBy, actorId);
+        if (blockedReason is not null) throw new BusinessRuleException(blockedReason);
 
         var oldStatus = receipt.Status;
         var newStatus = request.Status == ApprovalDecision.Approve ? "APPROVED" : "REJECTED";

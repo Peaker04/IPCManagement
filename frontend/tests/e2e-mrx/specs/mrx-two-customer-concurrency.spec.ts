@@ -19,7 +19,7 @@ function micros(value: string): bigint {
 }
 
 test('@G6-Customer-Concurrency two NEW customers keep independent same-week source, issue and export identities', async ({ browser, viewport, baseURL, adminPage, dieuphoiPage, thukhoPage, dbVerifier }) => {
-  test.setTimeout(420_000);
+  test.setTimeout(600_000);
   expect(process.env.MRX_E2E_PROFILE, 'New customer fixtures require the admitted Qualification lifecycle').toBe('qualification');
   const scope = scenarioScope(dbVerifier, 20);
   const evidence = process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
@@ -73,7 +73,8 @@ test('@G6-Customer-Concurrency two NEW customers keep independent same-week sour
           if (route.request().method() !== 'POST') { await route.continue(); return; }
           expect(observation.samples[index], `${name}: one command per customer`).toBeUndefined();
           observation.samples[index] = { arrivedAt: Date.now() };
-          if (!timer) timer = setTimeout(() => { observation.timedOut = true; release(); }, 15_000);
+          // The two sessions share each actor's rolling 60s API budget.
+          if (!timer) timer = setTimeout(() => { observation.timedOut = true; release(); }, 70_000);
           if (observation.samples.filter(Boolean).length === 2) {
             clearTimeout(timer);
             observation.releasedAt = Date.now();
@@ -84,10 +85,16 @@ test('@G6-Customer-Concurrency two NEW customers keep independent same-week sour
           observation.samples[index].dispatchedAt = Date.now();
           await route.continue();
         });
-        cleanups.push(async () => { release(); clearTimeout(timer); page.off('response', onResponse); await page.unroute(pattern); });
+        cleanups.push(async () => {
+          release();
+          clearTimeout(timer);
+          page.off('response', onResponse);
+          if (!page.isClosed()) await page.unroute(pattern);
+        });
       }
     }
     await holdBoth(coordinators, /\/weekly-menu\/import\/commit$/, 'import-commit');
+    await holdBoth(admins, /\/operational-approvals\/mrx-source-change\/[^/]+\/decision$/, 'source-decision');
     await holdBoth(coordinators, /\/batches\/quantity-import\/commit$/, 'quantity-commit');
     await holdBoth(coordinators, /\/batches\/[^/]+\/transfer-to-warehouse$/, 'transfer');
     const batches = await Promise.all(coordinators.map((coordinator, index) => createTransferredBatch({

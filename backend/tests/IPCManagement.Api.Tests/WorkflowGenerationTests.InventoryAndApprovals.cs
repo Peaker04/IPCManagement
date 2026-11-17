@@ -1331,6 +1331,10 @@ public partial class WorkflowGenerationTests
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         await using var context = fixture.CreateContext();
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE systemoperationmodes (id INTEGER PRIMARY KEY, mode TEXT NOT NULL,
+                version INTEGER NOT NULL, updatedBy BLOB NOT NULL, updatedAt TEXT NOT NULL, reason TEXT NULL);
+            """);
         var demand = await new MaterialDemandService(context).GenerateAsync(
             new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);

@@ -440,10 +440,21 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 ("Status", Scalar(newStatus)), ("Version", Scalar(newVersion)), ("CompletedBy", GuidValue(after.ActorId)))
             : Existing("reconciliationbatches", "BatchId", batchId,
                 ("Status", Scalar(newStatus)), ("Version", Scalar(newVersion)));
+        var addedAudits = after.Audits.Except(before.Audits).ToArray();
+        if (completed) addedAudits.Should().BeEmpty();
+        else
+        {
+            var handoff = addedAudits.Should().ContainSingle().Subject;
+            handoff.Should().Be(new AuditValue(handoff.Id, handoff.ChangedAt, after.ActorId,
+                "MATERIAL_RECONCILIATION", nameof(ReconciliationBatch), batchId, "Status", oldStatus, newStatus,
+                "Chuyển lô đối soát sang Kho.", null));
+            handoff.ChangedAt.Should().BeOnOrAfter(window.UtcStart).And.BeOnOrBefore(window.UtcEnd);
+        }
         after.Should().BeEquivalentTo(before with
         {
             Batches = Replace(before.Batches, oldBatch, newBatch, x => x.Id),
-            Canonical = ReconstructCanonical(before.Canonical, after.Canonical, batchChange)
+            Audits = before.Audits.Concat(addedAudits).OrderBy(x => x.Id).ToArray(),
+            Canonical = ReconstructCanonical(before.Canonical, after.Canonical, [batchChange, .. addedAudits.Select(AuditChange)])
         });
     }
 
@@ -467,12 +478,18 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         after.Movements.Should().BeEquivalentTo(before.Movements);
         after.Stocks.Should().BeEquivalentTo(before.Stocks);
         var expectedJson = JsonSerializer.Serialize(new InventoryIssueCreatedDto { IssueId = created.IssueId, IssueCode = issueCode, ConcurrencyVersion = 1 });
+        var expectedReceipt = JsonNode.Parse(expectedJson)!.AsObject();
+        expectedReceipt["CommandFingerprint"] = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {
+            Mode = "MATERIAL_RECONCILIATION", ActorId = fixture.ActorId, Request = fixture.IssueCommand() }))));
         var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-issue", nameof(InventoryIssue), fixture.IssueBatchId,
-            checked((int)newBatch.Version), "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {issueCode} từ lô đối chiếu.", fixture.ActorId, expectedJson);
+            checked((int)newBatch.Version), "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {issueCode} từ lô đối chiếu.", fixture.ActorId, expectedJson,
+            expectedReceiptJson: expectedReceipt.ToJsonString());
         var transition = lifecycle.Transitions.Except(before.Transitions).Single();
         var outbox = lifecycle.Outbox.Except(before.Outbox).Single();
         var receipt = lifecycle.Receipts.Except(before.Receipts).Single();
         var lifecycleAudit = lifecycle.Audits.Except(before.Audits).Single();
+        var allocationId = after.Canonical.Cells.Except(before.Canonical.Cells)
+            .Single(cell => cell.Table == "reconciliationissueallocations" && cell.Property == "AllocationId").Value[5..];
         var canonical = ReconstructCanonical(before.Canonical, after.Canonical,
             New("inventoryissues", "IssueId", issue.Id, [GeneratedGuid("IssueId", issue.Id), GeneratedUtc("CreatedAt", window)],
                 ("IssueCode", Scalar(issueCode)), ("IssueDate", DateValue(new DateOnly(2026, 8, 29))),
@@ -485,6 +502,9 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 ("ReconciliationBatchDailyLineId", GuidValue(fixture.IssueDailyLineId)),
                 ("ReconciliationServiceDate", DateValue(new DateOnly(2026, 8, 29))),
                 ("RequestedQty", DecimalValue(5m)), ("IssuedQty", DecimalValue(5m))),
+            New("reconciliationissueallocations", "AllocationId", allocationId, [GeneratedGuid("AllocationId", allocationId)],
+                ("IssueLineId", GuidValue(line.Id)), ("DailyLineId", GuidValue(fixture.IssueDailyLineId)),
+                ("DemandMaterialId", NullValue), ("Purpose", Scalar("BASELINE_SHORTAGE")), ("Quantity", DecimalValue(5m))),
             Existing("reconciliationbatches", "BatchId", fixture.IssueBatchId,
                 ("Status", Scalar("IN_PROGRESS")), ("Version", Scalar(oldBatch.Version + 1))),
             LifecycleTransitionChange(transition, window, "issue-lifecycle-time"), LifecycleOutboxChange(outbox, window, "issue-lifecycle-time"), LifecycleReceiptChange(receipt, window, "issue-lifecycle-time"), AuditChange(lifecycleAudit));
@@ -659,7 +679,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
     }
 
     private static LifecycleEffect AssertExactLifecycleDelta(Snapshot before, Snapshot after, string commandId, string aggregateType,
-        string aggregateId, int sequence, string? fromState, string toState, long expectedVersion, string reason, string actorId, string expectedJson, int additionalAuditCount = 0)
+        string aggregateId, int sequence, string? fromState, string toState, long expectedVersion, string reason, string actorId, string expectedJson, int additionalAuditCount = 0, string? expectedReceiptJson = null)
     {
         var transition = after.Transitions.Except(before.Transitions).Should().ContainSingle().Subject;
         transition.Should().Be(new TransitionValue(transition.Id, aggregateType, aggregateId, commandId, sequence, fromState, toState,
@@ -672,7 +692,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var receipt = after.Receipts.Except(before.Receipts).Should().ContainSingle().Subject;
         receipt.Should().Be(new ReceiptValue(receipt.Id, commandId, aggregateType, aggregateId, receipt.ResponseJson, transition.CreatedAt));
         receipt.ResponseJson.Should().NotBeNullOrWhiteSpace();
-        JsonNode.DeepEquals(JsonNode.Parse(receipt.ResponseJson), JsonNode.Parse(expectedJson)).Should().BeTrue("the command receipt response is independently reconstructed");
+        JsonNode.DeepEquals(JsonNode.Parse(receipt.ResponseJson), JsonNode.Parse(expectedReceiptJson ?? expectedJson)).Should().BeTrue("the command receipt response is independently reconstructed");
         var generatedAudits = after.Audits.Except(before.Audits).ToArray();
         generatedAudits.Should().HaveCount(1 + additionalAuditCount);
         var lifecycleAudit = generatedAudits.Single(value => value.BusinessArea == "Lifecycle");
@@ -970,8 +990,10 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 "reconciliationbatches", "reconciliationbatchlines", "reconciliationbatchcontributors",
                 "reconciliationsourcerevisions", "reconciliationsourcedeltas",
                 "inventoryissues", "inventoryissuelines", "inventoryreturns", "inventoryreturnlines",
-                "currentstock", "stockmovements", "reconciliationactuals", "reconciliationactualrevisions",
+                "currentstock", "stockmovements", "stocktakes", "stocktakelines", "reconciliationactuals", "reconciliationactualrevisions",
                 "reconciliationdispositions", "reconciliationdailydispositions",
+                "reconciliationsupplementaldemands", "reconciliationsupplementaldemanddishes", "reconciliationsupplementaldemandmaterials",
+                "reconciliationsupplementaldemandcontributions", "reconciliationissueallocations",
                 "materialrequests", "materialrequestlines", "supplementalmaterialrequests",
                 "purchaserequests", "purchaserequestlines", "purchaselinesupplierdecisions", "purchasepriceexceptions", "purchaseorders", "purchaseorderlines",
                 "approvalhistories", "approvalrules", "approvalassignments", "auditlogs",
@@ -1015,8 +1037,8 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             };
         }
 
-        // Ingredient.PreparationGroupCode is included in the full persisted snapshot and reconstruction; no cells are excluded.
-        private const string ExpectedScalarSchemaHash = "380AF27D240558719764DD118BE7B0E2267B4618498CFCF40975C66F8626B5D8";
+        // PreparationGroupCode and all five supplemental/allocation tables participate in full reconstruction; no cells are excluded.
+        private const string ExpectedScalarSchemaHash = "510A266F42308B42ACBED39FAB8950DA5306D541746825131D910C0BE6C70ECA";
 
         private sealed record EntityMapping(IEntityType Entity, string Table, StoreObjectIdentifier Store);
 
@@ -1067,7 +1089,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
 CREATE TABLE systemoperationmodes (id INTEGER PRIMARY KEY, mode TEXT NOT NULL, version INTEGER NOT NULL, updatedAt TEXT NOT NULL, updatedBy BLOB NOT NULL, reason TEXT NULL);
 CREATE TABLE reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
 CREATE TABLE reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
-CREATE TABLE reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL);
+CREATE TABLE reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL, UNIQUE (dailyLineId, batchId, ingredientId, canonicalUnitId));
 CREATE TABLE reconciliationsourcerevisions (SourceRevisionId BLOB PRIMARY KEY, MenuAmendmentId BLOB NOT NULL, BatchId BLOB NOT NULL, PreviousMenuVersionId BLOB NOT NULL, AppliedMenuVersionId BLOB NOT NULL, RevisionNumber INTEGER NOT NULL, Status TEXT NOT NULL, Reason TEXT NOT NULL, AppliedBy BLOB NOT NULL, AppliedAt TEXT NOT NULL, AppliedByRole TEXT NULL, ApplyMode TEXT NULL);
 CREATE TABLE reconciliationsourcedeltas (SourceDeltaId BLOB PRIMARY KEY, SourceRevisionId BLOB NOT NULL, BatchId BLOB NOT NULL, DailyLineId BLOB NULL, ServiceDate TEXT NOT NULL, IngredientId BLOB NOT NULL, CanonicalUnitId BLOB NOT NULL, PreviousRequiredQuantity TEXT NOT NULL, NewRequiredQuantity TEXT NOT NULL, DeltaQuantity TEXT NOT NULL, WorkKind TEXT NOT NULL, Status TEXT NOT NULL, Version INTEGER NOT NULL, CreatedAt TEXT NOT NULL, ResolvedAt TEXT NULL, ResolvedBy BLOB NULL, ResolutionEntity TEXT NULL, ResolutionId BLOB NULL, ResolutionCommandId TEXT NULL);
 CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, DailyLineId BLOB NULL, DishId BLOB NULL, FrozenShiftName TEXT NULL, FrozenDishCode TEXT NULL, FrozenDishName TEXT NULL, FrozenServings INTEGER NULL, FrozenBomQuantityPerServing TEXT NULL, FrozenBomUnitToBaseRate TEXT NULL, FrozenCanonicalUnitToBaseRate TEXT NULL, FrozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL, InvalidatedAt TEXT NULL, InvalidatedBySourceRevisionId BLOB NULL);

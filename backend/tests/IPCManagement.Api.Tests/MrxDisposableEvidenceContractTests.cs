@@ -453,10 +453,15 @@ public class MrxDisposableEvidenceContractTests
     [InlineData("CustomerWorstCase", "@G6-Merged-Customer onboarding", "@G6-Customer-Concurrency independent scopes")]
     [InlineData("SourceAtomicity", "@G6-Direct-Source-Edit issue-first", "@G6-Direct-Source-Edit apply-first")]
     [InlineData("ExportConsistency", "@T7-Export-Consistency setup", "@T7-Export-Consistency setup")]
+    [InlineData("SupplementalDemand", "@MRX-Supplemental-Demand Thu kho", "@MRX-Supplemental-Demand Thu kho")]
+    [InlineData("UiAcceptance", "@MRX-UiAcceptance desktop", "@MRX-UiAcceptance tablet")]
+    [InlineData("MrxBusiness", "@G1-Golden real lifecycle", "@MRX-Supplemental-Demand Thu kho")]
+    [InlineData("MutationLifecycle", "@G4-Race Thủ kho and Admin", "@MRX-Supplemental-Demand Admin alone")]
+    [InlineData("MrxBusinessTail", "@MRX-UiAcceptance responsive", "@MRX-ModalAcceptance focus")]
     public void Bounded_diagnostic_runs_only_its_functional_owners(string diagnostic, string firstOwner, string secondOwner)
     {
         InvokeGuard($$"""
-            if ('{{diagnostic}}' -in @('SourceAtomicity','ExportConsistency')) {
+            if ('{{diagnostic}}' -in @('SourceAtomicity','ExportConsistency','SupplementalDemand','MrxBusiness','MutationLifecycle','MrxBusinessTail')) {
                 foreach ($mode in @('Preflight','Execute')) { Assert-MrxCampaignInvocation -Mode $mode -Profile Qualification -Diagnostic '{{diagnostic}}' }
                 foreach ($invocation in @(@{Mode='Execute';Profile='G1'},@{Mode='Run';Profile='Qualification';CampaignId='{{RunId}}'})) {
                     $refused=$false
@@ -472,7 +477,7 @@ public class MrxDisposableEvidenceContractTests
             . ([scriptblock]::Create($owner.Extent.Text))
             $repoRoot=Join-Path ([IO.Path]::GetTempPath()) ('ipc-customer-selector-'+[Guid]::NewGuid().ToString('N'))
             $evidenceRoot=Join-Path $repoRoot 'evidence'; $tempRoot=$repoRoot
-            $Profile='Qualification'; $Diagnostic='{{diagnostic}}'; $CampaignId=$null; $runId='{{RunId}}'; $targetDatabase='{{Target}}'
+            $Profile='Qualification'; $Diagnostic='{{diagnostic}}'; $CampaignId=$null; $Headless=$true; $runId='{{RunId}}'; $targetDatabase='{{Target}}'
             $defaultsFile='test-only'; $processFile='test-only'; $runtimeDirectory='test-only'
             $qualificationCredentialsFile='test-only'; $qualificationTargetConnection='test-only'
             $candidateManifest=@{head='test-only';workingTreeSha256=('A'*64)}
@@ -486,6 +491,7 @@ public class MrxDisposableEvidenceContractTests
                 if ($Arguments[1] -eq 'test:e2e:mrx') {
                     $index=[Array]::IndexOf($Arguments,'--grep')
                     if ($index -lt 0 -or -not $Arguments[$index+1]) { throw 'Customer diagnostic has no bounded selection.' }
+                    if (($Headless -or $Diagnostic -ceq 'SupplementalDemand') -and '--headed' -in $Arguments) { throw 'Supplemental demand diagnostic must run in the background.' }
                     $script:selections+=@{pattern=$Arguments[$index+1];phase=$Environment['MRX_E2E_PHASE']}
                 } elseif ($Arguments[1] -ne 'build:fe') { throw 'Unadmitted command.' }
             }
@@ -511,7 +517,20 @@ public class MrxDisposableEvidenceContractTests
                     if ($name -notmatch $pattern) { throw ('Missing customer owner: '+$name) }
                 }
                 $otherOwners=if ($Diagnostic -ceq 'SourceAtomicity') { @('@G6-Merged-Customer','@G6-Customer-Concurrency') } else { @('@G6-Direct-Source-Edit') }
-                foreach ($name in (@('@G1-Golden','@G4-Race','@G5-Recovery','@G7-Desktop','@G8-Five-User','@G6-Menu-Coverage')+$otherOwners)) {
+                $excluded=if ($Diagnostic -ceq 'MrxBusiness') { @('@G7-Desktop','@G7-Memory','@G8-Five-User','@G8-HTTP') } elseif ($Diagnostic -ceq 'MrxBusinessTail') {
+                    @('@G1-Golden','@G4-Race','@G5-Recovery','@G7-Desktop','@G8-Five-User','@G6-Menu-Coverage','@G6-Merged-Customer','@G6-Menu-Reimport','@G6-Customer-Concurrency','@T7-Export-Consistency','@MRX-Supplemental-Demand','@MRX-UiAcceptance divider')
+                } elseif ($Diagnostic -ceq 'MutationLifecycle') {
+                    @('@G1-Golden','@G7-Desktop','@G8-Five-User','@T7-Export-Consistency','@G6-Direct-Source-Edit')
+                } else {
+                    @('@G1-Golden','@G4-Race','@G5-Recovery','@G7-Desktop','@G8-Five-User','@G6-Menu-Coverage')+$otherOwners }
+                if ($Diagnostic -ceq 'MrxBusiness') {
+                    foreach ($name in @('@G2-RBAC actors','@G3-Submitted shortage','@G4-Race commands','@G5-Recovery response loss',
+                        '@G6-Direct-Source-Edit locks','@G6-Merged-Customer scope','@G6-Customer-Concurrency scope','@G6-Menu-Reimport source',
+                        '@G6-Menu-Coverage sections','@T7-Export-Consistency three customers','@MRX-UiAcceptance desktop','@MRX-ModalAcceptance focus')) {
+                        if ($name -notmatch $pattern) { throw ('Missing MRX business owner: '+$name) }
+                    }
+                }
+                foreach ($name in $excluded) {
                     if ($name -match $pattern) { throw ('Unadmitted owner selected: '+$name) }
                 }
             } finally { Remove-Item -LiteralPath $repoRoot -Recurse -Force }

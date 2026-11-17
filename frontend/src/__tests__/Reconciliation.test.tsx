@@ -390,7 +390,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
       rows: [{
         batchId: MOCK_RECONCILIATION.batchId, customerName: 'Draxlmaier', serviceDate: '2026-10-19', shiftName: 'Ca sáng',
         ingredientCode: 'NL-THIT-01', ingredientName: 'Thịt đùi heo tươi', canonicalUnitName: 'kg',
-        requiredQuantity: 72, issuedQuantity: 72.5, difference: 0.5, varianceType: 'OVER_ISSUED',
+        requiredQuantity: 72, issuedQuantity: 72.5, difference: 0.5, varianceType: 'OVER_ISSUED', unplannedIssuedQuantity: 0,
         dispositionCategory: 'ACCEPTED_VARIANCE', dispositionReason: 'Bao bì lẻ', disposedBy: 'user-1',
         disposedAt: '2026-10-19T07:00:00Z', issueNotes: ['Ghi chú kho']
       }],

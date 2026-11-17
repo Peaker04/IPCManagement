@@ -1,3 +1,5 @@
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Helpers;
@@ -35,9 +37,17 @@ internal static class ReconciliationWarehouseDailyQuery
 
         var allDailyLines = inMemory
             ? (await context.Reconciliationbatchdailylines.AsNoTracking().ToListAsync(token))
-                .Where(line => batchHexes.Contains(Convert.ToHexString(line.BatchId)) && line.RequiredQuantity > 0).ToList()
+                .Where(line => batchHexes.Contains(Convert.ToHexString(line.BatchId))).ToList()
             : await context.Reconciliationbatchdailylines.AsNoTracking()
-                .Where(line => batchIds.Contains(line.BatchId) && line.RequiredQuantity > 0).ToListAsync(token);
+                .Where(line => batchIds.Contains(line.BatchId)).ToListAsync(token);
+        var approvedMaterials = inMemory
+            ? (await context.Reconciliationsupplementaldemandmaterials.AsNoTracking().Where(x => x.Demand.Status == "APPROVED").ToListAsync(token))
+                .Where(x => batchHexes.Contains(Convert.ToHexString(x.BatchId))).ToList()
+            : await context.Reconciliationsupplementaldemandmaterials.AsNoTracking()
+                .Where(x => batchIds.Contains(x.BatchId) && x.Demand.Status == "APPROVED").ToListAsync(token);
+        var approvedByDaily = approvedMaterials.GroupBy(x => Convert.ToHexString(x.DailyLineId))
+            .ToDictionary(group => group.Key, group => DecimalPolicy.RoundQuantity(group.Sum(x => x.RequiredQuantity)), StringComparer.Ordinal);
+        allDailyLines = allDailyLines.Where(x => x.RequiredQuantity > 0 || approvedByDaily.GetValueOrDefault(Convert.ToHexString(x.DailyLineId)) > 0).ToList();
         var weeklyLines = preloadedWeeklyLines
             ?? (inMemory
                 ? await context.Reconciliationbatchlines.AsNoTracking().ToListAsync(token)
@@ -50,6 +60,7 @@ internal static class ReconciliationWarehouseDailyQuery
         var weeklyById = weeklyLines.ToDictionary(line => Convert.ToHexString(line.BatchLineId), StringComparer.Ordinal);
         var dailyLineIds = allDailyLines.Select(line => line.DailyLineId).ToList();
         var ledgerByDailyLine = await new ReconciliationNetIssueProjection(context).LoadByDailyLineIdsAsync(dailyLineIds, token);
+        var purposeBalances = await ReconciliationSupplementalFulfillmentQuery.GetManyAsync(context, allDailyLines, token);
         var dailyDispositions = inMemory
             ? (await context.Reconciliationdailydispositions.AsNoTracking().ToListAsync(token)).Where(item => item.InvalidatedAt == null
                 && dailyLineIds.Any(idValue => idValue.SequenceEqual(item.DailyLineId))).ToList()
@@ -102,13 +113,19 @@ internal static class ReconciliationWarehouseDailyQuery
                         var issued = hasLedger ? ledger!.NetIssuedQuantity : (decimal?)null;
                         var returned = hasLedger ? ledger!.ReceivedReturnQuantity : 0m;
                         var hasDisposition = disposedDailyIds.Contains(key);
-                        var status = ReconciliationDailyIssuePolicy.ResolveLineStatus(item.Daily.RequiredQuantity, issued, hasDisposition);
+                        var extraQuantity = approvedByDaily.GetValueOrDefault(key);
+                        var requiredQuantity = DecimalPolicy.RoundQuantity(item.Daily.RequiredQuantity + extraQuantity);
+                        var fulfillment = purposeBalances.GetValueOrDefault(key);
+                        var status = ReconciliationDailyIssuePolicy.ResolveWithPurpose(requiredQuantity, issued, hasDisposition, fulfillment);
                         return new ReconciliationWarehouseDailyLineDto(
                             GuidHelper.ToGuidString(item.Daily.DailyLineId), GuidHelper.ToGuidString(item.Weekly.BatchLineId),
                             GuidHelper.ToGuidString(item.Weekly.IngredientId), item.Weekly.Ingredient?.IngredientCode, item.Weekly.Ingredient?.IngredientName,
                             GuidHelper.ToGuidString(item.Weekly.CanonicalUnitId), item.Weekly.CanonicalUnit?.UnitName,
-                            item.Daily.RequiredQuantity, issued, returned,
-                            DecimalPolicy.RoundQuantity(item.Daily.RequiredQuantity - (issued ?? 0m)), status.QuantityStatus, status.HasValidDisposition);
+                            requiredQuantity, issued, returned,
+                            fulfillment is { HasPurposeEvidence: true } ? fulfillment.RemainingByPurpose
+                                : Math.Max(0m, DecimalPolicy.RoundQuantity(requiredQuantity - (issued ?? 0m))),
+                            status.QuantityStatus, status.HasValidDisposition)
+                        { FrozenBaselineQuantity = item.Daily.RequiredQuantity, ApprovedSupplementalQuantity = extraQuantity };
                     }).OrderBy(line => line.IngredientName).ThenBy(line => line.DailyLineId, StringComparer.Ordinal).ToList();
                     var lineStatuses = lineDtos.Select(line => new ReconciliationDailyLineStatus(line.QuantityStatus, line.HasValidDisposition)).ToList();
                     var dayStatus = ReconciliationDailyIssuePolicy.ResolveDailyStatus(lineStatuses);
@@ -116,7 +133,8 @@ internal static class ReconciliationWarehouseDailyQuery
                     dates.Add(new ReconciliationWarehouseDayDto(
                         serviceDate, dayStatus, lineDtos.Count > 0,
                         lineDtos.Sum(line => line.RequiredQuantity), lineDtos.Sum(line => line.IssuedQuantity ?? 0m),
-                        lineDtos.Sum(line => line.ReturnedQuantity), lineDtos.Sum(line => line.RemainingQuantity), lineDtos)
+                        lineDtos.Sum(line => line.ReturnedQuantity),
+                        lineDtos.All(line => line.RemainingQuantity.HasValue) ? lineDtos.Sum(line => line.RemainingQuantity) : null, lineDtos)
                     {
                         LastRevisionAt = latestRevision?.AppliedAt,
                         LastRevisionByName = latestRevision?.AppliedByName,
@@ -124,11 +142,9 @@ internal static class ReconciliationWarehouseDailyQuery
                     });
                 }
             }
-            var weeklyStatus = compatibility.CanIssueByDate
+            var weeklyStatus = compatibility.ReasonCode != "LEGACY_DAILY_LINEAGE_MISSING"
                 ? ReconciliationDailyIssuePolicy.ResolveWeeklyStatus(dates.Select(date => new ReconciliationDailySummary(date.Status, date.IsApplicable)).ToList())
-                : compatibility.ReasonCode == "BATCH_READ_ONLY"
-                    ? ReconciliationDailyIssuePolicy.ResolveWeeklyStatus(dates.Select(date => new ReconciliationDailySummary(date.Status, date.IsApplicable)).ToList())
-                    : "LEGACY_INCOMPATIBLE";
+                : "LEGACY_INCOMPATIBLE";
             var batchId = GuidHelper.ToGuidString(batch.BatchId);
             result.Add(batchId, new ReconciliationWarehouseDailyDto(
                 batchId, batch.Status, batch.Version, weeklyStatus,

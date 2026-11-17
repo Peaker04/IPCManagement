@@ -292,22 +292,24 @@ export const MOCK_ISSUES: InventoryIssueItem[] = [
 
 export const MOCK_APPROVALS: ApprovalInboxItem[] = [
   {
+    serviceDates: [],
     inboxItemId: 'app-1',
     targetType: 'material-demand',
     targetId: 'mr-dav-01',
     targetCode: 'MR-DAV-20260921-FULLDAY',
-    itemType: 'Nhu cầu nguyên liệu',
+    itemType: 'demand',
     title: 'Duyệt nhu cầu nguyên liệu ca ngày Draxlmaier',
     source: 'Kế hoạch sản xuất tuần',
-    ownerRole: 'QUAN_LY_SAN_XUAT',
+    ownerRole: 'Quản lý',
     submittedBy: 'Điều hành sản xuất',
     dueDate: '2026-09-21',
     status: 'PENDING',
     reason: 'Phát lệnh bàn giao nguyên liệu 14 món ca ngày',
+    nextAction: 'Duyệt nhu cầu', tone: 'warning', route: '/approvals',
     totalQuantity: 1275.5,
     totalValue: 37445061,
-    submittedAt: '07:30 21/09/2026',
-    slaDeadline: '10:00 21/09/2026',
+    submittedAt: '2026-09-21T07:30:00Z',
+    slaDeadline: '2026-09-21T10:00:00Z',
     materials: [
       { name: 'Thịt đùi heo tươi', quantity: 185.5, unit: 'Kilogram' },
     ],

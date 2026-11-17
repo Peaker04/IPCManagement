@@ -1,5 +1,7 @@
 using System.Data;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
@@ -54,14 +56,12 @@ internal sealed class ReconciliationInventoryIssueCreator
         var commandId = dto.CommandId.Trim();
         if (commandId.Length == 0) throw new ArgumentException("CommandId là bắt buộc.");
         var recorder = new LifecycleTransitionRecorder(_context);
-        var replay = await recorder.FindExistingCommandAsync(commandId, nameof(InventoryIssue), batchId);
-        if (replay is not null)
-            return JsonSerializer.Deserialize<InventoryIssueCreatedDto>(replay.ResponseJson)
-                ?? throw new InvalidOperationException("Không thể đọc lại kết quả tạo phiếu xuất kho.");
+        var replay = await ReadReplayAsync(recorder, commandId, batchId, dto, actorId);
+        if (replay is not null) return replay;
         var (operationKey, expectedModeVersion) = RequiredModeProtection();
         return await _transactionRunner.ExecuteProtectedAsync(operationKey, expectedModeVersion,
             token => CreateWithinTransactionAsync(dto, actorId, token),
-            async token => await recorder.FindExistingCommandAsync(commandId, nameof(InventoryIssue), batchId, token) is not null,
+            async token => await ReadReplayAsync(recorder, commandId, batchId, dto, actorId, token) is not null,
             IsolationLevel.Serializable);
     }
 
@@ -75,10 +75,8 @@ internal sealed class ReconciliationInventoryIssueCreator
         var commandId = dto.CommandId.Trim();
         if (commandId.Length == 0) throw new ArgumentException("CommandId là bắt buộc.");
         var recorder = new LifecycleTransitionRecorder(_context);
-        var replay = await recorder.FindExistingCommandAsync(commandId, nameof(InventoryIssue), batchId);
-        if (replay is not null)
-            return JsonSerializer.Deserialize<InventoryIssueCreatedDto>(replay.ResponseJson)
-                ?? throw new InvalidOperationException("Không thể đọc lại kết quả tạo phiếu xuất kho.");
+        var replay = await ReadReplayAsync(recorder, commandId, batchId, dto, actorId, token);
+        if (replay is not null) return replay;
         ServiceCalendar.EnsureServiceDay(dto.IssueDate);
         var warehouseId = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
         var issueId = GuidHelper.NewId();
@@ -90,10 +88,15 @@ internal sealed class ReconciliationInventoryIssueCreator
             .SingleOrDefaultAsync(item => item.BatchId == batchId, token)
             ?? throw new BusinessRuleException("Không tìm thấy lô đối chiếu để xuất kho.");
         var isSupplemental = dto.IsSupplemental == true;
-        var statusAllowsIssue = isSupplemental
-            ? batch.Status == "IN_PROGRESS"
-            : batch.Status is "TRANSFERRED" or "IN_PROGRESS";
-        if (!statusAllowsIssue || batch.Version != dto.ExpectedVersion)
+        if (!AllowsIssue(batch.Status, isSupplemental))
+            throw new ResourceConflictException(batch.Status switch
+            {
+                "READY" => "Điều phối cần chọn “Chuyển sang Kho” trước khi xuất.",
+                "TRANSFERRED" => "Lô chưa có phiếu xuất đầu tiên để thực hiện xuất thêm.",
+                "COMPLETED" => "Lô đã chốt đối soát và chỉ có thể xem.",
+                _ => "Điều phối cần đóng băng lô và chuyển sang Kho trước khi xuất."
+            });
+        if (batch.Version != dto.ExpectedVersion)
             throw new DbUpdateConcurrencyException("Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.");
         var allDailyLines = batch.Lines.SelectMany(line => line.DailyLines).ToList();
         if (allDailyLines.Count == 0)
@@ -204,6 +207,7 @@ internal sealed class ReconciliationInventoryIssueCreator
                 ReconciliationServiceDate = item.Source.ServiceDate
             }).ToList()
         };
+        await ReconciliationIssueAllocationWriter.StageAsync(_context, dto, issue, dateSources, isSupplemental, token);
         _issueRepository.Add(issue);
         if (sourceDelta is not null)
         {
@@ -291,10 +295,30 @@ internal sealed class ReconciliationInventoryIssueCreator
             ConcurrencyVersion = 1
         };
         var response = JsonSerializer.Serialize(result);
+        var receipt = JsonSerializer.SerializeToNode(result)!.AsObject();
+        receipt["CommandFingerprint"] = CommandFingerprint(dto, actorId);
         recorder.Stage(new LifecycleTransitionRequest(nameof(InventoryIssue), batchId, commandId, checked((int)batch.Version), previousBatchStatus, isSupplemental ? "SUPPLEMENTAL_ISSUED" : "ISSUED", actorId,
-            dto.ExpectedVersion, isSupplemental ? $"Tạo phiếu xuất thêm {issue.IssueCode} cho lô đối chiếu." : $"Tạo phiếu xuất {issue.IssueCode} từ lô đối chiếu.", dto.CorrelationId, dto.CausationId, response, response));
+            dto.ExpectedVersion, isSupplemental ? $"Tạo phiếu xuất thêm {issue.IssueCode} cho lô đối chiếu." : $"Tạo phiếu xuất {issue.IssueCode} từ lô đối chiếu.", dto.CorrelationId, dto.CausationId, response, receipt.ToJsonString()));
         await _unitOfWork.SaveChangesAsync();
         return result;
+    }
+
+    private static string CommandFingerprint(CreateInventoryIssueRequest request, byte[] actorId) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {
+            Mode = SystemOperationEligibility.MaterialReconciliation, ActorId = GuidHelper.ToGuidString(actorId), Request = request }))));
+
+    private static async Task<InventoryIssueCreatedDto?> ReadReplayAsync(LifecycleTransitionRecorder recorder,
+        string commandId, byte[] batchId, CreateInventoryIssueRequest request, byte[] actorId, CancellationToken token = default)
+    {
+        var receipt = await recorder.FindExistingCommandAsync(commandId, nameof(InventoryIssue), batchId, token);
+        if (receipt is null) return null;
+        using var json = JsonDocument.Parse(receipt.ResponseJson);
+        if (!json.RootElement.TryGetProperty("CommandFingerprint", out var binding))
+            throw new ResourceConflictException("Lệnh cũ chưa có bằng chứng đối chiếu nội dung. Hãy kiểm tra phiếu đã ghi trước khi lập lệnh mới.");
+        if (binding.GetString() != CommandFingerprint(request, actorId))
+            throw new ResourceConflictException("Mã lệnh đã được dùng với nội dung hoặc người thao tác khác.");
+        return JsonSerializer.Deserialize<InventoryIssueCreatedDto>(receipt.ResponseJson)
+            ?? throw new InvalidOperationException("Không thể đọc lại kết quả tạo phiếu xuất kho.");
     }
 
     private void EnsureOwningMode()
@@ -328,4 +352,7 @@ internal sealed class ReconciliationInventoryIssueCreator
             throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
         return canonicalId;
     }
+
+    internal static bool AllowsIssue(string batchStatus, bool isSupplemental = false)
+        => batchStatus == "IN_PROGRESS" || (!isSupplemental && batchStatus == "TRANSFERRED");
 }

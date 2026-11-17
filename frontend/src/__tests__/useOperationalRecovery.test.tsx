@@ -23,6 +23,22 @@ describe('useOperationalRecovery', () => {
 
   const defaultFilters: SampleFilter = { search: '', status: 'ALL' };
 
+  it('keeps filtered pages out of the default-filter cache when filter-scoped caching is requested', async () => {
+    const filtered = { search: 'AMANN', status: 'PENDING' };
+    const rows = [{ id: 'filtered', name: 'AMANN request' }];
+    const view = renderHook(() => useOperationalRecovery({ queryKey: 'actor:mode:1',
+      cacheByFilters: true, initialFilters: filtered, defaultFilters,
+      fetcher: async () => rows }));
+    await act(async () => { await Promise.resolve(); });
+    expect(view.result.current.data).toEqual(rows);
+    view.unmount();
+    const reopened = renderHook(() => useOperationalRecovery<SampleItem[], SampleFilter>({
+      queryKey: 'actor:mode:1', cacheByFilters: true, initialFilters: defaultFilters, defaultFilters,
+      fetcher: () => new Promise(() => {}) }));
+    expect(reopened.result.current.data).toBeNull();
+    expect(reopened.result.current.isLoading).toBe(true);
+  });
+
   it('provides SWR cache hit immediately when available in serverStateCache', async () => {
     const cachedData: SampleItem[] = [{ id: '1', name: 'Item 1' }];
     serverStateCache.set('test_key', cachedData);

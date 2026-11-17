@@ -6,6 +6,10 @@ scope: MATERIAL_RECONCILIATION
 ---
 # Material Reconciliation
 
+## Operational completion inbox
+
+In MRX, `IN_PROGRESS` alone does not create a pending approval. A batch enters the operational pending inbox only when the shared completion prerequisites pass: nonempty batch, completed applicable service days or valid legacy linked-issue reconciliation, no pending supplemental demand, fulfilled approved supplemental purposes, and resolved required variances. The inbox projects `COMPLETION_READY` without changing the stored batch status. The existing completion command rechecks these prerequisites within its protected transaction and records the closing actor/time. It does not create another approval after completion. Completed batches are shown in history. Source-change and supplemental-demand decisions retain their own queues; Admin direct execution retains its actor audit. DEFAULT is unchanged.
+
 > Source/tests và contract này sở hữu nghiệp vụ; thay đổi expected behavior cần owner decision. Tài liệu không là roadmap, checkpoint hay chứng nhận runtime.
 
 ## Daily issue and kitchen export
@@ -95,6 +99,14 @@ Daily-line identity and date-scoped initial/supplemental rules above govern new-
 - Movement bù/xuất MRX đã tồn tại là lịch sử bất biến, không xóa, đảo, sửa hoặc backfill trong thay đổi này. Chi tiết phiếu cũ vẫn đọc đúng persisted provision marker + exact `RefTable = inventoryissues` / `RefId = issueId`; replay command cũ trả receipt cũ với cùng identity, không phát sinh biến động mới. Phiếu MRX mới không có provision.
 - Lịch sử giao dịch Kho MRX áp dụng `batchId`, khoảng ngày inclusive và phân trang trên server trước materialization; bảng dùng page metadata, còn CSV stream toàn bộ cùng filtered scope trực tiếp ra response, không lấy page hiện tại làm lịch sử đầy đủ và không materialize toàn bộ lịch sử năm năm thành list/byte array. Audit table dùng page size chuẩn hóa `1..100`; audit CSV giữ cùng typed lineage nhưng cũng stream toàn scope.
 - `Không đủ tồn kho để tạo phiếu xuất` hoặc bất kỳ nhánh bù tồn nào trong command MRX mới là lỗi vi phạm ranh giới mode; không phải trường hợp nghiệp vụ người dùng phải xử lý. Không tạo stock movement/seed/receipt giả để làm kiểm thử hoặc vận hành MRX thành công.
+
+### 5.0. Nhu cầu suất tăng và xuất bổ sung sau khi khóa ngày
+
+- Sau issue đầu tiên, ngày vẫn khóa món/số suất nguồn dù đã trả toàn bộ. Kho lập đề nghị phát sinh riêng theo món × ca × mặn/chay, nêu số suất tăng và lý do; không sửa menu/BOM/servings baseline. `ReconciliationSupplementalDemandService` lưu draft, frozen snapshot và submit; Quản lý/Admin duyệt tại `/approvals` với type `mrx-supplemental-demand`. Duyệt nhu cầu không tạo phiếu xuất.
+- Snapshot dùng exact contributor của lô/ngày/món/ca/variant. Định lượng canonical cộng đóng góp có độ chính xác trước khi làm tròn 6 số lẻ; không suy bằng tên món hoặc dùng BOM hiện hành. Thiếu conversion hoặc frozen evidence mâu thuẫn phải chặn lựa chọn/submit có lý do.
+- Actual do Kho ghi ở owner Inventory hiện hữu. Allocation tách `BASELINE_SHORTAGE`, `APPROVED_EXTRA_DEMAND` và `UNPLANNED_EXTRA`; extra đã duyệt phải gắn đúng demand material/version. Không dùng tổng net issue để che thiếu ở một mục đích; confirmed return mở lại đúng mục đích khi đủ lineage, dữ liệu cũ/mixed-purpose mơ hồ không tự chia tỷ lệ.
+- Nhu cầu đã duyệt cộng vào đọc phiếu bếp, preparation/workbook và đối soát; pending/rejected không cộng. Mỗi thành phần giữ batch/day/material/unit/customer và request identity, không gộp theo tên. Nguồn gốc đóng băng bất biến; MRX không tác động stock/lot/movement vật lý.
+- Pending request, baseline/extra chưa đủ hoặc allocation cần đối chiếu chặn completion. Hủy nhu cầu đã duyệt chỉ khi chưa có allocation và đúng quyền Quản lý/Admin; đã có actual phải giữ lịch sử và qua nghiệp vụ đối chiếu, không xóa tác động. Draft/lệnh chưa rõ outcome được giữ theo actor/mode/batch/day và replay đúng payload, không dựng lại bằng version mới.
 
 ### 5.1. Chuẩn bị đa khách hàng — chọn ngày hoặc tuần, chỉ đọc và xuất Excel
 

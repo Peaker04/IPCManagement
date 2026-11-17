@@ -1,6 +1,7 @@
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Approvals.Services;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,6 +30,14 @@ public class ApprovalHistoryController : ControllerBase
         }
 
         var targetType = documentType.Trim().ToLowerInvariant();
+        try
+        {
+            OperationalApprovalRegistry.Require(User, SystemOperationEligibility.Default, targetType);
+        }
+        catch (UnauthorizedAccessException error)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult(error.Message));
+        }
         var result = await _queryService.GetHistoryAsync(targetType, targetId);
         return Ok(ApiResponse<IReadOnlyList<ApprovalHistoryItemDto>>.SuccessResult(result));
     }

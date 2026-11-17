@@ -1,6 +1,4 @@
 using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -8,6 +6,7 @@ using IPCManagement.Api.Security;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Purchasing.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
 
 namespace IPCManagement.Api.Features.Approvals.Services;
 
@@ -22,6 +21,12 @@ public interface IApprovalInboxService
         ClaimsPrincipal user,
         ApprovalInboxQueryDto query,
         CancellationToken cancellationToken = default);
+}
+
+public interface IInventoryApprovalInboxSource
+{
+    Task<IReadOnlyList<ApprovalInboxItemDto>> ReadAsync(ApprovalInboxQueryDto query,
+        int offset, int limit, CancellationToken cancellationToken);
 }
 
 public sealed class ApprovalInboxService : IApprovalInboxService
@@ -40,9 +45,13 @@ public sealed class ApprovalInboxService : IApprovalInboxService
     private readonly ApprovalInboxDemandSource _demandSource;
     private readonly ApprovalInboxAdjustmentSource _adjustmentSource;
 
-    public ApprovalInboxService(IpcManagementContext context, IApprovalRoutingService routingService)
+    private readonly IInventoryApprovalInboxSource? _inventorySource;
+
+    public ApprovalInboxService(IpcManagementContext context, IApprovalRoutingService routingService,
+        IInventoryApprovalInboxSource? inventorySource = null)
     {
         _context = context;
+        _inventorySource = inventorySource;
         _slaEnricher = new ApprovalInboxSlaEnricher(context, routingService);
         _demandSource = new ApprovalInboxDemandSource(context, _slaEnricher);
         _adjustmentSource = new ApprovalInboxAdjustmentSource(context, _slaEnricher);
@@ -70,25 +79,29 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         CancellationToken cancellationToken = default)
     {
         var limit = NormalizeLimit(query.Limit, DefaultPageSize, MaxPageSize);
-        var cursor = DecodeCursor(query.Cursor);
-        var hasFilters = !string.IsNullOrWhiteSpace(query.TargetType) ||
-            !string.IsNullOrWhiteSpace(query.TargetId) ||
-            !string.IsNullOrWhiteSpace(query.Week) ||
-            !string.IsNullOrWhiteSpace(query.Date) ||
-            !string.IsNullOrWhiteSpace(query.SearchKeyword);
-        var candidateLimit = hasFilters ? 200 : Math.Min(limit * 4 + 1, 200);
-        var candidates = await BuildPendingItemsAsync(
-            user,
-            candidateLimit,
-            cursor,
-            query.TargetType,
-            cancellationToken);
-        var ordered = ApprovalInboxQueryPolicy.Apply(candidates, query)
-            .OrderBy(item => item.DueDate ?? DateOnly.MaxValue)
-            .ThenBy(item => item.TargetCode)
-            .ThenBy(item => item.InboxItemId)
-            .Where(item => cursor is null || IsAfterCursor(item, cursor))
-            .ToList();
+        var modeRows = await _context.Systemoperationmodes.AsNoTracking().Take(2).ToListAsync(cancellationToken);
+        if (modeRows.Count > 1) throw new SystemOperationAuthorityException("Cấu hình chế độ vận hành không hợp lệ.");
+        var mode = modeRows.SingleOrDefault();
+        if (mode is not null && mode.Mode != SystemOperationEligibility.Default)
+            throw new UnauthorizedAccessException("Hàng đợi này thuộc chế độ Mặc định.");
+        var scope = ApprovalInboxCursor.QueryScope(user, query, mode?.Version ?? 0);
+        var cursor = ApprovalInboxCursor.DecodeCursor(query.Cursor, scope);
+        // Scan bounded source pages rather than truncating the candidate set before filtering.
+        // Keep only the best limit+1 matches in memory; source-specific filters can narrow SQL
+        // independently without changing the cross-source ordering contract.
+        var ordered = new List<ApprovalInboxItemDto>();
+        const int sourcePageSize = 100;
+        for (var offset = 0; ; offset += sourcePageSize)
+        {
+            var candidates = await BuildPendingItemsAsync(user, sourcePageSize, null,
+                query.TargetType, cancellationToken, offset, query);
+            ordered.AddRange(ApprovalInboxQueryPolicy.Apply(candidates, query)
+                .Where(item => cursor is null || ApprovalInboxCursor.IsAfterCursor(item, cursor)));
+            ordered = ordered.OrderBy(item => item.DueDate ?? DateOnly.MaxValue)
+                .ThenBy(item => item.TargetCode, StringComparer.Ordinal)
+                .ThenBy(item => item.InboxItemId, StringComparer.Ordinal).Take(limit + 1).ToList();
+            if (candidates.Count == 0) break;
+        }
         var items = ordered.Take(limit).ToList();
         var hasNext = ordered.Count > limit;
 
@@ -97,7 +110,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             Items = items,
             Limit = limit,
             HasNext = hasNext,
-            NextCursor = hasNext && items.Count > 0 ? EncodeCursor(items[^1]) : null
+            NextCursor = hasNext && items.Count > 0 ? ApprovalInboxCursor.EncodeCursor(items[^1], scope) : null
         };
     }
 
@@ -106,45 +119,49 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         int limit,
         ApprovalInboxCursor? cursor,
         string? targetType,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int offset = 0, ApprovalInboxQueryDto? query = null)
     {
         var permissions = ApprovalInboxUserPolicy.ResolvePermissions(user);
         var inbox = new List<ApprovalInboxItemDto>();
+        if (_inventorySource is not null && permissions.Contains(AuthorizationPolicies.InventoryIssueApprove))
+            inbox.AddRange(await _inventorySource.ReadAsync(query ?? new ApprovalInboxQueryDto { TargetType = targetType },
+                offset, limit, cancellationToken));
 
         if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, MaterialDemandTargetType) &&
             permissions.Contains(AuthorizationPolicies.MaterialDemandApprove))
         {
-            inbox.AddRange(await _demandSource.BuildItemsAsync(limit, cursor, cancellationToken));
+            inbox.AddRange(await _demandSource.BuildItemsAsync(limit, cursor, cancellationToken, offset, query));
         }
 
         if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, PurchaseRequestTargetType) &&
             permissions.Contains(AuthorizationPolicies.PurchaseRequestApprove))
         {
-            inbox.AddRange(await BuildPurchaseRequestItemsAsync(limit, cursor, cancellationToken));
+            inbox.AddRange(await BuildPurchaseRequestItemsAsync(limit, cursor, cancellationToken, offset, query));
         }
 
         if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, PurchasePriceExceptionTargetType) &&
             permissions.Contains(AuthorizationPolicies.PurchasePriceExceptionApprove))
         {
-            inbox.AddRange(await BuildPriceAlertItemsAsync(limit, cursor, cancellationToken));
+            inbox.AddRange(await BuildPriceAlertItemsAsync(limit, cursor, cancellationToken, offset, query));
         }
 
         if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, InventoryIssueTargetType) &&
             permissions.Contains(AuthorizationPolicies.InventoryIssueApprove))
         {
-            inbox.AddRange(await BuildInventoryIssueItemsAsync(limit, cursor, cancellationToken));
+            inbox.AddRange(await BuildInventoryIssueItemsAsync(limit, cursor, cancellationToken, offset, query));
         }
 
         if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, InventoryReceiptTargetType) &&
             permissions.Contains(AuthorizationPolicies.InventoryReceiptApprove))
         {
-            inbox.AddRange(await BuildInventoryReceiptItemsAsync(limit, cursor, cancellationToken));
+            inbox.AddRange(await BuildInventoryReceiptItemsAsync(limit, cursor, cancellationToken, offset, query));
         }
 
         if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, OrderAdjustmentTargetType) &&
             permissions.Contains(AuthorizationPolicies.InventoryAdjustmentApprove))
         {
-            inbox.AddRange(await _adjustmentSource.BuildItemsAsync(limit, cursor, cancellationToken));
+            inbox.AddRange(await _adjustmentSource.BuildItemsAsync(limit, cursor, cancellationToken, offset, query));
         }
 
         return inbox;
@@ -153,47 +170,11 @@ public sealed class ApprovalInboxService : IApprovalInboxService
     private static int NormalizeLimit(int value, int fallback, int maximum)
         => Math.Clamp(value <= 0 ? fallback : value, 1, maximum);
 
-    private static bool IsAfterCursor(ApprovalInboxItemDto item, ApprovalInboxCursor cursor)
-    {
-        var dueDate = item.DueDate ?? DateOnly.MaxValue;
-        var dateComparison = dueDate.CompareTo(cursor.DueDate);
-        if (dateComparison != 0) return dateComparison > 0;
-
-        var codeComparison = string.Compare(item.TargetCode, cursor.TargetCode, StringComparison.Ordinal);
-        if (codeComparison != 0) return codeComparison > 0;
-
-        return string.Compare(item.InboxItemId, cursor.InboxItemId, StringComparison.Ordinal) > 0;
-    }
-
-    private static string EncodeCursor(ApprovalInboxItemDto item)
-    {
-        var cursor = new ApprovalInboxCursor(item.DueDate ?? DateOnly.MaxValue, item.TargetCode, item.InboxItemId);
-        return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(cursor)));
-    }
-
-    private static ApprovalInboxCursor? DecodeCursor(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return null;
-
-        try
-        {
-            var json = Encoding.UTF8.GetString(Convert.FromBase64String(value));
-            return JsonSerializer.Deserialize<ApprovalInboxCursor>(json);
-        }
-        catch (FormatException)
-        {
-            return null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
     private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildPurchaseRequestItemsAsync(
         int limit,
         ApprovalInboxCursor? cursor,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int offset = 0, ApprovalInboxQueryDto? query = null)
     {
         var requestQuery = _context.Purchaserequests
             .AsNoTracking()
@@ -211,6 +192,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                     history.TargetType == PurchaseRequestTargetType &&
                     history.TargetId == item.PurchaseRequestId &&
                     (history.Decision == "APPROVE" || history.Decision == "REJECT")));
+        requestQuery = ApprovalInboxSourceFilter.ByIdentity(requestQuery, item => item.PurchaseRequestId, query);
+        requestQuery = ApprovalInboxSourceFilter.ByDate(requestQuery, item => item.PurchaseForDate, query);
         if (cursor is not null)
         {
             requestQuery = requestQuery.Where(item =>
@@ -220,8 +203,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
 
         var requests = await requestQuery
             .OrderBy(item => item.PurchaseForDate)
-            .ThenBy(item => item.PurchaseRequestCode)
-            .Take(limit)
+            .ThenBy(item => item.PurchaseRequestCode).ThenBy(item => item.PurchaseRequestId)
+            .Skip(offset).Take(limit)
             .ToListAsync(cancellationToken);
 
         var result = new List<ApprovalInboxItemDto>();
@@ -269,7 +252,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
     private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildPriceAlertItemsAsync(
         int limit,
         ApprovalInboxCursor? cursor,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int offset = 0, ApprovalInboxQueryDto? query = null)
     {
         var exceptionQuery = _context.Purchasepriceexceptions
             .AsNoTracking()
@@ -286,6 +270,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 .ThenInclude(decision => decision.PurchaseRequestLine)
                     .ThenInclude(line => line.Unit)
             .AsQueryable();
+        exceptionQuery = ApprovalInboxSourceFilter.ByIdentity(exceptionQuery, item => item.PurchasePriceExceptionId, query);
         var isInMemoryProvider = string.Equals(
             _context.Database.ProviderName,
             "Microsoft.EntityFrameworkCore.InMemory",
@@ -304,9 +289,13 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             }
         }
 
-        var queriedExceptions = await exceptionQuery
-            .Take(Math.Min(limit * 4 + 1, 200))
-            .ToListAsync(cancellationToken);
+        var queriedExceptions = isInMemoryProvider
+            ? await exceptionQuery.ToListAsync(cancellationToken)
+            : await exceptionQuery
+                .OrderBy(item => item.PurchaseLineSupplierDecision.PurchaseRequestLine.PurchaseRequest.PurchaseForDate)
+                .ThenBy(item => item.PurchaseLineSupplierDecision.PurchaseRequestLine.PurchaseRequest.PurchaseRequestCode)
+                .ThenBy(item => item.PurchasePriceExceptionId)
+                .Skip(offset).Take(limit).ToListAsync(cancellationToken);
         var exceptions = (isInMemoryProvider
                 ? _context.ChangeTracker.Entries<PurchasePriceException>()
                     .Select(entry => entry.Entity)
@@ -326,6 +315,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .OrderBy(item => item.PurchaseLineSupplierDecision.PurchaseRequestLine.PurchaseRequest.PurchaseForDate)
             .ThenBy(item => item.PurchaseLineSupplierDecision.PurchaseRequestLine.PurchaseRequest.PurchaseRequestCode)
             .ThenBy(item => item.ProposalVersion)
+            .ThenBy(item => GuidHelper.ToGuidString(item.PurchasePriceExceptionId), StringComparer.Ordinal)
+            .Skip(isInMemoryProvider ? offset : 0).Take(limit)
             .ToList();
         var result = new List<ApprovalInboxItemDto>(exceptions.Count);
         var slaTargets = new List<ApprovalInboxSlaTarget>();
@@ -379,7 +370,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 0,
                 0,
                 DateTimeKind.Utc);
-            if (cursor is null || IsAfterCursor(itemDto, cursor))
+            if (cursor is null || ApprovalInboxCursor.IsAfterCursor(itemDto, cursor))
             {
                 slaTargets.Add(new ApprovalInboxSlaTarget(itemDto, priceException.PurchasePriceExceptionId, baseDocDate));
                 result.Add(itemDto);
@@ -393,7 +384,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
     private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildInventoryReceiptItemsAsync(
         int limit,
         ApprovalInboxCursor? cursor,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int offset = 0, ApprovalInboxQueryDto? query = null)
     {
         var receiptQuery = _context.Inventoryreceipts
             .AsNoTracking()
@@ -405,6 +397,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 .ThenInclude(line => line.Unit)
             .Where(item => item.Status == "PENDING_APPROVAL" &&
                 (item.QualityStatus == "ACCEPTED" || item.QualityStatus == "PARTIALLY_ACCEPTED"));
+        receiptQuery = ApprovalInboxSourceFilter.ByIdentity(receiptQuery, item => item.ReceiptId, query);
+        receiptQuery = ApprovalInboxSourceFilter.ByDate(receiptQuery, item => item.ReceiptDate, query);
         if (cursor is not null)
         {
             receiptQuery = receiptQuery.Where(item =>
@@ -412,8 +406,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 (item.ReceiptDate == cursor.DueDate && item.ReceiptCode.CompareTo(cursor.TargetCode) > 0));
         }
 
-        var receipts = await receiptQuery.OrderBy(item => item.ReceiptDate).ThenBy(item => item.ReceiptCode)
-            .Take(limit).ToListAsync(cancellationToken);
+        var receipts = await receiptQuery.OrderBy(item => item.ReceiptDate).ThenBy(item => item.ReceiptCode).ThenBy(item => item.ReceiptId)
+            .Skip(offset).Take(limit).ToListAsync(cancellationToken);
         return receipts.Select(receipt =>
         {
             var targetId = GuidHelper.ToGuidString(receipt.ReceiptId);
@@ -455,7 +449,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
     private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildInventoryIssueItemsAsync(
         int limit,
         ApprovalInboxCursor? cursor,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int offset = 0, ApprovalInboxQueryDto? query = null)
     {
         var issueQuery = _context.Inventoryissues
             .AsNoTracking()
@@ -477,6 +472,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                     history.TargetType == InventoryIssueTargetType &&
                     history.TargetId == item.IssueId &&
                     (history.Decision == "APPROVE" || history.Decision == "REJECT")));
+        issueQuery = ApprovalInboxSourceFilter.ByIdentity(issueQuery, item => item.IssueId, query);
+        issueQuery = ApprovalInboxSourceFilter.ByDate(issueQuery, item => item.IssueDate, query);
         if (cursor is not null)
         {
             issueQuery = issueQuery.Where(item =>
@@ -486,8 +483,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
 
         var issues = await issueQuery
             .OrderBy(item => item.IssueDate)
-            .ThenBy(item => item.IssueCode)
-            .Take(limit)
+            .ThenBy(item => item.IssueCode).ThenBy(item => item.IssueId)
+            .Skip(offset).Take(limit)
             .ToListAsync(cancellationToken);
 
         var resultList = new List<ApprovalInboxItemDto>();

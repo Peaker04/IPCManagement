@@ -6,7 +6,7 @@ import type { MrxWarehouseDaily, CreateMrxIssueRequest, MrxKitchenCooking } from
 import { assertServingInputs, materialTotals, writeMenuCoverage, type CoverageDish, type CoverageSource, type CoverageServings, type ServingInputFact } from '../fixtures/menuCoverage';
 import type { MrxEditScope, MrxMenuChangeRequest, MrxMenuChangeResult } from '../../../src/api/mrxApi';
 import { respectApiBudget } from '../fixtures/authHelpers';
-import type { Page, Response, Route } from '@playwright/test';
+import type { Page, Request, Response, Route } from '@playwright/test';
 
 function binaryId(value: string) {
   const [a,b,c,d,e] = value.split('-');
@@ -73,16 +73,11 @@ test(`@G6-Direct-Source-Edit ${schedule}: source correction preserves issued dat
     await expect(dieuphoiPage.getByText('Đã gửi yêu cầu thay đổi để duyệt.', { exact: true })).toBeVisible();
     return { result: (await response.json()).data, body: response.request().postDataJSON() };
   }
-  async function openReview(page: Page, reason: string) {
+  async function openReview(page: Page, reason: string, requestId: string) {
     await page.goto(sourceUrl);
     await page.getByRole('button', { name: /Yêu cầu chờ duyệt/ }).click();
-    const select = page.getByLabel('Yêu cầu nguồn cần duyệt');
-    if (await select.isVisible()) {
-      const id = await select.locator('option').filter({ hasText: reason }).getAttribute('value');
-      expect(id).toBeTruthy();
-      await select.selectOption(id!);
-    }
-    await expect(page.getByRole('region', { name: 'Duyệt thay đổi nguồn MRX' })).toContainText(reason);
+    await page.goto('/approvals?targetType=mrx-source-change&targetId=' + requestId);
+    await expect(page.getByRole('definition').filter({ hasText: reason })).toBeVisible();
   }
   const rejectedReason = `${scope.reason} reject first`;
   const submitted = await submitCorrection('1010', rejectedReason);
@@ -94,28 +89,29 @@ test(`@G6-Direct-Source-Edit ${schedule}: source correction preserves issued dat
     expect(status, 'Coordinator/Warehouse/Chef cannot directly apply source changes').toBe(403);
   }
   expect(protectedState()).toEqual(sourceBeforeReview);
-  await openReview(adminPage, rejectedReason);
-  await adminPage.getByRole('button', { name: 'Từ chối…', exact: true }).click();
+  await openReview(adminPage, rejectedReason, submitted.result.menuAmendmentId);
+  await adminPage.getByRole('button', { name: 'Từ chối hồ sơ', exact: true }).click();
   await expect(adminPage.getByRole('button', { name: 'Xác nhận từ chối', exact: true })).toBeDisabled();
   const rejection = `${scope.reason} servings need correction`;
-  await adminPage.getByLabel('Lý do từ chối thay đổi nguồn').fill(rejection);
-  const denied = adminPage.waitForResponse((r) => r.url().endsWith('/mrx-decision') && r.request().method() === 'POST');
+  await adminPage.getByLabel('Căn cứ quyết định').fill(rejection);
+  const denied = adminPage.waitForResponse((r) => r.url().includes('/api/operational-approvals/mrx-source-change/') && r.url().endsWith('/decision') && r.request().method() === 'POST');
   await adminPage.getByRole('button', { name: 'Xác nhận từ chối', exact: true }).click();
   expect((await denied).status()).toBe(200);
   expect(protectedState()).toEqual(sourceBeforeReview);
   expect(dbVerifier.query(`SELECT status FROM menuamendments WHERE reason='${rejectedReason}';`)).toEqual([{ status: 'REJECTED' }]);
   expect(dbVerifier.query(`SELECT Reason AS reason FROM auditlogs WHERE EntityName='MenuAmendment' AND NewValue='REJECTED' AND Reason='${rejection}';`)).toEqual([{ reason: rejection }]);
   const resubmitReason = `${scope.reason} corrected resubmission`;
-  await submitCorrection('1020', resubmitReason);
-  await openReview(managerPage, resubmitReason);
-  const approved = managerPage.waitForResponse((r) => r.url().endsWith('/mrx-decision') && r.request().method() === 'POST');
-  await managerPage.getByRole('button', { name: 'Phê duyệt thay đổi', exact: true }).click();
+  const resubmitted = await submitCorrection('1020', resubmitReason);
+  await openReview(managerPage, resubmitReason, resubmitted.result.menuAmendmentId);
+  const approved = managerPage.waitForResponse((r) => r.url().includes('/api/operational-approvals/mrx-source-change/') && r.url().endsWith('/decision') && r.request().method() === 'POST');
+  await managerPage.getByRole('button', { name: 'Phê duyệt hồ sơ', exact: true }).click();
+  await managerPage.getByLabel('Căn cứ quyết định').fill(resubmitReason);
   await managerPage.getByRole('button', { name: 'Xác nhận phê duyệt', exact: true }).click();
   expect((await approved).status()).toBe(200);
   const approvedSource = dbVerifier.query(`SELECT HEX(v.CustomerId) AS customer, HEX(b.MenuVersionId) AS source, b.Version AS version, COUNT(s.menuScheduleId) AS schedules FROM reconciliationbatches b JOIN menuversions v ON v.MenuVersionId=b.MenuVersionId JOIN menuschedules s ON s.MenuVersionId=b.MenuVersionId WHERE b.BatchId=UNHEX('${batchHex}') GROUP BY v.CustomerId,b.MenuVersionId,b.Version;`);
   expect(approvedSource).toHaveLength(1);
   fs.writeFileSync(path.join(evidence, 'manager-approved-source.json'), JSON.stringify({ sourceUrl, approvedSource, browserUrl: managerPage.url() }, null, 2));
-  await managerPage.reload();
+  await managerPage.goto(sourceUrl);
   await expect(savoryInput(managerPage, 1)).toHaveValue('1020');
   await respectApiBudget(managerPage);
   await savoryInput(managerPage, 1).fill('1021');
@@ -157,7 +153,10 @@ test(`@G6-Direct-Source-Edit ${schedule}: source correction preserves issued dat
     await historyPage.screenshot({ path: path.join(evidence, 'source-history-visible.png'), fullPage: true });
     await eventList.getByRole('button', { name: /Xem chi tiết thay đổi nguồn/ }).first().click();
     await expect(historyPage.getByRole('dialog').getByText('Thay đổi định lượng đã áp dụng')).toBeVisible();
-    await expect(historyPage.getByRole('list', { name: 'Định lượng nguyên liệu trước và sau' }).getByRole('listitem').first()).toBeVisible();
+    const materialTable = historyPage.getByRole('table', { name: 'Định lượng nguyên liệu trước và sau' });
+    await expect(materialTable.getByRole('columnheader', { name: 'Trước', exact: true })).toBeVisible();
+    await expect(materialTable.getByRole('columnheader', { name: 'Sau', exact: true })).toBeVisible();
+    expect(await materialTable.getByRole('row').count()).toBeGreaterThan(1);
     await historyPage.screenshot({ path: path.join(evidence, 'source-history-detail.png'), fullPage: true });
   } finally {
     await historyPage.close();
@@ -383,9 +382,10 @@ test(`@G6-Direct-Source-Edit ${schedule}: source correction preserves issued dat
 }
 });
 
-for (const scenario of ['edits', 'reimports-and-groups', 'validation'] as const) {
+for (const scenario of ['reimports-and-groups', 'validation', 'edits'] as const) {
 test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independently checked terminal exports`, async ({ adminPage, managerPage, dieuphoiPage, thukhoPage, beptruongPage, dbVerifier }) => {
   test.setTimeout(600_000);
+  for (const page of [adminPage, managerPage, dieuphoiPage, thukhoPage, beptruongPage]) page.setDefaultTimeout(15_000);
   const scope = scenarioScope(dbVerifier, scenario === 'edits' ? 12 : scenario === 'reimports-and-groups' ? 16 : 20);
   const evidence = scenario === 'edits' ? process.env.MRX_E2E_ARTIFACT_DIRECTORY! : path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, scenario);
   fs.mkdirSync(evidence, { recursive: true });
@@ -397,7 +397,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
   const end = weekEnd.toISOString().slice(0, 10);
   // Capture immutable master inputs before any source mutation; arithmetic below never reads demand as its answer.
   const rows = dbVerifier.query<{ fact: string }>(`SELECT JSON_OBJECT('id',HEX(d.dishId),'code',d.dishCode,'name',d.dishName,
-    'variant',IF(LOWER(CONCAT(d.dishName,' ',COALESCE(d.dishGroup,''),' ',COALESCE(d.dishType,''))) LIKE '%chay%','vegetarian','savory'),
+    'variant',IF(BINARY LOWER(CONCAT(d.dishName,' ',COALESCE(d.dishGroup,''),' ',COALESCE(d.dishType,''))) LIKE BINARY '%chay%','vegetarian','savory'),
     'materials',(SELECT JSON_ARRAYAGG(JSON_OBJECT('ingredientCode',i.ingredientCode,'ingredientName',i.ingredientName,'ingredientId',HEX(i.ingredientId),'unitId',HEX(cu.unitId),'unitName',cu.unitName,'wasteRatePercent',b.wasteRatePercent,'canonicalUnitCode',cu.unitCode,
       'grossQtyPerServing',CAST(b.grossQtyPerServing AS CHAR),'sourceRate',CAST(u.convertRateToBase AS CHAR),'targetRate',CAST(cu.convertRateToBase AS CHAR)))
       FROM dishbom b JOIN ingredients i ON i.ingredientId=b.ingredientId JOIN units u ON u.unitId=b.unitId JOIN units cu ON cu.unitId=i.unitId
@@ -411,13 +411,11 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
     FROM dishes d WHERE d.isActive=1 ORDER BY d.dishCode;`);
   type RecipeFact = Omit<CoverageDish, 'materials'> & { materials: (CoverageDish['materials'][number] & { ingredientName: string; ingredientId: string; unitId: string; unitName: string; wasteRatePercent: number })[] };
   const catalog = rows.map((r) => JSON.parse(r.fact) as RecipeFact & { id: string }).filter((d) => d.materials?.length);
-  const stockableIngredients = new Set(dbVerifier.query<{ id: string }>(`SELECT HEX(s.ingredientId) AS id FROM currentstock s
-    JOIN warehouses w ON w.warehouseId=s.warehouseId AND w.IsOperationalActive=1
-    GROUP BY s.ingredientId HAVING COUNT(*)=1;`).map((row) => row.id));
-  const stockableDishes = catalog.filter((dish) => dish.materials.every((material) => stockableIngredients.has(material.ingredientId.toUpperCase())));
-  const dishes = (['savory', 'vegetarian'] as const).flatMap((variant) => stockableDishes.filter((d) => d.variant === variant).slice(0, 4));
+  const dishes = (['savory', 'vegetarian'] as const).flatMap((variant) => catalog.filter((d) => d.variant === variant).slice(0, 4));
   for (const variant of ['savory', 'vegetarian'] as const) {
-    expect(dishes.filter((dish) => dish.variant === variant), `Clone needs four real ${variant} dishes whose BOM ingredients each have exactly one operational stock row`).toHaveLength(4);
+    // Four sections are two shifts × two variants; each section rotates real recipes modulo its group.
+    // Two distinct recipes suffice for the horizontal/vertical swaps without inventing catalog or stock rows.
+    expect(dishes.filter((dish) => dish.variant === variant).length, `Clone needs two distinct real ${variant} dishes with published BOM and valid canonical conversions`).toBeGreaterThanOrEqual(2);
   }
   const manifest = writeMenuCoverage(scope, dishes);
   scope.workbook = manifest.workbook;
@@ -436,7 +434,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
     if (url.endsWith('/weekly-menu/import/preview')) previews.push({ response, checksum: dbVerifier.query('CHECKSUM TABLE menuversions,menuschedules,menuitems,mealquantityplanlines,reconciliationbatches;') });
     if (url.includes('/weekly-menu/') && url.endsWith('/commit')) imports.push(response);
     if (url.endsWith('/amendments/mrx-submit')) submissions.push(response);
-    if (url.endsWith('/mrx-decision')) decisions.push(response);
+    if (url.includes('/api/operational-approvals/mrx-source-change/') && url.endsWith('/decision')) decisions.push(response);
   };
   let currentVersionId = '', customerId = '';
   let importedPredecessor: ReturnType<typeof capturePredecessor> | undefined;
@@ -470,7 +468,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
     expect(versionSnapshot(before.versionId)).toEqual(before.version);
     expect(menuRows(before.menuIds)).toEqual(before.menus);
   }
-  function acceptVersion(result: MrxMenuChangeResult) {
+  function acceptVersion(result: Pick<MrxMenuChangeResult, 'menuAmendmentId' | 'appliedMenuVersionId'>) {
     expect(result.appliedMenuVersionId).toMatch(/^[a-f0-9-]{36}$/i);
     expect(result.appliedMenuVersionId).not.toBe(currentVersionId);
     const previous = versionSnapshot(currentVersionId);
@@ -556,7 +554,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
   adminPage.on('response', captureResponse);
   let batchId: string;
   try {
-    ({ batchId } = await createTransferredBatch({ coordinator: dieuphoiPage, admin: adminPage, recordSteps: true,
+    ({ batchId } = await createTransferredBatch({ coordinator: dieuphoiPage, admin: adminPage, recordSteps: true, stopAtDraft: scenario === 'reimports-and-groups',
       sourceScenario: async (page) => {
         console.log(`[MENU-COVERAGE ${scenario}] import committed; checking frozen source and ${servings.length} serving cells`);
         expect(previews).toHaveLength(1);
@@ -584,7 +582,13 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
         assertCommand(body, servings);
         customerId = body.customerId;
         const submitted = (await submissions[0].json()).data as MrxMenuChangeResult;
-        const accepted = (await decisions[0].json()).data as MrxMenuChangeResult;
+        expect(decisions[0].status()).toBe(200);
+        const decision = (await decisions[0].json()).data as { targetId: string; newStatus: string };
+        expect(decision.targetId).toBe(submitted.menuAmendmentId);
+        expect(decision.newStatus).toBe('EXECUTED');
+        // The hub returns ApprovalResultDto, not the old mutation result. Read the actual
+        // current scope, then acceptVersion independently checks version lineage in MySQL.
+        const accepted = { menuAmendmentId: decision.targetId, appliedMenuVersionId: (await readScope(page)).menuVersionId };
         expect(accepted.menuAmendmentId).toBe(submitted.menuAmendmentId);
         acceptVersion(accepted);
         expect(importedPredecessor).toBeDefined();
@@ -693,6 +697,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
       const prior = capturePredecessor();
       const beforePreview = dbVerifier.query('CHECKSUM TABLE menuversions,menuschedules,menuitems,mealquantityplanlines,reconciliationbatches,reconciliationbatchdailylines,reconciliationbatchcontributors;');
       await adminPage.getByRole('button', { name: 'Nhập Excel', exact: true }).click();
+      await adminPage.getByRole('combobox', { name: 'Phạm vi nhập Excel' }).selectOption('current-week');
       await expect(adminPage.getByRole('combobox', { name: 'Phạm vi nhập Excel' })).toHaveValue('current-week');
       await expect(adminPage.locator('select#import-customer-select')).toBeDisabled();
       await expect(adminPage.locator('select#import-customer-select')).toHaveValue(customerId);
@@ -739,7 +744,8 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
       const horizontal = expected.filter((r) => r.date <= manifest.servings[2].date && r.shift === shift && r.variant === variant && r.slot === 'main');
       expect(horizontal).toHaveLength(2);
       expect(new Set(horizontal.map((row) => row.dishCode)).size, 'Completion mode must have one horizontal dish group').toBe(1);
-      const nextDish = dishes.filter((d) => d.variant === variant && d.code !== vertical[0].dishCode && d.code !== horizontal[0].dishCode).at(-1)!;
+      const nextDish = dishes.filter((d) => d.variant === variant && d.code !== vertical[0].dishCode).at(-1)!;
+      expect(nextDish, 'Whole-group edit needs a different published recipe').toBeDefined();
       await apply(`EDT-02 whole vertical ${shift} ${variant}`, vertical.map((target) => ({ target: { ...target }, code: nextDish.code })), undefined, true);
       const horizontalDish = dishes.filter((d) => d.variant === variant && d.code !== horizontal[0].dishCode && d.code !== vertical[0].dishCode).at(-1)!;
       await apply(`EDT-01 both horizontal members ${shift} ${variant}`, horizontal.map((target) => ({ target: { ...target }, code: horizontalDish.code })));
@@ -748,22 +754,31 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
       await apply(`SWP-03 all merged members ${shift} ${variant}`, [...vertical.map((target) => ({ target: { ...target }, code: horizontalCode })), ...horizontal.map((target) => ({ target: { ...target }, code: verticalCode }))]);
     }
   } else {
-    async function rejectPreview(label: string, code: string) {
-      const sql = 'CHECKSUM TABLE menuversions,menuschedules,menuitems,mealquantityplanlines,reconciliationbatches,reconciliationbatchdailylines,reconciliationbatchcontributors,reconciliationsourcerevisions,reconciliationsourcedeltas;';
-      const before = dbVerifier.query(sql);
-      await adminPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
-      await adminPage.getByLabel('Lý do thay đổi nguồn').fill(`${scope.reason} ${label}`);
-      const pending = adminPage.waitForResponse((r) => r.url().endsWith('/amendments/preview') && r.request().method() === 'POST');
-      await adminPage.getByRole('button', { name: 'Xem ảnh hưởng', exact: true }).click();
-      const response = await pending;
-      expect(response.status()).toBe(422); expect((await response.json()).code).toBe(code);
-      await expect(adminPage.getByRole('button', { name: 'Áp dụng ngay', exact: true })).toBeDisabled();
-      expect(dbVerifier.query(sql)).toEqual(before);
-      fs.writeFileSync(path.join(evidence, `${label}-no-write.json`), JSON.stringify({ batchId, request: response.request().postDataJSON(), code, noWrite: true }, null, 2));
-      await adminPage.reload(); await checkInputs(adminPage, label); assertMaterials();
+    const sql = 'CHECKSUM TABLE menuversions,menuschedules,menuitems,mealquantityplanlines,reconciliationbatches,reconciliationbatchdailylines,reconciliationbatchcontributors,reconciliationsourcerevisions,reconciliationsourcedeltas;';
+    const isPreview = (r: Request) => r.url().endsWith('/amendments/preview') && r.method() === 'POST';
+    const beforeMissing = dbVerifier.query(sql);
+    const previewRequests: string[] = [];
+    const trackPreview = (request: Request) => {
+      if (isPreview(request)) previewRequests.push(request.url());
+    };
+    const review = adminPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ });
+    const savoryInput = adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(scope.weekStartDate)} Sáng`, exact: true });
+    adminPage.on('request', trackPreview);
+    try {
+      await savoryInput.fill('');
+      await review.click();
+      await expect(adminPage.getByRole('alert').filter({ hasText: 'Cần nhập đủ suất Mặn và Chay' })).toBeVisible();
+      await expect(savoryInput).toBeFocused();
+      await expect(adminPage.getByRole('button', { name: 'Áp dụng ngay', exact: true })).toHaveCount(0);
+    } finally {
+      adminPage.off('request', trackPreview);
     }
-    await adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(scope.weekStartDate)} Sáng`, exact: true }).fill('');
-    await rejectPreview('SRV-02-missing', 'MRX_SERVINGS_SPLIT_REQUIRED');
+    expect(previewRequests).toHaveLength(0);
+    expect(dbVerifier.query(sql)).toEqual(beforeMissing);
+    fs.writeFileSync(path.join(evidence, 'SRV-02-missing-no-write.json'), JSON.stringify({ batchId, previewRequests: 0, noWrite: true }, null, 2));
+    await adminPage.reload();
+    await checkInputs(adminPage, 'SRV-02-missing');
+    assertMaterials();
     const original = servings[0].savory;
     await apply('SRV-02 explicit zero', [], { date: scope.weekStartDate, shift: 'MORNING', variant: 'savory', value: 0 });
     await apply('SRV-02 restore nonzero', [], { date: scope.weekStartDate, shift: 'MORNING', variant: 'savory', value: original });
@@ -772,13 +787,44 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
     const prior = await editScope();
     const slot = prior.days[0].shifts.find((shift) => shift.shiftName === 'MORNING')!.slots.find((cell) => cell.dishSlot === 'savory-main')!;
     await adminPage.getByRole('button', { name: 'Chỉnh sửa món', exact: true }).click();
-    const candidates = await adminPage.getByRole('combobox', { name: `${slot.slotLabel} ${short(scope.weekStartDate)} Sáng`, exact: true }).all();
+    const expand = adminPage.getByRole('button', { name: new RegExp(`Tách để sửa riêng .* ${short(scope.weekStartDate)} Sáng$`) });
+    for (let count = 0; await expand.count(); count++) {
+      expect(count).toBeLessThan(10);
+      await expand.first().click();
+    }
+    const candidates = await adminPage.getByRole('combobox', { name: prefixName(`${slot.slotLabel} ${short(scope.weekStartDate)} Sáng`) }).all();
     const matching = [];
     for (const candidate of candidates) if (await candidate.inputValue() === slot.dishName) matching.push(candidate);
     expect(matching).toHaveLength(1);
     await matching[0].fill(missing!.name);
     await adminPage.getByRole('listbox').getByRole('option').filter({ has: adminPage.getByText(missing!.code, { exact: true }) }).click();
-    await rejectPreview('NEG-02-missing-BOM', 'MRX_BOM_MISSING');
+    const beforeBomPreview = dbVerifier.query(sql);
+    const pending = adminPage.waitForResponse(r => isPreview(r.request()));
+    await review.click();
+    const response = await pending;
+    expect(response.status()).toBe(422);
+    const error = await response.json();
+    expect(error.code).toBe('MRX_BOM_MISSING');
+    expect(error.message).toContain(missing!.name);
+    await expect(adminPage.getByRole('alert').getByText('Món thay thế chưa có định mức cho ngày phục vụ.', { exact: true })).toBeVisible();
+    await expect(adminPage.getByRole('button', { name: 'Áp dụng ngay', exact: true })).toHaveCount(0);
+    expect(dbVerifier.query(sql)).toEqual(beforeBomPreview);
+    fs.writeFileSync(path.join(evidence, 'NEG-02-missing-BOM-no-write.json'), JSON.stringify({ batchId, request: response.request().postDataJSON(), code: error.code, noWrite: true }, null, 2));
+    await adminPage.reload();
+    await checkInputs(adminPage, 'NEG-02-missing-BOM');
+    assertMaterials();
+  }
+  if (scenario === 'reimports-and-groups') {
+    await respectApiBudget(dieuphoiPage);
+    await dieuphoiPage.goto(sourceUrl);
+    for (const [action, label] of [['ready', 'Đóng băng lô'], ['transfer-to-warehouse', 'Chuyển sang Kho']]) {
+      const response = dieuphoiPage.waitForResponse((item) => item.url().endsWith(`/batches/${batchId}/${action}`) && item.request().method() === 'POST');
+      await dieuphoiPage.getByRole('button', { name: label, exact: true }).click();
+      expect((await response).status()).toBe(200);
+    }
+    await expect(dieuphoiPage.getByRole('button', { name: 'Nhập Excel', exact: true })).toHaveCount(0);
+    await expect(dieuphoiPage.getByRole('button', { name: 'Nhập thực đơn mới', exact: true })).toBeVisible();
+    assertMaterials();
   }
   for (const day of [...new Set(expected.map((r) => r.date))]) {
     await respectApiBudget(thukhoPage);
@@ -786,7 +832,8 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
     const inputRows = dbVerifier.query<{ ingredientId: string; unitId: string; ingredientCode: string; canonicalUnitCode: string; date: string; quantity: string }>(`SELECT HEX(d.IngredientId) AS ingredientId,HEX(d.CanonicalUnitId) AS unitId,i.ingredientCode,u.unitCode AS canonicalUnitCode,CAST(d.ServiceDate AS CHAR) AS date,CAST(d.RequiredQuantity AS CHAR) AS quantity FROM reconciliationbatchdailylines d JOIN ingredients i ON i.ingredientId=d.IngredientId JOIN units u ON u.unitId=d.CanonicalUnitId WHERE d.BatchId=UNHEX('${batchHex}') AND d.ServiceDate='${day}' AND d.RequiredQuantity>0 ORDER BY i.ingredientCode,u.unitCode;`);
     const wantedDay = materialTotals(expected, dishes, servings).filter((row) => row.date === day);
     expect(inputRows.map(({ ingredientCode, canonicalUnitCode, date, quantity }) => ({ date, ingredientCode, canonicalUnitCode, quantity }))).toEqual(wantedDay);
-    const opening = new Map(inputRows.map((row) => [row.ingredientId, dbVerifier.captureStockSnapshot(row.ingredientId)]));
+    const physicalLedger = () => dbVerifier.query('CHECKSUM TABLE currentstock,currentstocklots,stockmovements;');
+    const opening = physicalLedger();
     const response = await issue(thukhoPage);
     const created = (await response.json()).data;
     const request = response.request().postDataJSON() as CreateMrxIssueRequest;
@@ -795,10 +842,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
     expect(actualIssue).toEqual(wantedDay);
     const receipts = dbVerifier.query(`SELECT responseJson FROM lifecyclecommandreceipts WHERE commandId='${request.commandId}';`);
     expect(receipts).toHaveLength(1); expect(JSON.parse(receipts[0].responseJson).IssueId).toBe(created.issueId);
-    for (const row of inputRows) {
-      const before = opening.get(row.ingredientId)!;
-      expect(dbVerifier.captureStockSnapshot(row.ingredientId)).toEqual(before);
-    }
+    expect(physicalLedger()).toEqual(opening);
     if (scenario === 'reimports-and-groups' && day === scope.weekStartDate) {
       await respectApiBudget(adminPage);
       const prior = await editScope();

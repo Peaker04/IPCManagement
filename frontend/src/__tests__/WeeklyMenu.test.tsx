@@ -260,7 +260,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     expect(transport.mock.calls.every(([, options]) => !options?.method || options.method === 'GET')).toBe(true);
   });
 
-  it('lets Admin review exact pending impact and approve it from the MRX inbox', async () => {
+  it('routes Admin pending source requests to the central MRX approval context', async () => {
     localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
     vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     localStorage.setItem('ipc_v3_user', JSON.stringify({
@@ -281,14 +281,9 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
 
     renderWeeklyMenu('/weekly-menu?view=mrx-batch');
     await userEvent.click(await screen.findByRole('button', { name: 'Yêu cầu chờ duyệt (1)' }));
-    expect(screen.getByRole('table', { name: 'Thay đổi nguồn đã gửi' })).toHaveTextContent('100 → 120 suất');
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Phê duyệt thay đổi' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận phê duyệt' }));
+    expect(await screen.findByText('/approvals?targetType=mrx-source-change&targetId=amendment-1')).toBeInTheDocument();
+    expect(mrxApi.decideSourceChange).not.toHaveBeenCalled();
 
-    expect(mrxApi.decideSourceChange).toHaveBeenCalledWith('amendment-1', true, undefined);
-    expect(await screen.findByText('Đã áp dụng thay đổi nguồn.')).toBeInTheDocument();
-    expect(screen.queryByText('Thành công')).not.toBeInTheDocument();
   });
 
   it('shows a fail-closed explanation rather than a blank body when a retained batch has no weekly source', async () => {

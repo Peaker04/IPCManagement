@@ -13,6 +13,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
+using IPCManagement.Api.Data.Transactions;
 
 namespace IPCManagement.Api.Tests;
 
@@ -22,6 +25,44 @@ namespace IPCManagement.Api.Tests;
 /// </summary>
 public sealed class MrxSourceChangeApplierTests
 {
+    [Fact]
+    public async Task Direct_apply_retries_with_fresh_input_after_rolled_back_save()
+    {
+        await using var scenario = await Scenario.CreateAsync();
+        var failOnce = new FailFirstSourceSave();
+        await using var context = new IpcManagementContext(new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(scenario.Context.Database.GetDbConnection()).AddInterceptors(failOnce).Options);
+        var strategy = new SourceRetryStrategy(context);
+        var runner = new EfTransactionRunner(context, () => strategy);
+        var result = await new MenuAmendmentService(context, runner).ApplyMrxAsync(
+            scenario.Request(Servings(OpenDay, 150, 0)), scenario.ManagerIdString, ManagerRoles);
+        result.Status.Should().Be("EXECUTED");
+        failOnce.Saves.Should().BeGreaterThan(1);
+        context.ChangeTracker.Clear();
+        (await context.Menuamendments.SingleAsync()).Status.Should().Be("EXECUTED");
+        (await context.Menuversions.CountAsync(x => x.CustomerId == scenario.BaseVersion.CustomerId
+            && x.WeekStartDate == LockedDay)).Should().Be(2);
+        (await context.Reconciliationsourcerevisions.CountAsync()).Should().Be(1);
+        (await context.Reconciliationbatchdailylines.SingleAsync(x => x.DailyLineId == scenario.OpenDaily.DailyLineId))
+            .RequiredQuantity.Should().Be(300m);
+    }
+
+    private sealed class SourceRetryFailure : Exception;
+    private sealed class SourceRetryStrategy(DbContext context) : ExecutionStrategy(context, 1, TimeSpan.Zero)
+    {
+        protected override bool ShouldRetryOn(Exception exception) => exception is SourceRetryFailure;
+    }
+    private sealed class FailFirstSourceSave : SaveChangesInterceptor
+    {
+        public int Saves { get; private set; }
+        public override ValueTask<int> SavedChangesAsync(SaveChangesCompletedEventData eventData, int result,
+            CancellationToken cancellationToken = default)
+        {
+            if (++Saves == 1) throw new SourceRetryFailure();
+            return ValueTask.FromResult(result);
+        }
+    }
+
     internal static readonly DateOnly LockedDay = new(2026, 6, 15);
     internal static readonly DateOnly OpenDay = new(2026, 6, 17);
     private static readonly string[] ManagerRoles = ["Quản lý"];

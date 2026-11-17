@@ -112,6 +112,10 @@ public class InventoryIssuesController : ControllerBase
         {
             return Conflict(ApiResponse.FailResult(ex.Message, ex.Shortage));
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex) when (!string.IsNullOrWhiteSpace(dto.ReconciliationBatchId))
+        {
+            return Conflict(new { success = false, message = ex.Message, code = "MRX_ISSUE_STALE" });
+        }
         catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));

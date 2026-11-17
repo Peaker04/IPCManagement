@@ -46,6 +46,21 @@ public class InventoryIssueServiceTests
     }
 
     [Fact]
+    public async Task Default_issue_rejects_mrx_purpose_allocations_before_resolving_or_writing_stock()
+    {
+        var request = new CreateInventoryIssueRequest { CommandId = "default-wrong-purpose", IssueDate = new DateOnly(2026, 11, 30),
+            MaterialRequestId = Guid.NewGuid().ToString(), WarehouseId = Guid.NewGuid().ToString(),
+            Lines = [new() { MaterialRequestLineId = Guid.NewGuid().ToString(), IngredientId = Guid.NewGuid().ToString(),
+                UnitId = Guid.NewGuid().ToString(), RequestedQty = 1m, IssuedQty = 1m,
+                Allocations = [new() { Purpose = "BASELINE_SHORTAGE", Quantity = 1m }] }] };
+        var act = async () => await _service.CreateAsync(request, Guid.NewGuid().ToString());
+        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Phân bổ nhu cầu MRX không được gửi vào phiếu xuất DEFAULT.");
+        _issueRepository.ReceivedCalls().Should().BeEmpty();
+        _stockLedgerService.ReceivedCalls().Should().BeEmpty();
+        _unitOfWork.ReceivedCalls().Should().BeEmpty();
+    }
+
+    [Fact]
     public void Constructor_WhenCompletionTransitionIsMissing_FailsFast()
     {
         var action = () => new InventoryIssueService(

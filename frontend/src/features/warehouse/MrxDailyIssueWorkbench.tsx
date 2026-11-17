@@ -86,12 +86,6 @@ export function MrxDailyIssueWorkbench({
     issueSucceeded,
     isSupplementalOpen,
     setIsSupplementalOpen,
-    suppMaterialId,
-    setSuppMaterialId,
-    suppQuantity,
-    setSuppQuantity,
-    suppReason,
-    setSuppReason,
     isSubmittingSupp,
     suppError,
     suppOutcomeUnknown,
@@ -99,11 +93,14 @@ export function MrxDailyIssueWorkbench({
     inspectedIssueId,
     setInspectedIssueId,
     handleFillAll,
+    canIssueBatch,
     canSubmit,
     submit,
     handleSupplementalSubmit,
+    recoverSupplemental,
   } = useMrxDailyWorkspace({ batchId: propBatchId, serviceDate: propServiceDate });
 
+  const [supplementalDirty, setSupplementalDirty] = useState(false);
   const [activeTab, setActiveTab] = useState<'demand' | 'history'>('demand');
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [historyPickerOpen, setHistoryPickerOpen] = useState(false);
@@ -117,14 +114,16 @@ export function MrxDailyIssueWorkbench({
     );
   }, [history?.items, historyQuery]);
   const isIssueOutcomeUnknown = issueOutcomeUnknown;
+  const isIssueConflict = mutationError instanceof ApiError && mutationError.status === 409;
+  const isStaleIssue = isIssueConflict && mutationError.code === 'MRX_ISSUE_STALE';
   const isOutsideBatchDate = Boolean(daily?.dates.length && !isWeeklyAll && !day);
   const dirtyNavigation = useOptionalDirtyNavigation();
   const registerDirty = dirtyNavigation?.registerDirty;
   const hasUnsavedDraft = useMemo(() => (
     Object.values(quantities).some((val) => Boolean(val?.trim())) ||
     Object.values(reasons).some((val) => Boolean(val?.trim())) ||
-    Boolean(isSupplementalOpen && (suppQuantity.trim() || suppReason.trim()))
-  ), [quantities, reasons, isSupplementalOpen, suppQuantity, suppReason]);
+    Boolean(isSupplementalOpen && supplementalDirty)
+  ), [quantities, reasons, isSupplementalOpen, supplementalDirty]);
 
   useEffect(() => {
     if (!registerDirty || (!hasUnsavedDraft && !scopeLocked)) return;
@@ -235,13 +234,12 @@ export function MrxDailyIssueWorkbench({
         }}
         isWeeklyAll={isWeeklyAll}
         hasInitialIssue={hasInitialIssue}
+        canIssueBatch={canIssueBatch}
         onOpenSupplemental={() => {
           if (scopeLocked) return;
-          setSuppMaterialId(lines[0]?.dailyLineId || '');
-          setSuppQuantity('');
-          setSuppReason('');
           setSuppError(null);
           setIsSupplementalOpen(true);
+          void load(true);
         }}
         onFillAll={handleFillAll}
         onDateValidationChange={setDateValidationError}
@@ -334,12 +332,18 @@ export function MrxDailyIssueWorkbench({
       {daily?.dates.some(date => !isServiceDate(date.serviceDate) && date.lines.length > 0) && <InlineBanner variant="info">
         Lô có dữ liệu Chủ nhật lịch sử. Tổng hợp lô giữ nguyên dữ liệu này; Chủ nhật chỉ xem, không tạo phiếu mới.
       </InlineBanner>}
+      {daily?.batchId === activeBatchId && daily.batchStatus === 'READY' && (
+        <InlineBanner variant="info" title="Lô chưa chuyển sang Kho"
+          actionLabel={stateProps.isFetching ? undefined : 'Làm mới'} onAction={() => void load(true)}>
+          Điều phối cần chọn “Chuyển sang Kho” ở màn chuẩn bị lô. Sau khi bàn giao, chọn “Làm mới” để xuất kho.
+        </InlineBanner>
+      )}
       {mutationError && (
         <InlineBanner
-          variant={mutationError instanceof ApiError && mutationError.status === 409 ? 'conflict' : 'error'}
-          title={isIssueOutcomeUnknown ? 'Chưa xác nhận được kết quả xuất kho' : mutationError instanceof ApiError && mutationError.status === 409 ? 'Dữ liệu xuất kho đã thay đổi' : 'Không thể ghi phiếu xuất'}
-          actionLabel={isIssueOutcomeUnknown ? 'Tải lại để kiểm tra kết quả' : mutationError instanceof ApiError && mutationError.status === 409 ? 'Tải lại dữ liệu mới nhất' : undefined}
-          onAction={isIssueOutcomeUnknown ? () => { invalidateMrxCaches(); window.location.reload(); } : mutationError instanceof ApiError && mutationError.status === 409 ? () => {
+          variant={isIssueConflict ? 'conflict' : 'error'}
+          title={isIssueOutcomeUnknown ? 'Chưa xác nhận được kết quả xuất kho' : isStaleIssue ? 'Dữ liệu xuất kho đã thay đổi' : 'Không thể ghi phiếu xuất'}
+          actionLabel={isIssueOutcomeUnknown ? 'Tải lại để kiểm tra kết quả' : isIssueConflict ? 'Tải lại dữ liệu mới nhất' : undefined}
+          onAction={isIssueOutcomeUnknown ? () => { invalidateMrxCaches(); window.location.reload(); } : isIssueConflict ? () => {
             setMutationError(null);
             void load(true);
           } : undefined}
@@ -408,7 +412,7 @@ export function MrxDailyIssueWorkbench({
                 reasons={reasons}
                 setReasons={setReasons}
                 hasInitialIssue={hasInitialIssue}
-                readOnly={!isServiceDate(activeDate)}
+                readOnly={!canIssueBatch || !isServiceDate(activeDate)}
                 lastRevisionAt={day?.lastRevisionAt}
                 lastRevisionByName={day?.lastRevisionByName}
                 lastRevisionByRole={day?.lastRevisionByRole}
@@ -446,16 +450,15 @@ export function MrxDailyIssueWorkbench({
         activeBatchId={activeBatchId}
         activeDate={activeDate}
         lines={lines}
-        suppMaterialId={suppMaterialId}
-        onSuppMaterialIdChange={setSuppMaterialId}
-        suppQuantity={suppQuantity}
-        onSuppQuantityChange={setSuppQuantity}
-        suppReason={suppReason}
-        onSuppReasonChange={setSuppReason}
         suppError={suppError}
         isOutcomeUnknown={suppOutcomeUnknown}
         isSubmittingSupp={isSubmittingSupp}
+        onDirtyChange={setSupplementalDirty}
         onSubmit={handleSupplementalSubmit}
+        onRecover={() => { void recoverSupplemental(); }}
+        onRefreshScope={async () => { setSuppError(null); await load(true); }}
+        scopeReady={!stateProps.error && !stateProps.isPreviousData && !stateProps.isFetching}
+        sourceVersion={daily?.sourceVersion}
       />
 
       <ReconciliationIssueDetailModal

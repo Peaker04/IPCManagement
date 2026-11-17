@@ -851,6 +851,38 @@ public sealed partial class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
+    public async Task Legacy_unbound_command_receipt_requires_readback_and_never_creates_another_issue()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"ipc-unbound-receipt-{Guid.NewGuid():N}.db");
+        try
+        {
+            var source = await SeedRelationalIssueDatabaseAsync(path, "unbound-receipt");
+            InventoryIssueCreatedDto created;
+            await using (var writer = await CreateRelationalIssueServiceAsync(path, source))
+                created = (await writer.Service.CreateAsync(CloneRequest(source.Request), source.ActorId))!;
+            await using (var setup = CreateRelationalContext(path))
+            {
+                var receipt = await setup.Lifecyclecommandreceipts.SingleAsync();
+                var legacy = System.Text.Json.Nodes.JsonNode.Parse(receipt.ResponseJson)!.AsObject();
+                Assert.True(legacy.Remove("CommandFingerprint"));
+                receipt.ResponseJson = legacy.ToJsonString();
+                await setup.SaveChangesAsync();
+            }
+            await using var before = CreateRelationalContext(path);
+            var ledger = CaptureCompleteLedger(before);
+            await using var reader = await CreateRelationalIssueServiceAsync(path, source);
+            var error = await Assert.ThrowsAsync<ResourceConflictException>(() => reader.Service.CreateAsync(CloneRequest(source.Request), source.ActorId));
+            Assert.Contains("kiểm tra phiếu", error.Message);
+            var detail = await reader.Service.GetByIdAsync(created.IssueId, InventoryIssueSourceFamilies.MaterialReconciliation);
+            Assert.Equal(created.IssueId, detail!.IssueId);
+            await using var after = CreateRelationalContext(path);
+            Assert.Equal(ledger, CaptureCompleteLedger(after));
+            Assert.Single(await after.Inventoryissues.ToListAsync());
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Reconciliation_manual_issue_response_loss_replay_and_true_relational_duplicate_are_exactly_once()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"ipc-phase30-duplicate-{Guid.NewGuid():N}.db");
@@ -895,9 +927,9 @@ public sealed partial class ReconciliationWarehouseIssueApplicationPathTests
             var alteredRequest = CloneRequest(source.Request);
             alteredRequest.Lines[0].IssuedQty = 1.75m;
             alteredRequest.Lines[0].VarianceReason = "Changed payload must not replace the original receipt";
-            var alteredReplay = await alteredReplayService.Service.CreateAsync(alteredRequest, source.ActorId);
-            Assert.Equal(response.IssueId, alteredReplay!.IssueId);
-            Assert.Equal(response.IssueCode, alteredReplay.IssueCode);
+            await Assert.ThrowsAsync<ResourceConflictException>(() => alteredReplayService.Service.CreateAsync(alteredRequest, source.ActorId));
+            await using var otherActorReplay = await CreateRelationalIssueServiceAsync(databasePath, source);
+            await Assert.ThrowsAsync<ResourceConflictException>(() => otherActorReplay.Service.CreateAsync(CloneRequest(source.Request), Guid.NewGuid().ToString()));
             await using var afterAlteredReplay = CreateRelationalContext(databasePath);
             Assert.Equal(beforeAlteredReplay, CaptureCompleteLedger(afterAlteredReplay));
             var retainedLine = await afterAlteredReplay.Inventoryissuelines.AsNoTracking().SingleAsync();

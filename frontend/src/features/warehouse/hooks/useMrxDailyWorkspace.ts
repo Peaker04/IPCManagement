@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, type SetStateAction } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { mrxApi, type MrxWarehouseDaily, type MrxIssuePage, type MrxBatchSummary, type MrxBatchPage } from '../../../api/mrxApi';
+import { mrxApi, type MrxWarehouseDaily, type MrxIssuePage, type MrxBatchSummary, type MrxBatchPage, type CreateMrxIssueRequest } from '../../../api/mrxApi';
 import { ApiError } from '../../../api/client';
 import { invalidateMrxCaches } from '../../../api/mrxCacheInvalidation';
 import { getCachedArray, serverStateCache } from '../../../store/serverStateCache';
@@ -9,6 +9,7 @@ import { useWorkbenchQuery } from '../../../hooks/useWorkbenchQuery';
 import { isServiceDate, todayInBusinessTimezone, weekStartFor } from '../../../utils/dates';
 import { useAuth } from '../../../store/useAuth';
 import { getDraftStorageKey } from '../../../hooks/useClientDraftPersistence';
+import type { SupplementalIssueSelection } from '../MrxSupplementalFulfillmentForm';
 import { normalizeQuantity } from '../mrxQuantity';
 
 interface UseMrxDailyWorkspaceProps {
@@ -30,7 +31,7 @@ export function useMrxDailyWorkspace({
   serviceDate: propServiceDate = '',
 }: UseMrxDailyWorkspaceProps = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, operationalMode, operationalModeVersion } = useAuth();
 
   const sessionScope = workspaceSessionStore.getScope();
   const cachedBatches = getCachedArray<MrxBatchSummary>('mrx_daily_batches');
@@ -74,13 +75,24 @@ export function useMrxDailyWorkspace({
   const [mutationError, setMutationError] = useState<Error | null>(null);
   const [issueSuccessScope, setIssueSuccessScope] = useState('');
 
-  const [isSupplementalOpen, setIsSupplementalOpen] = useState(false);
-  const [suppMaterialId, setSuppMaterialId] = useState('');
-  const [suppQuantity, setSuppQuantity] = useState('');
-  const [suppReason, setSuppReason] = useState('');
+  const supplementalStorageKey = (batch: string, date: string) => user?.userId
+    ? getDraftStorageKey(`mrx_supplemental_command_${operationalMode}_${batch}_${date}`, user.userId) : null;
+  const [pendingSupplemental, setPendingSupplemental] = useState<{ actorId: string; mode: string; modeVersion: number | null; request: CreateMrxIssueRequest } | null>(() => {
+    const key = supplementalStorageKey(resolvedInitialBatchId, resolvedInitialDate);
+    if (!key) return null;
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) || 'null');
+      return saved?.actorId === user?.userId && saved?.mode === operationalMode
+        && saved?.request?.reconciliationBatchId === resolvedInitialBatchId && saved?.request?.issueDate === resolvedInitialDate
+        && saved?.request?.isSupplemental === true && typeof saved?.request?.commandId === 'string'
+        && Array.isArray(saved.request.lines) && saved.request.lines.length > 0 ? saved : null;
+    } catch { return null; }
+  });
+  const [isSupplementalOpen, setIsSupplementalOpen] = useState(Boolean(pendingSupplemental));
   const [isSubmittingSupp, setIsSubmittingSupp] = useState(false);
-  const [suppError, setSuppError] = useState<string | null>(null);
-  const [suppOutcomeUnknown, setSuppOutcomeUnknown] = useState(false);
+  const supplementalSending = useRef(false);
+  const [suppError, setSuppError] = useState<string | null>(pendingSupplemental ? 'Lệnh xuất trước chưa rõ kết quả. Kiểm tra lại cùng lệnh đã gửi trước khi xuất thêm.' : null);
+  const [suppOutcomeUnknown, setSuppOutcomeUnknown] = useState(Boolean(pendingSupplemental));
   const [inspectedIssueId, setInspectedIssueId] = useState<string | null>(null);
 
   const scopeLocked = saving || isSubmittingSupp || issueOutcomeUnknown || suppOutcomeUnknown;
@@ -95,9 +107,6 @@ export function useMrxDailyWorkspace({
     setMutationError(null);
     setIssueSuccessScope('');
     setIsSupplementalOpen(false);
-    setSuppMaterialId('');
-    setSuppQuantity('');
-    setSuppReason('');
     setSuppError(null);
     setInspectedIssueId(null);
     attemptedCommand.current = {};
@@ -109,9 +118,6 @@ export function useMrxDailyWorkspace({
     setMutationError(null);
     setIssueSuccessScope('');
     setIsSupplementalOpen(false);
-    setSuppMaterialId('');
-    setSuppQuantity('');
-    setSuppReason('');
     setSuppError(null);
     setInspectedIssueId(null);
     const targetBatchId = explicitBatchId || activeBatchId;
@@ -278,7 +284,7 @@ export function useMrxDailyWorkspace({
 
   const day = daily?.dates.find((item) => item.serviceDate === activeDate);
   const lines = useMemo(() => day?.lines.filter((l) => l.requiredQuantity > 0) ?? [], [day]);
-  const hasInitialIssue = lines.some((l) => (l.issuedQuantity ?? 0) > 0);
+  const hasInitialIssue = lines.some((l) => (l.issuedQuantity ?? 0) + (l.returnedQuantity ?? 0) > 0);
   const draftKey = user?.userId && activeBatchId && !isWeeklyAll
     ? getDraftStorageKey(`mrx_initial_${activeBatchId}_${activeDate}`, user.userId) : null;
 
@@ -314,7 +320,7 @@ export function useMrxDailyWorkspace({
 
   const weeklyAggregateLines = useMemo(() => {
     if (!daily?.dates) return [];
-    const map = new Map<string, { id: string; ingredientCode: string; ingredientName: string; unitName: string; requiredQuantity: number; issuedQuantity: number | null; remainingQuantity: number; }>();
+    const map = new Map<string, { id: string; ingredientCode: string; ingredientName: string; unitName: string; requiredQuantity: number; issuedQuantity: number | null; remainingQuantity: number | null; }>();
     for (const d of daily.dates) {
       for (const l of d.lines) {
         const key = `${l.ingredientId}_${l.canonicalUnitId}`;
@@ -322,20 +328,25 @@ export function useMrxDailyWorkspace({
         if (existing) {
           existing.requiredQuantity += l.requiredQuantity;
           existing.issuedQuantity = existing.issuedQuantity == null && l.issuedQuantity == null ? null : (existing.issuedQuantity ?? 0) + (l.issuedQuantity ?? 0);
-          existing.remainingQuantity += l.remainingQuantity;
+          existing.remainingQuantity = existing.remainingQuantity != null && l.remainingQuantity != null
+            ? existing.remainingQuantity + l.remainingQuantity : null;
         } else {
-          map.set(key, { id: key, ingredientCode: l.ingredientCode || l.ingredientId || '', ingredientName: l.ingredientName || '—', unitName: l.canonicalUnitName || 'Chưa rõ đơn vị', requiredQuantity: l.requiredQuantity, issuedQuantity: l.issuedQuantity ?? null, remainingQuantity: l.remainingQuantity });
+          map.set(key, { id: key, ingredientCode: l.ingredientCode || l.ingredientId || '', ingredientName: l.ingredientName || '—', unitName: l.canonicalUnitName || 'Chưa rõ đơn vị', requiredQuantity: l.requiredQuantity, issuedQuantity: l.issuedQuantity ?? null, remainingQuantity: l.remainingQuantity ?? null });
         }
       }
     }
     return Array.from(map.values()).sort((a, b) => b.requiredQuantity - a.requiredQuantity);
   }, [daily]);
 
+  const canIssueBatch = daily?.batchId === activeBatchId && daily.compatibility.canIssueByDate
+    && (daily.batchStatus === 'TRANSFERRED' || daily.batchStatus === 'IN_PROGRESS');
+
   const handleFillAll = () => {
+    if (!canIssueBatch) return;
     setQuantities(Object.fromEntries(lines.map((l) => [l.dailyLineId, String(l.requiredQuantity)])));
   };
 
-  const canSubmit = Boolean(isServiceDate(activeDate) && !dateValidationError && !routeMismatch && daily?.batchId === activeBatchId && !stateProps.error && !stateProps.isFetching && !scopeLocked && day?.isApplicable && lines.length > 0 && !hasInitialIssue && !isWeeklyAll &&
+  const canSubmit = Boolean(isServiceDate(activeDate) && !dateValidationError && !routeMismatch && canIssueBatch && !stateProps.error && !stateProps.isFetching && !scopeLocked && day?.isApplicable && lines.length > 0 && !hasInitialIssue && !isWeeklyAll &&
     lines.every((l) => {
       const issued = normalizeQuantity(Number(quantities[l.dailyLineId]));
       return Number.isFinite(issued) && issued > 0 && (issued <= l.requiredQuantity || reasons[l.dailyLineId]?.trim());
@@ -361,7 +372,7 @@ export function useMrxDailyWorkspace({
         issueDate: activeDate,
         reconciliationBatchId: activeBatchId,
         isSupplemental: false,
-        lines: lines.map((l) => ({
+        lines: lines.map((l) => ({ allocations: [],
           reconciliationBatchLineId: l.batchLineId,
           reconciliationBatchDailyLineId: l.dailyLineId,
           ingredientId: l.ingredientId,
@@ -397,54 +408,63 @@ export function useMrxDailyWorkspace({
     }
   };
 
-  const handleSupplementalSubmit = async (customLines?: Array<{ dailyLineId: string; quantity: number; reason: string }>) => {
-    if (!isServiceDate(activeDate) || dateValidationError || routeMismatch || !daily || !day || !activeBatchId || scopeLocked || stateProps.error || stateProps.isFetching) return;
-    const items = customLines?.length ? customLines : (!suppMaterialId || !suppReason.trim() ? [] : [{
-      dailyLineId: suppMaterialId, quantity: Number(suppQuantity), reason: suppReason.trim(),
-    }]);
-    if (items.length === 0 || items.some((item) => !Number.isFinite(normalizeQuantity(item.quantity)) || normalizeQuantity(item.quantity) <= 0 || !item.reason.trim())) return;
-    setIsSubmittingSupp(true);
-    setSuppError(null);
-    setIssueSuccessScope('');
+  const executeSupplemental = async (request: CreateMrxIssueRequest, recovering = false) => {
+    if (supplementalSending.current) return;
+    supplementalSending.current = true;
+    const key = supplementalStorageKey(request.reconciliationBatchId!, request.issueDate);
+    const pending = { actorId: user!.userId, mode: operationalMode, modeVersion: operationalModeVersion, request };
+    setPendingSupplemental(pending);
+    if (key) { try { localStorage.setItem(key, JSON.stringify(pending)); } catch { /* Keep exact in-memory command. */ } }
+    setIsSubmittingSupp(true); setSuppError(null); setIssueSuccessScope('');
+    let acknowledged = false;
     try {
-      const issueLines = items.map((item) => {
-        const target = lines.find((l) => l.dailyLineId === item.dailyLineId);
-        if (!target) throw new Error('Không tìm thấy nguyên liệu.');
-        return {
-          reconciliationBatchLineId: target.batchLineId,
-          reconciliationBatchDailyLineId: target.dailyLineId,
-          ingredientId: target.ingredientId,
-          unitId: target.canonicalUnitId,
-          requestedQty: normalizeQuantity(item.quantity),
-          issuedQty: normalizeQuantity(item.quantity),
-          varianceReason: item.reason,
-        };
-      });
-      const receipt = await mrxApi.createIssue({
-        commandId: attemptedCommand.current.supplemental ??= crypto.randomUUID(),
-        expectedVersion: daily.sourceVersion,
-        issueDate: activeDate,
-        reconciliationBatchId: activeBatchId,
-        isSupplemental: true,
-        lines: issueLines,
-      });
+      const receipt = await mrxApi.createIssue(request);
       if (!receipt?.issueId?.trim() || !receipt.issueCode?.trim()) throw new Error('Thiếu xác nhận phiếu xuất kho.');
+      acknowledged = true;
+      if (key) { try { localStorage.removeItem(key); } catch { /* Receipt is already committed. */ } }
+      setPendingSupplemental(null); setSuppOutcomeUnknown(false);
       attemptedCommand.current.supplemental = undefined;
-      setIssueSuccessScope(`${activeBatchId}:${activeDate}`);
+      setIssueSuccessScope(`${request.reconciliationBatchId}:${request.issueDate}`);
       setIsSupplementalOpen(false);
-      setSuppQuantity('');
-      setSuppReason('');
       await load(true);
     } catch (cause) {
-      const unknown = isUnknownIssueOutcome(cause);
-      setSuppOutcomeUnknown(unknown);
-      if (!unknown) attemptedCommand.current.supplemental = undefined;
-      setSuppError(unknown
-        ? 'Kết nối bị gián đoạn; phiếu có thể đã được ghi. Hãy tải lại để kiểm tra lịch sử trước khi xuất thêm.'
-        : cause instanceof Error ? cause.message : 'Không thể thực hiện xuất bổ sung.');
-    } finally {
-      setIsSubmittingSupp(false);
+      if (acknowledged) {
+        setMutationError(new Error('Phiếu xuất bổ sung đã được ghi. Chưa tải lại được dữ liệu; hãy làm mới để kiểm tra lịch sử.'));
+      } else {
+        const unknown = recovering || isUnknownIssueOutcome(cause);
+        setSuppOutcomeUnknown(unknown);
+        if (!unknown) {
+          attemptedCommand.current.supplemental = undefined; setPendingSupplemental(null);
+          if (key) { try { localStorage.removeItem(key); } catch { /* In-memory rejection remains authoritative. */ } }
+        }
+        setSuppError(unknown ? 'Lệnh xuất chưa rõ kết quả. Kiểm tra lại cùng lệnh đã gửi; không lập lệnh mới.'
+          : cause instanceof Error ? cause.message : 'Không thể thực hiện xuất bổ sung.');
+      }
+    } finally { supplementalSending.current = false; setIsSubmittingSupp(false); }
+    return acknowledged;
+  };
+  const recoverSupplemental = async () => {
+    if (!pendingSupplemental || isSubmittingSupp) return;
+    if (pendingSupplemental.actorId !== user?.userId || pendingSupplemental.mode !== operationalMode
+      || pendingSupplemental.modeVersion !== operationalModeVersion) {
+      setSuppError('Người dùng hoặc phiên bản chế độ đã thay đổi. Cần đọc lại phiếu đã ghi để đối chiếu lệnh cũ.'); return;
     }
+    await executeSupplemental(pendingSupplemental.request, true);
+  };
+  const handleSupplementalSubmit = async (items: SupplementalIssueSelection[]) => {
+    if (!isServiceDate(activeDate) || dateValidationError || routeMismatch || !daily || !day || !activeBatchId || !user
+      || !canIssueBatch || daily.batchStatus !== 'IN_PROGRESS'
+      || scopeLocked || stateProps.error || stateProps.isFetching || pendingSupplemental) return;
+    if (!items.length || items.some(item => !Number.isFinite(normalizeQuantity(item.quantity)) || normalizeQuantity(item.quantity) <= 0 || !item.reason.trim())) return;
+    const issueLines = items.map(item => {
+      const target = lines.find(l => l.dailyLineId === item.dailyLineId);
+      if (!target) throw new Error('Không tìm thấy nguyên liệu.');
+      return { allocations: item.allocations ?? [], reconciliationBatchLineId: target.batchLineId,
+        reconciliationBatchDailyLineId: target.dailyLineId, ingredientId: target.ingredientId, unitId: target.canonicalUnitId,
+        requestedQty: normalizeQuantity(item.quantity), issuedQty: normalizeQuantity(item.quantity), varianceReason: item.reason };
+    });
+    return executeSupplemental({ commandId: attemptedCommand.current.supplemental ??= crypto.randomUUID(), expectedVersion: daily.sourceVersion,
+      issueDate: activeDate, reconciliationBatchId: activeBatchId, isSupplemental: true, lines: issueLines });
   };
 
   return {
@@ -491,12 +511,6 @@ export function useMrxDailyWorkspace({
     issueSucceeded: issueSuccessScope === `${activeBatchId}:${activeDate}`,
     isSupplementalOpen,
     setIsSupplementalOpen,
-    suppMaterialId,
-    setSuppMaterialId,
-    suppQuantity,
-    setSuppQuantity,
-    suppReason,
-    setSuppReason,
     isSubmittingSupp,
     suppError,
     suppOutcomeUnknown,
@@ -504,8 +518,10 @@ export function useMrxDailyWorkspace({
     inspectedIssueId,
     setInspectedIssueId,
     handleFillAll,
+    canIssueBatch,
     canSubmit,
     submit,
     handleSupplementalSubmit,
+    recoverSupplemental,
   };
 }
