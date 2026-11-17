@@ -36,6 +36,7 @@ def main():
         report, code = validate(args.trx, args.expected), 0
     except ValueError as error:
         report, code = f'### {args.trx.name}\n\nERROR: {error}\n', 1
+    sys.stdout.reconfigure(encoding="utf-8")
     print(report)
     summary = os.environ.get('GITHUB_STEP_SUMMARY')
     if summary:
