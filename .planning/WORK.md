@@ -1,4 +1,13 @@
-# Current task — EXECUTE
+# Current task — IDLE
+
+## 2026-11-18 — MRX historical purpose recovery verification
+
+- PASS: Warehouse proposes, Manager approves and applies, Admin confirms directly with ADMIN_DIRECT audit. Exact issue/day/batch restoration preserves the original document, frozen demand, and physical stock. Server uses the candidate batch version and rejects outdated writes.
+- PASS: Native ThreeCustomerActors `20261118t063949z_45c811` and ThreeCustomerAdmin `20261118t065625z_7dca27` both finished all three batches. Each runner returned DIAGNOSTIC_PASS with matching clean product commit `57ff69e0`, matching candidate fingerprints, unchanged source, and exact cleanup. Admin made zero separate approval calls. Historical recovery receipt includes the exact saved allocation and actor history, with browser images at 600/960/1440.
+- PASS: 1,696 API, 49 Application, 753 frontend and 56 evidence contract tests. API contract regeneration and EF model parity passed. Migration `20261118055436_AddMrxHistoricalPurposeProposals` applied to disposable clones.
+- Earlier run `20261118t061511z_7253e8` failed on stale version and lost its MySQL defaults file. Verified exact residue cleanup in its `cleanup-recovery.json`. Run `20261118t063451z_313b0d` stopped at missing frontend dependencies and cleaned up. Reinstalled the locked dependencies with owner authorization before the final runs.
+- Skills | task type | baseline missed | skill added | correct | noise | decision impact. Impeccable and IPC UI review | operational UI | responsive layout and role labels | 600/960/1440 browser review | yes | none | same design system and distinct submit/confirm actions. IPC test audit and code review | MRX migration and lineage | SQLite fixture and exact surfaces | full suite plus two runner-owned clones | yes | none | closed test gaps while keeping exact contract assertions.
+- Hosted verification is tracked on [PR #61](https://github.com/Peaker04/IPCManagement/pull/61/checks). Production migration and deployment are still separate release steps. G7/G8 quantitative qualification remains a separately admitted lane.
 
 ## 2026-11-18 — Historical issue recovery
 
