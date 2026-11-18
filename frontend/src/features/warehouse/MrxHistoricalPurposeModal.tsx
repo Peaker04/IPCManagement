@@ -16,7 +16,6 @@ import { formatVietnameseDate } from '../../utils/dates';
 interface Props {
   batchId: string;
   date: string;
-  batchVersion: number;
   onClose: () => void;
 }
 
@@ -26,7 +25,7 @@ const initialSplit = [{ target: '', quantity: '' }];
 const toMicro = (quantity: number) => Math.round(quantity * 1_000_000);
 const parseQuantity = (value: string) => Number(value.replace(',', '.'));
 
-export function MrxHistoricalPurposeModal({ batchId, date, batchVersion, onClose }: Props) {
+export function MrxHistoricalPurposeModal({ batchId, date, onClose }: Props) {
   const { user, canNavigate, operationalModeVersion } = useAuth();
   const storageKey = getDraftStorageKey(`mrx_historical_purpose_${batchId}_${date}`, user?.userId);
   const [pending, setPending] = useState<Pending | null>(() => {
@@ -73,7 +72,7 @@ export function MrxHistoricalPurposeModal({ batchId, date, batchVersion, onClose
     if (sending.current || scopeChanged || (!pending && (!candidate || !valid))) return;
     const command = pending ?? { version: operationalModeVersion, request: {
       commandId: crypto.randomUUID(), batchId, serviceDate: date, issueLineId: candidate!.issueLineId,
-      expectedBatchVersion: batchVersion, reason: reason.trim(),
+      expectedBatchVersion: candidate!.batchVersion, reason: reason.trim(),
       allocations: split.map(row => {
         const demand = candidate!.demands.find(item => item.demandMaterialId === row.target);
         return { purpose: demand ? 'APPROVED_EXTRA_DEMAND' : row.target,

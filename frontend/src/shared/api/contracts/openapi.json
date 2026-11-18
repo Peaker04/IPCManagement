@@ -33617,6 +33617,7 @@
       },
       "MrxHistoricalPurposeCandidate": {
         "required": [
+          "batchVersion",
           "demands",
           "ingredientName",
           "issueCode",
@@ -33646,6 +33647,10 @@
           "returnedQuantity": {
             "type": "number",
             "format": "double"
+          },
+          "batchVersion": {
+            "type": "integer",
+            "format": "int64"
           },
           "pendingProposalId": {
             "type": "string",

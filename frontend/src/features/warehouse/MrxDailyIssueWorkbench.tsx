@@ -106,7 +106,7 @@ export function MrxDailyIssueWorkbench({
   const [activeTab, setActiveTab] = useState<'demand' | 'history'>('demand');
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [historyPickerOpen, setHistoryPickerOpen] = useState(false);
-  const [purposeScope, setPurposeScope] = useState<{ batchId: string; date: string; version: number } | null>(null);
+  const [purposeScope, setPurposeScope] = useState<{ batchId: string; date: string } | null>(null);
   const historyQuery = normalizeSearchText(historySearchTerm);
   const filteredHistoryItems = useMemo(() => {
     const items = history?.items ?? [];
@@ -265,7 +265,7 @@ export function MrxDailyIssueWorkbench({
         <ActionGuard capabilityId="WH.ISSUE.CREATE" roles={['Admin', 'WarehouseManager', 'Warehouse Manager', 'WarehouseStaff', 'Warehouse Staff', 'Thủ kho']}
           allowedModes={['MATERIAL_RECONCILIATION']}>
           <InlineBanner variant="info" actionLabel="Đối chiếu phân bổ" onAction={() =>
-            setPurposeScope({ batchId: activeBatchId, date: day.serviceDate, version: daily.sourceVersion })}>
+            setPurposeScope({ batchId: activeBatchId, date: day.serviceDate })}>
             Kiểm tra phiếu xuất cũ chưa xác định mục đích của ngày đã chọn.
           </InlineBanner>
         </ActionGuard>
@@ -481,7 +481,7 @@ export function MrxDailyIssueWorkbench({
         issueId={inspectedIssueId}
       />
       {purposeScope && <MrxHistoricalPurposeModal batchId={purposeScope.batchId} date={purposeScope.date}
-        batchVersion={purposeScope.version} onClose={() => { setPurposeScope(null); void load(true); }} />}
+        onClose={() => { setPurposeScope(null); void load(true); }} />}
       {historyPickerOpen && <ReconciliationBatchPicker selectedBatchId={activeBatchId} onClose={() => setHistoryPickerOpen(false)}
         onSelect={batch => { selectBatch(batch.batchId, batch); setHistoryPickerOpen(false); }} />}
     </WorkspaceFrame.Root>

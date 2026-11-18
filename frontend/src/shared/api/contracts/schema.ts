@@ -16934,6 +16934,8 @@ export interface components {
             readonly quantity: number;
         };
         readonly MrxHistoricalPurposeCandidate: {
+            /** Format: int64 */
+            readonly batchVersion: number;
             readonly demands: readonly components["schemas"]["MrxHistoricalPurposeDemand"][];
             readonly ingredientName: string;
             readonly issueCode: string;

@@ -28,8 +28,9 @@ public sealed class MrxHistoricalPurposeRecoveryService(IpcManagementContext db,
         RequireActor(actor, AuthorizationPolicies.ReconciliationSupplementalDemandWriteRoles);
         await RequireModeAsync(token);
         var batchKey = Id(batchId);
-        if (!await db.Reconciliationbatches.AnyAsync(row => row.BatchId == batchKey && row.Status == "IN_PROGRESS", token))
-            return [];
+        var batchVersion = await db.Reconciliationbatches.AsNoTracking().Where(row => row.BatchId == batchKey && row.Status == "IN_PROGRESS")
+            .Select(row => (long?)row.Version).SingleOrDefaultAsync(token);
+        if (batchVersion is null) return [];
         var issues = await ScopedIssueLines(batchKey, date).Include(row => row.Issue).Include(row => row.Ingredient)
             .Include(row => row.Unit).OrderBy(row => row.Issue.CreatedAt).ThenBy(row => row.IssueLineId).ToListAsync(token);
         var keys = issues.Select(row => row.IssueLineId).ToList();
@@ -49,7 +50,8 @@ public sealed class MrxHistoricalPurposeRecoveryService(IpcManagementContext db,
             var key = Key(row.IssueLineId);
             return new MrxHistoricalPurposeCandidate(GuidHelper.ToGuidString(row.IssueLineId), row.Issue.IssueCode,
                 row.Ingredient.IngredientName, row.Unit.UnitName, row.IssuedQty - assigned[key].Sum(x => x.Quantity),
-                returned[key].Sum(x => x.Quantity), open.TryGetValue(key, out var proposal) ? GuidHelper.ToGuidString(proposal.ProposalId) : null,
+                returned[key].Sum(x => x.Quantity), batchVersion.Value,
+                open.TryGetValue(key, out var proposal) ? GuidHelper.ToGuidString(proposal.ProposalId) : null,
                 demands[Key(row.ReconciliationBatchDailyLineId!)].Where(x => x.Demand.DecidedAt <= row.Issue.CreatedAt
                     && x.CanonicalUnitId.SequenceEqual(row.UnitId) && x.IngredientId.SequenceEqual(row.IngredientId))
                     .Select(x => new MrxHistoricalPurposeDemand(GuidHelper.ToGuidString(x.DemandId), GuidHelper.ToGuidString(x.DemandMaterialId), x.Demand.Version)).ToList());

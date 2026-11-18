@@ -11,7 +11,7 @@ const batchId = 'b2ae14d2-b894-4c7f-ab6f-d1dda84f6541';
 const issueLineId = '36427243-e92b-4a1e-ad7a-f944fa648a10';
 const date = '2026-11-30';
 const candidate = { issueLineId, issueCode: 'ISS-MRX-1', ingredientName: 'Bầu', unitName: 'kg',
-  unallocatedQuantity: 2.25, returnedQuantity: 0, demands: [] };
+  unallocatedQuantity: 2.25, returnedQuantity: 0, demands: [], batchVersion: 4 };
 
 it('requires complete allocation and recovers the same MRX command after remount', async () => {
   localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
@@ -32,7 +32,7 @@ it('requires complete allocation and recovers the same MRX command after remount
     throw new Error(`Unexpected request ${url}`);
   });
   const open = () => render(<MemoryRouter><AuthProvider><MrxHistoricalPurposeModal batchId={batchId} date={date}
-    batchVersion={4} onClose={() => {}} /></AuthProvider></MemoryRouter>);
+    onClose={() => {}} /></AuthProvider></MemoryRouter>);
   const view = open();
   await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Dòng phiếu xuất' }), issueLineId);
   await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Mục đích 1' }), 'BASELINE_SHORTAGE');

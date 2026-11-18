@@ -1201,7 +1201,8 @@ public sealed partial class ReconciliationServiceTests
                 typeof(ReconciliationDisposition), typeof(BomAdjustment), typeof(Ingredient), typeof(Unit), typeof(InventoryIssue), typeof(InventoryIssueLine),
                 typeof(InventoryReturn), typeof(InventoryReturnLine), typeof(AuditLog), typeof(Dish), typeof(DishBom)
                 , typeof(ReconciliationSupplementalDemand), typeof(ReconciliationSupplementalDemandDish),
-                typeof(ReconciliationSupplementalDemandMaterial), typeof(ReconciliationSupplementalDemandContribution), typeof(ReconciliationIssueAllocation)
+                typeof(ReconciliationSupplementalDemandMaterial), typeof(ReconciliationSupplementalDemandContribution),
+                typeof(ReconciliationIssueAllocation), typeof(MrxHistoricalPurposeProposal)
             };
             foreach (var entityType in typeof(AuditLog).Assembly.GetTypes().Where(type => type.Namespace == typeof(AuditLog).Namespace && type.IsClass && !included.Contains(type)))
                 modelBuilder.Ignore(entityType);
@@ -1314,6 +1315,8 @@ public sealed partial class ReconciliationServiceTests
             modelBuilder.Entity<ReconciliationIssueAllocation>().HasOne(x => x.IssueLine).WithMany().HasForeignKey(x => x.IssueLineId);
             modelBuilder.Entity<ReconciliationIssueAllocation>().HasOne(x => x.DailyLine).WithMany().HasForeignKey(x => x.DailyLineId);
             modelBuilder.Entity<ReconciliationIssueAllocation>().HasOne(x => x.DemandMaterial).WithMany().HasForeignKey(x => x.DemandMaterialId);
+            modelBuilder.Entity<MrxHistoricalPurposeProposal>().HasKey(x => x.ProposalId);
+            modelBuilder.Entity<MrxHistoricalPurposeProposal>().Ignore(x => x.CreatedByUser);
         }
     }
 }

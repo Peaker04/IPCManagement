@@ -993,7 +993,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 "currentstock", "stockmovements", "stocktakes", "stocktakelines", "reconciliationactuals", "reconciliationactualrevisions",
                 "reconciliationdispositions", "reconciliationdailydispositions",
                 "reconciliationsupplementaldemands", "reconciliationsupplementaldemanddishes", "reconciliationsupplementaldemandmaterials",
-                "reconciliationsupplementaldemandcontributions", "reconciliationissueallocations",
+                "reconciliationsupplementaldemandcontributions", "reconciliationissueallocations", "mrxhistoricalpurposeproposals",
                 "materialrequests", "materialrequestlines", "supplementalmaterialrequests",
                 "purchaserequests", "purchaserequestlines", "purchaselinesupplierdecisions", "purchasepriceexceptions", "purchaseorders", "purchaseorderlines",
                 "approvalhistories", "approvalrules", "approvalassignments", "auditlogs",
@@ -1038,7 +1038,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         }
 
         // PreparationGroupCode and all five supplemental/allocation tables participate in full reconstruction; no cells are excluded.
-        private const string ExpectedScalarSchemaHash = "510A266F42308B42ACBED39FAB8950DA5306D541746825131D910C0BE6C70ECA";
+        private const string ExpectedScalarSchemaHash = "2B8F70C8988C09CC211020235A0A24E1E99F2C1CFF3FA49A71B317A8AFCFE500";
 
         private sealed record EntityMapping(IEntityType Entity, string Table, StoreObjectIdentifier Store);
 
@@ -1090,6 +1090,7 @@ CREATE TABLE systemoperationmodes (id INTEGER PRIMARY KEY, mode TEXT NOT NULL, v
 CREATE TABLE reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
 CREATE TABLE reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
 CREATE TABLE reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL, UNIQUE (dailyLineId, batchId, ingredientId, canonicalUnitId));
+CREATE TABLE mrxhistoricalpurposeproposals (ProposalId BLOB PRIMARY KEY, BatchId BLOB NOT NULL, IssueLineId BLOB NOT NULL, ServiceDate TEXT NOT NULL, UnallocatedQuantity TEXT NOT NULL, AllocationsJson TEXT NOT NULL, Status TEXT NOT NULL, Version INTEGER NOT NULL, Reason TEXT NOT NULL, CreatedBy BLOB NOT NULL, CreatedAt TEXT NOT NULL, DecisionReason TEXT NULL);
 CREATE TABLE reconciliationsourcerevisions (SourceRevisionId BLOB PRIMARY KEY, MenuAmendmentId BLOB NOT NULL, BatchId BLOB NOT NULL, PreviousMenuVersionId BLOB NOT NULL, AppliedMenuVersionId BLOB NOT NULL, RevisionNumber INTEGER NOT NULL, Status TEXT NOT NULL, Reason TEXT NOT NULL, AppliedBy BLOB NOT NULL, AppliedAt TEXT NOT NULL, AppliedByRole TEXT NULL, ApplyMode TEXT NULL);
 CREATE TABLE reconciliationsourcedeltas (SourceDeltaId BLOB PRIMARY KEY, SourceRevisionId BLOB NOT NULL, BatchId BLOB NOT NULL, DailyLineId BLOB NULL, ServiceDate TEXT NOT NULL, IngredientId BLOB NOT NULL, CanonicalUnitId BLOB NOT NULL, PreviousRequiredQuantity TEXT NOT NULL, NewRequiredQuantity TEXT NOT NULL, DeltaQuantity TEXT NOT NULL, WorkKind TEXT NOT NULL, Status TEXT NOT NULL, Version INTEGER NOT NULL, CreatedAt TEXT NOT NULL, ResolvedAt TEXT NULL, ResolvedBy BLOB NULL, ResolutionEntity TEXT NULL, ResolutionId BLOB NULL, ResolutionCommandId TEXT NULL);
 CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, DailyLineId BLOB NULL, DishId BLOB NULL, FrozenShiftName TEXT NULL, FrozenDishCode TEXT NULL, FrozenDishName TEXT NULL, FrozenServings INTEGER NULL, FrozenBomQuantityPerServing TEXT NULL, FrozenBomUnitToBaseRate TEXT NULL, FrozenCanonicalUnitToBaseRate TEXT NULL, FrozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL, InvalidatedAt TEXT NULL, InvalidatedBySourceRevisionId BLOB NULL);
