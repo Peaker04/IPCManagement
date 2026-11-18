@@ -6,6 +6,7 @@ import type { MrxTestFixtures } from './mrxTest';
 import { createTransferredBatch, parseCookingFile, type MrxScenarioScope } from './mrxWorkflow';
 import { respectApiBudget } from './authHelpers';
 import type { MrxKitchenCooking, MrxPreparation, MrxPreparationWorkbook, MrxVarianceRegisterReport, MrxSupplementalDemand, MrxSupplementalDishOptions, MrxSupplementalFulfillment, MrxWarehouseDaily } from '../../../src/api/mrxApi';
+import type { MrxHistoricalPurposeCandidate, MrxHistoricalPurposeDetail } from '../../../src/api/mrxHistoricalPurposeApi';
 
 async function read<T>(page: Page, pathname: string): Promise<T> {
   await respectApiBudget(page);
@@ -49,6 +50,87 @@ async function assertBatchQueue(page: Page, batchId: string, state: 'PENDING' | 
     expect(result.items[0]).toMatchObject({ targetId: batchId, status: state === 'PENDING' ? 'COMPLETION_READY' : 'COMPLETED' });
   }
 }
+
+const historicalQuantity = 0.000001;
+async function leaveHistoricalRemainder(page: Page, batchId: string, date: string) {
+  const daily = await read<MrxWarehouseDaily>(page, `/api/reconciliation/batches/${batchId}/warehouse-daily`);
+  const line = daily.dates.find(row => row.serviceDate === date)?.lines.find(row => row.requiredQuantity > historicalQuantity && row.ingredientName);
+  expect(line).toBeDefined();
+  await page.getByRole('textbox', { name: `Số lượng thực xuất ${line!.ingredientName}`, exact: true })
+    .fill((line!.requiredQuantity - historicalQuantity).toFixed(6));
+  return line!;
+}
+
+async function recoverHistoricalPurpose({ warehouse, reviewer, dbVerifier, batchId, date, reason, evidenceDirectory, line }: {
+  warehouse: Page; reviewer?: Page; dbVerifier: MrxTestFixtures['dbVerifier']; batchId: string; date: string;
+  reason: string; evidenceDirectory: string; line: Awaited<ReturnType<typeof leaveHistoricalRemainder>>;
+}) {
+  const daily = await read<MrxWarehouseDaily>(warehouse, `/api/reconciliation/batches/${batchId}/warehouse-daily`);
+  await respectApiBudget(warehouse);
+  const legacy = await warehouse.evaluate(async body => {
+    const response = await fetch('/api/inventory-issues', { method: 'POST', headers: {
+      Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION',
+      'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    return { status: response.status, body: await response.json() };
+  }, { issueDate: date, reconciliationBatchId: batchId, isSupplemental: true, expectedVersion: daily.sourceVersion,
+    lines: [{ reconciliationBatchLineId: line.batchLineId, reconciliationBatchDailyLineId: line.dailyLineId,
+      ingredientId: line.ingredientId, unitId: line.canonicalUnitId, requestedQty: historicalQuantity,
+      issuedQty: historicalQuantity, varianceReason: reason }],
+    commandId: crypto.randomUUID() });
+  expect(legacy.status, JSON.stringify(legacy.body)).toBe(201);
+  const route = `/api/reconciliation/historical-purpose/batches/${batchId}?date=${date}`;
+  const [candidate] = await read<MrxHistoricalPurposeCandidate[]>(warehouse, route);
+  expect(candidate).toMatchObject({ issueCode: legacy.body.data.issueCode, unallocatedQuantity: historicalQuantity });
+  const quantityBefore = dbVerifier.query(`SELECT IssuedQty FROM inventoryissuelines WHERE IssueLineId=UNHEX('${binaryId(candidate.issueLineId)}');`);
+  const allocations = () => dbVerifier.query(`SELECT Purpose, Quantity FROM reconciliationissueallocations WHERE IssueLineId=UNHEX('${binaryId(candidate.issueLineId)}');`);
+  expect(allocations()).toEqual([]);
+
+  await warehouse.reload();
+  await warehouse.getByRole('button', { name: /Lịch sử phiếu/ }).click();
+  await warehouse.getByRole('button', { name: 'Đối chiếu phân bổ' }).click();
+  const form = warehouse.getByRole('dialog', { name: 'Phân bổ phiếu xuất lịch sử' });
+  await form.getByRole('combobox', { name: 'Dòng phiếu xuất' }).selectOption(candidate.issueLineId);
+  await form.getByRole('combobox', { name: 'Mục đích 1' }).selectOption('BASELINE_SHORTAGE');
+  await form.getByRole('textbox', { name: 'Lượng phân bổ 1' }).fill('0,000001');
+  await form.getByRole('textbox', { name: 'Căn cứ phân bổ' }).fill(reason);
+  const submit = form.getByRole('button', { name: reviewer ? 'Gửi đề xuất phân bổ' : 'Xác nhận phân bổ', exact: true });
+  const viewport = warehouse.viewportSize();
+  for (const width of [600, 960, 1440]) {
+    await warehouse.setViewportSize({ width, height: 840 });
+    await submit.scrollIntoViewIfNeeded();
+    await expect(submit).toBeInViewport();
+    await warehouse.screenshot({ path: path.join(evidenceDirectory, `historical-purpose-${width}.png`) });
+  }
+  if (viewport) await warehouse.setViewportSize(viewport);
+  const submitted = post(warehouse, '/api/reconciliation/historical-purpose');
+  await submit.click();
+  const created = await submitted;
+  expect(created.ok(), await created.text()).toBe(true);
+  const proposal = (await created.json()).data as MrxHistoricalPurposeDetail;
+  expect(proposal.status).toBe(reviewer ? 'PENDING' : 'APPLIED');
+  if (reviewer) {
+    expect(allocations()).toEqual([]);
+    await reviewer.goto(`/approvals?targetType=mrx-historical-purpose&targetId=${proposal.proposalId}`);
+    await expect(reviewer.getByRole('heading', { name: 'Phân bổ đề xuất' })).toBeVisible();
+    await expect(reviewer.getByText('Bù nhu cầu gốc', { exact: true })).toBeVisible();
+    await reviewer.getByRole('button', { name: 'Phê duyệt hồ sơ' }).click();
+    await reviewer.getByLabel('Căn cứ quyết định').fill(reason);
+    const decision = post(reviewer, `/api/operational-approvals/mrx-historical-purpose/${proposal.proposalId}/decision`);
+    await reviewer.getByRole('button', { name: 'Xác nhận phê duyệt' }).click();
+    const response = await decision;
+    expect(response.ok(), await response.text()).toBe(true);
+    expect((await response.json()).data.newStatus).toBe('APPLIED');
+  }
+  expect(await read<MrxHistoricalPurposeCandidate[]>(warehouse, route)).toEqual([]);
+  expect(allocations()).toEqual([{ Purpose: 'BASELINE_SHORTAGE', Quantity: '0.000001' }]);
+  expect(dbVerifier.query(`SELECT IssuedQty FROM inventoryissuelines WHERE IssueLineId=UNHEX('${binaryId(candidate.issueLineId)}');`)).toEqual(quantityBefore);
+  const audit = await read<Array<{ decision: string; actionBy: string }>>(reviewer ?? warehouse,
+    `/api/operational-approvals/mrx-historical-purpose/${proposal.proposalId}/history`);
+  expect(audit.map(row => row.decision)).toEqual(reviewer ? ['PENDING', 'APPLIED'] : ['ADMIN_DIRECT']);
+  if (reviewer) expect(audit[0].actionBy).not.toBe(audit[1].actionBy);
+  fs.writeFileSync(path.join(evidenceDirectory, 'historical-purpose.json'), JSON.stringify({ candidate, proposal, audit, allocations: allocations() }, null, 2));
+  await warehouse.reload();
+}
 export async function runMultiRoleApprovalLifecycle(
   { dieuphoiPage, adminPage, thukhoPage, managerPage, beptruongPage, dbVerifier }: MrxTestFixtures,
   scope: MrxScenarioScope, evidenceDirectory: string, verifyPurposeShortage = false) {
@@ -66,9 +148,12 @@ export async function runMultiRoleApprovalLifecycle(
 
     await thukhoPage.goto(warehouseUrl);
     await thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
+    const historicalLine = verifyPurposeShortage ? await leaveHistoricalRemainder(thukhoPage, batchId, date) : undefined;
     const initial = post(thukhoPage, issuePath);
     await thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }).click();
     expect((await initial).ok()).toBe(true);
+    if (historicalLine) await recoverHistoricalPurpose({ warehouse: thukhoPage, reviewer: managerPage, dbVerifier, batchId, date,
+      reason: scope.reason, evidenceDirectory, line: historicalLine });
 
     const openSupplemental = async () => {
       await thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true }).click();
@@ -395,7 +480,7 @@ export async function runMultiRoleApprovalLifecycle(
 
 export async function runAdminApprovalLifecycle(
   { adminPage, dbVerifier }: Pick<MrxTestFixtures, 'adminPage' | 'dbVerifier'>,
-  scope: MrxScenarioScope, evidenceDirectory: string) {
+  scope: MrxScenarioScope, evidenceDirectory: string, verifyHistorical = false) {
 
     const decisions: string[] = [];
     const directSourceRequests: string[] = [];
@@ -419,9 +504,12 @@ export async function runAdminApprovalLifecycle(
     expect(identity.user.roleCode).toBe('ADMIN');
     await adminPage.goto(warehouseUrl);
     await adminPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
+    const historicalLine = verifyHistorical ? await leaveHistoricalRemainder(adminPage, batchId, date) : undefined;
     const initial = post(adminPage, issuePath);
     await adminPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }).click();
     expect((await initial).ok()).toBe(true);
+    if (historicalLine) await recoverHistoricalPurpose({ warehouse: adminPage, dbVerifier, batchId, date,
+      reason: scope.reason, evidenceDirectory, line: historicalLine });
     await adminPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true }).click();
     const dialog = adminPage.getByRole('dialog', { name: 'Xuất kho bổ sung trong ca' });
     await dialog.getByRole('button', { name: 'Đề nghị suất phát sinh', exact: true }).click();

@@ -279,6 +279,17 @@ function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
                 {detail.supplementalDemand && <div><dt className="text-xs text-slate-500">Ngày phục vụ</dt><dd>{formatVietnameseDate(detail.supplementalDemand.serviceDate)}</dd></div>}
                 <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Lý do</dt><dd className="break-words">{detail.item.reason || '—'}</dd></div>
               </dl>
+              {detail.historicalPurpose && <section className="space-y-2">
+                <h3 className="font-semibold">Phân bổ đề xuất</h3>
+                <div>{detail.historicalPurpose.issueCode} · {detail.historicalPurpose.ingredientName} · {detail.historicalPurpose.unitName}</div>
+                <div>Dòng phiếu <IdentifierText value={detail.historicalPurpose.issueLineId} /></div>
+                <DataGrid data={detail.historicalPurpose.allocations} keyExtractor={row => `${row.purpose}:${row.demandMaterialId ?? ''}`} columns={[
+                  { id: 'purpose', header: 'Mục đích', cell: row => row.purpose === 'BASELINE_SHORTAGE' ? 'Bù nhu cầu gốc'
+                    : row.purpose === 'UNPLANNED_EXTRA' ? 'Cấp ngoài nhu cầu' : 'Cấp nhu cầu đã duyệt' },
+                  { id: 'demand', header: 'Dòng nhu cầu', cell: row => row.demandMaterialId ? <IdentifierText value={row.demandMaterialId} /> : '—' },
+                  { id: 'quantity', header: 'Lượng phân bổ', align: 'right', cell: row => <Num value={row.quantity} format="plain" decimals={6} /> },
+                ]} />
+              </section>}
               {detail.legacyLineage && <section className="space-y-3">
                 <h3 className="font-semibold">Liên kết chứng từ đã đối chiếu</h3>
                 <p className="text-slate-600">Duyệt đối chiếu chưa gắn liên kết. Admin áp dụng sau khi duyệt; thao tác không thay đổi số lượng hoặc tồn kho.</p>

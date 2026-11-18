@@ -6,6 +6,7 @@ import { Boxes } from 'lucide-react';
 import { ApiError } from '../../api/client';
 import { invalidateMrxCaches } from '../../api/mrxCacheInvalidation';
 import { Button } from '../../components/ui/button';
+import { ActionGuard } from '../../components/ui/action-guard';
 import { Num } from '../../components/ui/num';
 import { PaginationBar } from '../../components/workbench/PaginationBar';
 import { InlineBanner } from '../../components/ui/inline-banner';
@@ -20,6 +21,7 @@ import { DocumentCodeCell } from '../../components/workbench/DocumentCodeCell';
 import { useOptionalDirtyNavigation } from '../../components/workbench/dirty-navigation-context';
 import { isServiceDate, weekStartFor, toVietnameseDate } from '../../utils/dates';
 import { MrxSupplementalIssueModal } from './MrxSupplementalIssueModal';
+import { MrxHistoricalPurposeModal } from './MrxHistoricalPurposeModal';
 import { ReconciliationIssueDetailModal } from '../../components/workbench/ReconciliationIssueDetailModal';
 import { MrxDailyDateTabsBranch } from './branches/MrxDailyDateTabsBranch';
 import { MrxDailyHeaderBranch } from './branches/MrxDailyHeaderBranch';
@@ -104,6 +106,7 @@ export function MrxDailyIssueWorkbench({
   const [activeTab, setActiveTab] = useState<'demand' | 'history'>('demand');
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [historyPickerOpen, setHistoryPickerOpen] = useState(false);
+  const [purposeScope, setPurposeScope] = useState<{ batchId: string; date: string; version: number } | null>(null);
   const historyQuery = normalizeSearchText(historySearchTerm);
   const filteredHistoryItems = useMemo(() => {
     const items = history?.items ?? [];
@@ -256,6 +259,17 @@ export function MrxDailyIssueWorkbench({
       />
 
       {catalogError && activeBatchId && <InlineBanner variant="error" actionLabel="Tải lại danh sách lô" onAction={retryCatalog}>{catalogError.message}</InlineBanner>}
+      {canIssueBatch && hasInitialIssue && daily?.batchId === activeBatchId && daily.batchStatus === 'IN_PROGRESS'
+        && !isWeeklyAll && !scopeLocked && !isSupplementalOpen && !stateProps.isPreviousData && day
+        && (activeTab === 'history' || day.lines.some(line => line.quantityStatus === 'ALLOCATION_REQUIRES_REVIEW')) && (
+        <ActionGuard capabilityId="WH.ISSUE.CREATE" roles={['Admin', 'WarehouseManager', 'Warehouse Manager', 'WarehouseStaff', 'Warehouse Staff', 'Thủ kho']}
+          allowedModes={['MATERIAL_RECONCILIATION']}>
+          <InlineBanner variant="info" actionLabel="Đối chiếu phân bổ" onAction={() =>
+            setPurposeScope({ batchId: activeBatchId, date: day.serviceDate, version: daily.sourceVersion })}>
+            Kiểm tra phiếu xuất cũ chưa xác định mục đích của ngày đã chọn.
+          </InlineBanner>
+        </ActionGuard>
+      )}
 
       <TelemetrySubbar
         responsive
@@ -466,6 +480,8 @@ export function MrxDailyIssueWorkbench({
         onClose={() => setInspectedIssueId(null)}
         issueId={inspectedIssueId}
       />
+      {purposeScope && <MrxHistoricalPurposeModal batchId={purposeScope.batchId} date={purposeScope.date}
+        batchVersion={purposeScope.version} onClose={() => { setPurposeScope(null); void load(true); }} />}
       {historyPickerOpen && <ReconciliationBatchPicker selectedBatchId={activeBatchId} onClose={() => setHistoryPickerOpen(false)}
         onSelect={batch => { selectBatch(batch.batchId, batch); setHistoryPickerOpen(false); }} />}
     </WorkspaceFrame.Root>

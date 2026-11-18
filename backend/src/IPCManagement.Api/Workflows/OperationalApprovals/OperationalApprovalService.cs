@@ -23,7 +23,8 @@ namespace IPCManagement.Api.Workflows.OperationalApprovals;
 public sealed class OperationalApprovalService(
     IpcManagementContext context, IApprovalInboxService inbox,
     IApprovalWorkflowService workflow, IMenuAmendmentService amendments, IApprovalRoutingService routing,
-    ReconciliationSupplementalDemandService? supplemental = null, IStocktakeService? stocktakes = null, ILegacyLineageDispositionService? lineage = null)
+    ReconciliationSupplementalDemandService? supplemental = null, IStocktakeService? stocktakes = null, ILegacyLineageDispositionService? lineage = null,
+    MrxHistoricalPurposeRecoveryService? historicalPurpose = null)
 {
     public async Task<OperationalApprovalPage> GetPageAsync(ClaimsPrincipal actor, ApprovalInboxQueryDto query,
         CancellationToken token = default)
@@ -89,11 +90,14 @@ public sealed class OperationalApprovalService(
         MenuAmendmentResultDto? sourceChange = null;
         var sourceDishNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var supplementalDemand = type == "mrx-supplemental-demand" ? await RequiredSupplemental().GetAsync(id, actor, token) : null;
+        var historical = type == MrxHistoricalPurposeRecoveryService.Target ? await RequiredHistoricalPurpose().GetDetailAsync(id, token) : null;
         var stocktake = type == "stocktake" ? await new OperationalStocktakeSource(context).DetailAsync(id, token) : null;
         var legacy = type == "legacy-lineage-disposition" ? await new OperationalLegacyLineageSource(context).DetailAsync(id, token) : null;
         var blockedReasons = new List<string>();
         if (type == "mrx-batch-review")
             blockedReasons.Add("Mở trạm đối soát để xem số liệu theo ngày, giải trình và kiểm tra điều kiện chốt lô.");
+        if (historical is not null && historical.CreatedBy == actor.FindFirstValue(ClaimTypes.NameIdentifier))
+            blockedReasons.Add("Người lập không được tự duyệt đề xuất phân bổ.");
         if (state == "PENDING" && stocktake is not null && stocktake.Lines.Any(x => x.ActualQty is null || x.ActualQty < 0))
             blockedReasons.Add("Chưa có kiểm đếm hợp lệ cho toàn bộ nguyên liệu.");
         if (state == "PENDING" && type == "inventory-receipt")
@@ -137,8 +141,10 @@ public sealed class OperationalApprovalService(
             if (blocked is not null) { allowed.Remove("APPROVE"); blockedReasons.Add(blocked); }
         }
         var assignmentEvidence = assignments.Select(row => new { row.Sequence, row.ApproverRole, row.ApproverUserId });
-        var fingerprint = Hash(new { item, impact, blockedReasons, history, assignmentEvidence, supplementalDemand, stocktake, legacy, sourceChange, sourceDishNames });
-        return new(mode.Mode, mode.Version, item, fingerprint, allowed, blockedReasons, impact) { SupplementalDemand = supplementalDemand, Stocktake = stocktake, LegacyLineage = legacy, SourceChange = sourceChange, SourceDishNames = sourceDishNames };
+        var evidence = new { item, impact, blockedReasons, history, assignmentEvidence, supplementalDemand, stocktake, legacy, sourceChange, sourceDishNames };
+        var fingerprint = historical is null ? Hash(evidence) : Hash(new { evidence, historical });
+        return new(mode.Mode, mode.Version, item, fingerprint, allowed, blockedReasons, impact) { SupplementalDemand = supplementalDemand,
+            HistoricalPurpose = historical, Stocktake = stocktake, LegacyLineage = legacy, SourceChange = sourceChange, SourceDishNames = sourceDishNames };
     }
 
     public async Task<IReadOnlyList<ApprovalHistoryItemDto>> GetHistoryAsync(ClaimsPrincipal actor, string type,
@@ -166,6 +172,8 @@ public sealed class OperationalApprovalService(
             return await new ApprovalHistoryQueryService(context).GetHistoryAsync(type, targetId);
         }
         if (type == "mrx-batch-review") return await new OperationalMrxBatchSource(context).HistoryAsync(id, token);
+        if (type == MrxHistoricalPurposeRecoveryService.Target)
+            return await new OperationalMrxHistoricalPurposeSource(context).HistoryAsync(id, targetId, token);
         if (type == "mrx-supplemental-demand")
         {
             await RequiredSupplemental().GetAsync(id, actor, token);
@@ -228,6 +236,13 @@ public sealed class OperationalApprovalService(
                         ?? throw new KeyNotFoundException("Không tìm thấy đề nghị suất phát sinh.");
                     await context.Database.ExecuteSqlRawAsync("SELECT batchId FROM reconciliationbatches WHERE batchId = {0} FOR UPDATE", [batchId], ct);
                 }
+                else if (type == MrxHistoricalPurposeRecoveryService.Target)
+                {
+                    var batchId = await context.Mrxhistoricalpurposeproposals.AsNoTracking().Where(row => row.ProposalId == targetId)
+                        .Select(row => row.BatchId).SingleOrDefaultAsync(ct)
+                        ?? throw new KeyNotFoundException("Không tìm thấy đề xuất phân bổ.");
+                    await context.Database.ExecuteSqlRawAsync("SELECT batchId FROM reconciliationbatches WHERE batchId = {0} FOR UPDATE", [batchId], ct);
+                }
                 else await context.Database.ExecuteSqlRawAsync("SELECT menuAmendmentId FROM menuamendments WHERE menuAmendmentId = {0} FOR UPDATE", [targetId], ct);
             }
             var existing = await ReadCommandAsync(request.CommandId, aggregate, targetId, ct);
@@ -258,7 +273,7 @@ public sealed class OperationalApprovalService(
     {
         OperationalApprovalDetail detail;
         try { detail = await GetDetailAsync(actor, type, id, token); }
-        catch (KeyNotFoundException) when (type == "mrx-supplemental-demand")
+        catch (KeyNotFoundException) when (type is "mrx-supplemental-demand" or MrxHistoricalPurposeRecoveryService.Target)
         {
             // A concurrent decision can move the demand out of the pending queue while this command waits.
             await GetDetailAsync(actor, type, id, token, state: "PROCESSED");
@@ -311,6 +326,13 @@ public sealed class OperationalApprovalService(
             return new ApprovalResultDto { TargetType = type, TargetId = id, OldStatus = demand.Status, NewStatus = decided.Status,
                 Status = decided.Status, ActionAt = decided.DecidedAt ?? DateTime.UtcNow };
         }
+        if (detail.HistoricalPurpose is { } historical)
+        {
+            var decided = await RequiredHistoricalPurpose().DecideAsync(id, new(request.CommandId, historical.Version,
+                historical.BatchVersion, request.Decision == ApprovalDecision.Approve, request.Reason), actor, token);
+            return new ApprovalResultDto { TargetType = type, TargetId = id, OldStatus = historical.Status,
+                NewStatus = decided.Status, Status = decided.Status, ActionAt = DateTime.UtcNow };
+        }
         var result = await amendments.DecideMrxAsync(id,
             new ReviewMenuAmendmentRequest { Approved = request.Decision == ApprovalDecision.Approve, Reason = request.Reason },
             actorId, actor.FindAll(ClaimTypes.Role).Select(claim => claim.Value).ToArray(), token);
@@ -321,6 +343,8 @@ public sealed class OperationalApprovalService(
     private sealed record CommandEnvelope(string PayloadHash, ApprovalResultDto? Result, string? LockedError, DateOnly[] LockedDates);
     private ReconciliationSupplementalDemandService RequiredSupplemental() => supplemental
         ?? throw new InvalidOperationException("Chưa cấu hình xử lý nhu cầu suất phát sinh.");
+    private MrxHistoricalPurposeRecoveryService RequiredHistoricalPurpose() => historicalPurpose
+        ?? throw new InvalidOperationException("Chưa cấu hình xử lý phân bổ phiếu lịch sử.");
     private Task<LifecycleCommandReceipt?> FindCommandAsync(string commandId, string aggregate, byte[] id, CancellationToken token) =>
         context.Lifecyclecommandreceipts.AsNoTracking().SingleOrDefaultAsync(row => row.CommandId == commandId &&
             row.AggregateType == aggregate && row.AggregateId == id, token);
@@ -385,13 +409,15 @@ public sealed class OperationalApprovalService(
         var sources = OperationalApprovalRegistry.ForActor(actor, mode.Mode).ToDictionary(x => x.TargetType);
         var supplementalSource = new OperationalSupplementalDemandSource(context);
         var batchSource = new OperationalMrxBatchSource(context);
+        var historicalSource = new OperationalMrxHistoricalPurposeSource(context);
         for (var offset = 0; ; offset += 100)
         {
             var amendments = await ReadSourceAsync("mrx-source-change", () => ReadMrxItemsAsync(query, token, offset, 100));
             var demands = await ReadSourceAsync("mrx-supplemental-demand", () => supplementalSource.ReadAsync(query, token, offset, 100));
             var batches = await ReadSourceAsync("mrx-batch-review", () => batchSource.ReadAsync(query, token, offset, 100));
+            var historical = await ReadSourceAsync(MrxHistoricalPurposeRecoveryService.Target, () => historicalSource.ReadAsync(query, token, offset, 100));
             foreach (var failure in failures) bestBySource.Remove(failure.TargetType);
-            var candidates = ApprovalInboxQueryPolicy.Apply(amendments.Items.Concat(demands.Items).Concat(batches.Items), query)
+            var candidates = ApprovalInboxQueryPolicy.Apply(amendments.Items.Concat(demands.Items).Concat(batches.Items).Concat(historical.Items), query)
                 .Where(item => cursor is null || item.SubmittedAt > cursor.At
                     || item.SubmittedAt == cursor.At && string.CompareOrdinal(item.InboxItemId, cursor.Id) > 0);
             foreach (var group in candidates.GroupBy(item => item.TargetType))
@@ -401,7 +427,7 @@ public sealed class OperationalApprovalService(
                 bestBySource[group.Key] = retained.OrderBy(x => x.SubmittedAt)
                     .ThenBy(x => x.InboxItemId, StringComparer.Ordinal).Take(limit).ToList();
             }
-            if (!amendments.HasMore && !demands.HasMore && !batches.HasMore) break;
+            if (!amendments.HasMore && !demands.HasMore && !batches.HasMore && !historical.HasMore) break;
         }
         var best = bestBySource.Values.SelectMany(x => x).OrderBy(x => x.SubmittedAt)
             .ThenBy(x => x.InboxItemId, StringComparer.Ordinal).Take(limit).ToList();

@@ -108,6 +108,12 @@ Daily-line identity and date-scoped initial/supplemental rules above govern new-
 - Nhu cầu đã duyệt cộng vào đọc phiếu bếp, preparation/workbook và đối soát; pending/rejected không cộng. Mỗi thành phần giữ batch/day/material/unit/customer và request identity, không gộp theo tên. Nguồn gốc đóng băng bất biến; MRX không tác động stock/lot/movement vật lý.
 - Pending request, baseline/extra chưa đủ hoặc allocation cần đối chiếu chặn completion. Hủy nhu cầu đã duyệt chỉ khi chưa có allocation và đúng quyền Quản lý/Admin; đã có actual phải giữ lịch sử và qua nghiệp vụ đối chiếu, không xóa tác động. Draft/lệnh chưa rõ outcome được giữ theo actor/mode/batch/day và replay đúng payload, không dựng lại bằng version mới.
 
+### 5.0.1. Đối chiếu phân bổ phiếu xuất lịch sử
+
+- Thủ kho mở **Đối chiếu phân bổ** trong lịch sử phiếu của ngày đang chọn và gửi đề xuất kèm căn cứ. Quản lý duyệt và áp dụng qua loại hồ sơ `mrx-historical-purpose` tại Duyệt vận hành. Admin xác nhận trực tiếp với lịch sử `ADMIN_DIRECT`. Người lập không tự duyệt đề xuất đang chờ.
+- Mỗi đề xuất chỉ phân bổ phần chưa xác định của một dòng phiếu có đủ liên kết lô/ngày/dòng/nguyên liệu/đơn vị. Nếu gắn vào nhu cầu phát sinh, nhu cầu phải đã duyệt tại thời điểm xuất và còn đủ lượng tương ứng. Phiếu trả chưa rõ mục đích trong dòng có nhiều phân bổ vẫn cần đối chiếu thủ công.
+- Áp dụng phân bổ, lịch sử và biên nhận lệnh cùng giao dịch. Giữ chứng từ, lượng thực xuất/đã trả, tồn kho vật lý và suất/BOM khóa. Tính lại các lượt đọc theo phân bổ mới. Lô đang có đề xuất chờ duyệt tiếp tục bị chặn chốt. Lô đã chốt chỉ dùng để tra cứu.
+
 ### 5.1. Chuẩn bị đa khách hàng — chọn ngày hoặc tuần, chỉ đọc và xuất Excel
 
 - `/warehouse?view=mrx-preparation` là màn chuẩn bị hiện hữu, không phải trạm tạo phiếu. Chọn **Ngày hoặc Cả tuần** và các exact batch của nhiều khách hàng; trạng thái đã xuất/hoàn tất không khóa quyền đọc/xuất. Không tự sao chép required sang issued, không POST issue, không tự chuyển sang trạm xuất ngày.

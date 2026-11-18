@@ -1,5 +1,16 @@
 # Current task — EXECUTE
 
+## 2026-11-18 — Historical issue recovery
+
+Owner selected Warehouse proposal, Manager review/apply, Admin direct with audit. Spec and plan in docs/superpowers/{specs,plans}/2026-11-18-mrx-historical-purpose-recovery.md. Separate linked worktree keeps the active clone evidence immutable. FR-WH/FR-RECON/FR-APPR. No push until final plan verification.
+
+Scoped Pre-Code UI Gate Block
+- Routes /warehouse (daily OperationalFrame, one blocking Modal) and /approvals (SplitWorkbench).
+- MATERIAL_RECONCILIATION only; stable day/customer/batch/issue scope.
+- Warehouse/Admin existing issue permission; Manager/Admin existing decision permission; exact backend action admission and no creator self-review.
+- Loading, empty, error/retry, denied, partial, and write-reconciliation states. On missing acknowledgment retry the same actor/scope command with no altered payload.
+- Existing Modal, Select/Input/Button, InlineBanner, StateBoundary and Num; stable prior details on reload. D6, D7, T7, T8, M1.2, N6 apply. No token or CSS addition.
+
 ## 2026-11-17 — Close remaining MRX acceptance evidence
 
 Urgent release override from user: push/deploy now; defer broader open work after this slice. Pre-ship current candidate72focused FE PASS, lintPASS and buildPASS after correcting the React refs lint finding to derive render state from restored state. No backend/schema/dependency changes. New Admin mutation run20261117t025200z_a012a9 is still being finalized; source/HEAD changed during urgent release preparation, so its immutable-candidate guard must remain visible and it must not be reported as final DIAGNOSTIC_PASS. Earlier paired Actors/Admin receipts below predate the two new product fixes. Ship through PR CI, retain exact cleanup and report this evidence limit; do not relax runner checks. Historical purpose recovery (recommended Warehouse proposal → Manager approval/Admin direct), full final paired mutation rerun and G7/G8/performance are paused by the user's latest instruction.

@@ -20,6 +20,7 @@ public sealed record OperationalApprovalDetail(
     public MenuAmendmentResultDto? SourceChange { get; init; }
     public IReadOnlyDictionary<string, string> SourceDishNames { get; init; } = new Dictionary<string, string>();
     public ReconciliationSupplementalDemandDto? SupplementalDemand { get; init; }
+    public MrxHistoricalPurposeDetail? HistoricalPurpose { get; init; }
     public IPCManagement.Api.Features.Inventory.Contracts.StocktakeDto? Stocktake { get; init; }
     public IPCManagement.Api.Features.Inventory.Contracts.LegacyLineageDispositionDto? LegacyLineage { get; init; }
 }

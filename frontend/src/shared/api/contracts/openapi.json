@@ -7428,6 +7428,101 @@
         }
       }
     },
+    "/api/reconciliation/historical-purpose/batches/{batchId}": {
+      "get": {
+        "tags": [
+          "MrxHistoricalPurpose"
+        ],
+        "parameters": [
+          {
+            "name": "batchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxHistoricalPurposeCandidateIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxHistoricalPurposeCandidateIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxHistoricalPurposeCandidateIReadOnlyListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/historical-purpose": {
+      "post": {
+        "tags": [
+          "MrxHistoricalPurpose"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MrxHistoricalPurposeProposalRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MrxHistoricalPurposeProposalRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MrxHistoricalPurposeProposalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxHistoricalPurposeDetailApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxHistoricalPurposeDetailApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxHistoricalPurposeDetailApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/operational-approvals/inbox": {
       "get": {
         "tags": [
@@ -33494,6 +33589,267 @@
         },
         "additionalProperties": false
       },
+      "MrxHistoricalPurposeAllocation": {
+        "required": [
+          "purpose",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "purpose": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "demandMaterialId": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedDemandVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxHistoricalPurposeCandidate": {
+        "required": [
+          "demands",
+          "ingredientName",
+          "issueCode",
+          "issueLineId",
+          "returnedQuantity",
+          "unallocatedQuantity",
+          "unitName"
+        ],
+        "type": "object",
+        "properties": {
+          "issueLineId": {
+            "type": "string"
+          },
+          "issueCode": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string"
+          },
+          "unallocatedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "returnedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "pendingProposalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "demands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxHistoricalPurposeDemand"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxHistoricalPurposeCandidateIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxHistoricalPurposeCandidate"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxHistoricalPurposeDemand": {
+        "required": [
+          "demandId",
+          "demandMaterialId",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "demandId": {
+            "type": "string"
+          },
+          "demandMaterialId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxHistoricalPurposeDetail": {
+        "required": [
+          "allocations",
+          "batchId",
+          "batchVersion",
+          "createdAt",
+          "createdBy",
+          "ingredientName",
+          "issueCode",
+          "issueLineId",
+          "proposalId",
+          "reason",
+          "serviceDate",
+          "status",
+          "unallocatedQuantity",
+          "unitName",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "proposalId": {
+            "type": "string"
+          },
+          "batchId": {
+            "type": "string"
+          },
+          "batchVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "issueLineId": {
+            "type": "string"
+          },
+          "issueCode": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string"
+          },
+          "unallocatedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decisionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "allocations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxHistoricalPurposeAllocation"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxHistoricalPurposeDetailApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MrxHistoricalPurposeDetail"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxHistoricalPurposeProposalRequest": {
+        "required": [
+          "allocations",
+          "batchId",
+          "commandId",
+          "expectedBatchVersion",
+          "issueLineId",
+          "reason",
+          "serviceDate"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "batchId": {
+            "type": "string"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "issueLineId": {
+            "type": "string"
+          },
+          "expectedBatchVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "allocations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxHistoricalPurposeAllocation"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "MrxMaterialImpactDto": {
         "required": [
           "ingredientCode",
@@ -34087,6 +34443,9 @@
           },
           "supplementalDemand": {
             "$ref": "#/components/schemas/ReconciliationSupplementalDemandDto"
+          },
+          "historicalPurpose": {
+            "$ref": "#/components/schemas/MrxHistoricalPurposeDetail"
           },
           "stocktake": {
             "$ref": "#/components/schemas/StocktakeDto"
@@ -47855,6 +48214,9 @@
     },
     {
       "name": "MaterialDemand"
+    },
+    {
+      "name": "MrxHistoricalPurpose"
     },
     {
       "name": "OperationalApprovals"

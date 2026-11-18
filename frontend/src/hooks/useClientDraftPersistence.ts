@@ -24,6 +24,7 @@ export function clearAllClientDrafts(preserveMrxUserId?: string): void {
   const preservedPrefixes = preserveMrxUserId ? [
     getDraftStorageKey('mrx_initial_', preserveMrxUserId),
     getDraftStorageKey('mrx_approval_command_', preserveMrxUserId),
+    getDraftStorageKey('mrx_historical_purpose_', preserveMrxUserId),
     getDraftStorageKey('mrx_supplemental_demand_', preserveMrxUserId),
     getDraftStorageKey('mrx_supplemental_command_', preserveMrxUserId),
     getDraftStorageKey('mrx_supplemental_actual_', preserveMrxUserId),

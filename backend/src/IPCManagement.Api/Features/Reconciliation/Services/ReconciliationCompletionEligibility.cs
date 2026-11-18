@@ -17,6 +17,8 @@ internal static class ReconciliationCompletionEligibility
         var batchId = batch.BatchId;
         if (await context.Reconciliationsupplementaldemands.AnyAsync(x => x.BatchId == batchId && x.Status == "PENDING", token))
             throw new BusinessRuleException("Còn nhu cầu suất phát sinh đang chờ duyệt. Cần xử lý trước khi chốt lô.");
+        if (await context.Mrxhistoricalpurposeproposals.AnyAsync(x => x.BatchId == batchId && x.Status == "PENDING", token))
+            throw new BusinessRuleException("Còn đề xuất phân bổ phiếu lịch sử đang chờ duyệt. Cần xử lý trước khi chốt lô.");
         var extraDates = await context.Reconciliationsupplementaldemands.AsNoTracking()
             .Where(x => x.BatchId == batchId && x.Status == "APPROVED").Select(x => x.ServiceDate).Distinct().ToListAsync(token);
         foreach (var day in extraDates)

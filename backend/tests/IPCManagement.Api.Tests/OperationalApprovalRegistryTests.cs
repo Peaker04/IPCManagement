@@ -20,7 +20,7 @@ public sealed class OperationalApprovalRegistryTests
         Assert.Contains(OperationalApprovalRegistry.ForActor(Actor("Admin"), SystemOperationEligibility.Default),
             target => target.TargetType == "inventory-receipt");
         var mrx = OperationalApprovalRegistry.ForActor(Actor("Manager"), SystemOperationEligibility.MaterialReconciliation);
-        Assert.Equal(new[] { "mrx-batch-review", "mrx-source-change", "mrx-supplemental-demand" }, mrx.Select(x => x.TargetType).ToArray());
+        Assert.Equal(new[] { "mrx-batch-review", "mrx-source-change", "mrx-supplemental-demand", "mrx-historical-purpose" }, mrx.Select(x => x.TargetType).ToArray());
         Assert.Empty(OperationalApprovalRegistry.ForActor(Actor("WarehouseStaff"), SystemOperationEligibility.MaterialReconciliation));
         Assert.Empty(OperationalApprovalRegistry.ForActor(Actor("Chef"), SystemOperationEligibility.Default));
     }
