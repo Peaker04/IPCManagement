@@ -18,9 +18,10 @@ internal sealed class OperationalMrxHistoricalPurposeSource(IpcManagementContext
         var rows = await (from row in context.Mrxhistoricalpurposeproposals.AsNoTracking()
             join menu in context.Menuversions.AsNoTracking() on row.Batch.MenuVersionId equals menu.MenuVersionId
             join customer in context.Customers.AsNoTracking() on menu.CustomerId equals customer.CustomerId
-            where (query.State == "PENDING" ? row.Status == "PENDING" : row.Status != "PENDING")
-                && (targetId == null || row.ProposalId == targetId) && (date == null || row.ServiceDate == date)
-                && (string.IsNullOrEmpty(customerCode) || customer.CustomerCode.ToUpper() == customerCode)
+            where query.State == "PENDING" ? row.Status == "PENDING" : row.Status != "PENDING"
+            where targetId == null || row.ProposalId == targetId
+            where date == null || row.ServiceDate == date
+            where string.IsNullOrEmpty(customerCode) || customer.CustomerCode.ToUpper() == customerCode
             orderby row.CreatedAt, row.ProposalId
             select new { row.ProposalId, row.ServiceDate, row.Status, row.Reason, row.CreatedAt, row.IssueLine.Issue.IssueCode,
                 row.UnallocatedQuantity, row.IssueLine.Ingredient.IngredientName, row.IssueLine.Unit.UnitName,
