@@ -7432,6 +7432,90 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/reconciliation/historical-purpose": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["MrxHistoricalPurposeProposalRequest"];
+                    readonly "application/json": components["schemas"]["MrxHistoricalPurposeProposalRequest"];
+                    readonly "text/json": components["schemas"]["MrxHistoricalPurposeProposalRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["MrxHistoricalPurposeDetailApiResponse"];
+                        readonly "text/json": components["schemas"]["MrxHistoricalPurposeDetailApiResponse"];
+                        readonly "text/plain": components["schemas"]["MrxHistoricalPurposeDetailApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/historical-purpose/batches/{batchId}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly date?: string;
+                };
+                readonly header?: never;
+                readonly path: {
+                    readonly batchId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["MrxHistoricalPurposeCandidateIReadOnlyListApiResponse"];
+                        readonly "text/json": components["schemas"]["MrxHistoricalPurposeCandidateIReadOnlyListApiResponse"];
+                        readonly "text/plain": components["schemas"]["MrxHistoricalPurposeCandidateIReadOnlyListApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/reconciliation/lines/{lineId}/disposition": {
         readonly parameters: {
             readonly query?: never;
@@ -16841,6 +16925,80 @@ export interface components {
             readonly menuVariant: string;
             readonly slotLabel: string;
         };
+        readonly MrxHistoricalPurposeAllocation: {
+            readonly demandMaterialId?: string | null;
+            /** Format: int64 */
+            readonly expectedDemandVersion?: number | null;
+            readonly purpose: string;
+            /** Format: double */
+            readonly quantity: number;
+        };
+        readonly MrxHistoricalPurposeCandidate: {
+            /** Format: int64 */
+            readonly batchVersion: number;
+            readonly demands: readonly components["schemas"]["MrxHistoricalPurposeDemand"][];
+            readonly ingredientName: string;
+            readonly issueCode: string;
+            readonly issueLineId: string;
+            readonly pendingProposalId?: string | null;
+            /** Format: double */
+            readonly returnedQuantity: number;
+            /** Format: double */
+            readonly unallocatedQuantity: number;
+            readonly unitName: string;
+        };
+        readonly MrxHistoricalPurposeCandidateIReadOnlyListApiResponse: {
+            readonly data?: readonly components["schemas"]["MrxHistoricalPurposeCandidate"][] | null;
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly MrxHistoricalPurposeDemand: {
+            readonly demandId: string;
+            readonly demandMaterialId: string;
+            /** Format: int64 */
+            readonly version: number;
+        };
+        readonly MrxHistoricalPurposeDetail: {
+            readonly allocations: readonly components["schemas"]["MrxHistoricalPurposeAllocation"][];
+            readonly batchId: string;
+            /** Format: int64 */
+            readonly batchVersion: number;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly createdBy: string;
+            readonly decisionReason?: string | null;
+            readonly ingredientName: string;
+            readonly issueCode: string;
+            readonly issueLineId: string;
+            readonly proposalId: string;
+            readonly reason: string;
+            /** Format: date */
+            readonly serviceDate: string;
+            readonly status: string;
+            /** Format: double */
+            readonly unallocatedQuantity: number;
+            readonly unitName: string;
+            /** Format: int64 */
+            readonly version: number;
+        };
+        readonly MrxHistoricalPurposeDetailApiResponse: {
+            readonly data?: components["schemas"]["MrxHistoricalPurposeDetail"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly MrxHistoricalPurposeProposalRequest: {
+            readonly allocations: readonly components["schemas"]["MrxHistoricalPurposeAllocation"][];
+            readonly batchId: string;
+            readonly commandId: string;
+            /** Format: int64 */
+            readonly expectedBatchVersion: number;
+            readonly issueLineId: string;
+            readonly reason: string;
+            /** Format: date */
+            readonly serviceDate: string;
+        };
         readonly MrxMaterialImpactDto: {
             readonly ingredientCode: string;
             readonly ingredientName: string;
@@ -17001,6 +17159,7 @@ export interface components {
             readonly allowedActions: readonly string[];
             readonly blockedReasons: readonly string[];
             readonly fingerprint: string;
+            readonly historicalPurpose?: components["schemas"]["MrxHistoricalPurposeDetail"];
             readonly item: components["schemas"]["ApprovalInboxItemDto"];
             readonly legacyLineage?: components["schemas"]["LegacyLineageDispositionDto"];
             readonly materialImpact: readonly components["schemas"]["MrxMaterialImpactDto"][];

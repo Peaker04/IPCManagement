@@ -71,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<ReconciliationActualService>();
         services.AddScoped<ReconciliationKitchenExportService>();
         services.AddScoped<ReconciliationCompletionService>();
+        services.AddScoped<MrxHistoricalPurposeRecoveryService>();
         services.AddScoped<ReconciliationSupplementalDemandService>();
         services.AddScoped<MrxEditScopeQuery>();
         services.AddScoped<ReconciliationSourceRevisionService>();

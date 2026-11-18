@@ -80,7 +80,7 @@ for (const session of ['Actors', 'Admin'] as const) {
         const customer = customers[index];
         const customerScope = { ...scope, caseId: `${scope.caseId}_${index}`, reason: `${scope.reason} ${customer.customerCode}`,
           customer: { customerId: customer.customerId, label: `${customer.customerCode} - ${customer.customerName}` } };
-        return session === 'Admin' ? runAdminApprovalLifecycle(actor, customerScope, directory)
+        return session === 'Admin' ? runAdminApprovalLifecycle(actor, customerScope, directory, index === 0)
           : runMultiRoleApprovalLifecycle(actor, customerScope, directory, index === 0);
       }));
       fs.writeFileSync(path.join(evidence, `three-${session.toLowerCase()}-transport.json`), JSON.stringify({

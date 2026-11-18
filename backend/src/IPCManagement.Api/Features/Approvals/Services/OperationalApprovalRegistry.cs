@@ -20,7 +20,8 @@ public static class OperationalApprovalRegistry
         new("stocktake", "Chênh lệch kiểm kê", SystemOperationEligibility.Default, AuthorizationPolicies.InventoryIssueApprove),
         new("mrx-batch-review", "Rà soát và chốt lô", SystemOperationEligibility.MaterialReconciliation, ""),
         new("mrx-source-change", "Thay đổi nguồn thực đơn", SystemOperationEligibility.MaterialReconciliation, ""),
-        new("mrx-supplemental-demand", "Nhu cầu suất phát sinh", SystemOperationEligibility.MaterialReconciliation, "")
+        new("mrx-supplemental-demand", "Nhu cầu suất phát sinh", SystemOperationEligibility.MaterialReconciliation, ""),
+        new("mrx-historical-purpose", "Phân bổ phiếu lịch sử", SystemOperationEligibility.MaterialReconciliation, "")
     ];
 
     public static IReadOnlyList<OperationalApprovalTarget> ForActor(ClaimsPrincipal actor, string mode)

@@ -7,6 +7,8 @@ export type ApprovalHistoryItem = components['schemas']['ApprovalHistoryItemDto'
 export type OperationalApprovalPage = components['schemas']['OperationalApprovalPage'];
 export type OperationalApprovalAction = 'APPROVE' | 'REJECT' | 'REVIEW_APPROVE' | 'REVIEW_REJECT' | 'APPLY';
 export type OperationalApprovalDetail = components['schemas']['OperationalApprovalDetail'];
+export type OperationalApprovalCommandContext = Pick<OperationalApprovalDetail, 'mode' | 'modeVersion' | 'fingerprint'>
+  & { item: Pick<ApprovalInboxItem, 'targetType' | 'targetId'> };
 
 export interface OperationalApprovalFilters { type: string; cursor: string; search: string; state: 'PENDING' | 'PROCESSED'; customerCode?: string; date?: string }
 
@@ -25,7 +27,7 @@ export const approvalsApi = {
     const query = state === 'PROCESSED' ? '?state=PROCESSED' : '';
     return apiClient<OperationalApprovalDetail>(`/operational-approvals/${encodeURIComponent(type)}/${encodeURIComponent(id)}${query}`);
   },
-  async decideOperational(detail: OperationalApprovalDetail, decision: OperationalApprovalAction, reason: string, commandId: string) {
+  async decideOperational(detail: OperationalApprovalCommandContext, decision: OperationalApprovalAction, reason: string, commandId: string) {
     const result = await apiClient<components['schemas']['ApprovalResultDto']>(
       `/operational-approvals/${encodeURIComponent(detail.item.targetType)}/${encodeURIComponent(detail.item.targetId)}/decision`,
       { method: 'POST', body: JSON.stringify({ commandId, expectedModeVersion: detail.modeVersion,

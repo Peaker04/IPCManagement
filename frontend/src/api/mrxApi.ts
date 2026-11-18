@@ -254,7 +254,7 @@ export const mrxApi = {
   submitSupplementalDemand: (id: string, request: MrxSupplementalDemandCommand) =>
     withMrxInvalidation(apiClient<MrxSupplementalDemand>(`/reconciliation/supplemental-demands/${encodeURIComponent(id)}/submit`, { method: 'POST', body: JSON.stringify(request) }), true),
   cancelSupplementalDemand: (id: string, request: MrxSupplementalDemandCommand) =>
-    withMrxInvalidation(apiClient<MrxSupplementalDemand>(`/reconciliation/supplemental-demands/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify(request) })),
+    withMrxInvalidation(apiClient<MrxSupplementalDemand>(`/reconciliation/supplemental-demands/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify(request) }), true),
   getMaterialInspection: (menuVersionId: string, query: MrxInspectionQuery) =>
     apiClient<MrxMaterialInspectionPage>(inspectionPath('materials', menuVersionId, query)),
   getPlanInspection: (menuVersionId: string, query: MrxInspectionQuery) =>

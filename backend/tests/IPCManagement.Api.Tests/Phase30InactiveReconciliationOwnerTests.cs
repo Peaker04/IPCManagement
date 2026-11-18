@@ -993,7 +993,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 "currentstock", "stockmovements", "stocktakes", "stocktakelines", "reconciliationactuals", "reconciliationactualrevisions",
                 "reconciliationdispositions", "reconciliationdailydispositions",
                 "reconciliationsupplementaldemands", "reconciliationsupplementaldemanddishes", "reconciliationsupplementaldemandmaterials",
-                "reconciliationsupplementaldemandcontributions", "reconciliationissueallocations",
+                "reconciliationsupplementaldemandcontributions", "reconciliationissueallocations", "mrxhistoricalpurposeproposals",
                 "materialrequests", "materialrequestlines", "supplementalmaterialrequests",
                 "purchaserequests", "purchaserequestlines", "purchaselinesupplierdecisions", "purchasepriceexceptions", "purchaseorders", "purchaseorderlines",
                 "approvalhistories", "approvalrules", "approvalassignments", "auditlogs",
@@ -1038,7 +1038,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         }
 
         // PreparationGroupCode and all five supplemental/allocation tables participate in full reconstruction; no cells are excluded.
-        private const string ExpectedScalarSchemaHash = "510A266F42308B42ACBED39FAB8950DA5306D541746825131D910C0BE6C70ECA";
+        private const string ExpectedScalarSchemaHash = "2B8F70C8988C09CC211020235A0A24E1E99F2C1CFF3FA49A71B317A8AFCFE500";
 
         private sealed record EntityMapping(IEntityType Entity, string Table, StoreObjectIdentifier Store);
 
