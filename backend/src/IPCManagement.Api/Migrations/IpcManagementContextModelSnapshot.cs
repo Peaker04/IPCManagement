@@ -3012,6 +3012,75 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("menuversions", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MrxHistoricalPurposeProposal", b =>
+                {
+                    b.Property<byte[]>("ProposalId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("AllocationsJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<byte[]>("BatchId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<byte[]>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<byte[]>("IssueLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateOnly>("ServiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<decimal>("UnallocatedQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("ProposalId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("IssueLineId", "Status");
+
+                    b.HasIndex("BatchId", "ServiceDate", "Status");
+
+                    b.HasIndex("Status", "CreatedAt", "ProposalId");
+
+                    b.ToTable("mrxhistoricalpurposeproposals", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.PortionRule", b =>
                 {
                     b.Property<byte[]>("PortionRuleId")
@@ -7722,6 +7791,33 @@ namespace IPCManagement.Api.Migrations
                         .HasConstraintName("menuversions_ibfk_1");
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MrxHistoricalPurposeProposal", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatch", "Batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryIssueLine", "IssueLine")
+                        .WithMany()
+                        .HasForeignKey("IssueLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("IssueLine");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.PortionRule", b =>

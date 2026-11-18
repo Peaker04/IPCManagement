@@ -418,6 +418,20 @@ public partial class WorkflowGenerationTests
         {
             var command = connection.CreateCommand();
             command.CommandText = """
+                CREATE TABLE mrxhistoricalpurposeproposals (
+                    ProposalId BLOB PRIMARY KEY,
+                    BatchId BLOB NOT NULL,
+                    IssueLineId BLOB NOT NULL,
+                    ServiceDate TEXT NOT NULL,
+                    UnallocatedQuantity TEXT NOT NULL,
+                    AllocationsJson TEXT NOT NULL,
+                    Status TEXT NOT NULL,
+                    Version INTEGER NOT NULL,
+                    Reason TEXT NOT NULL,
+                    CreatedBy BLOB NOT NULL,
+                    CreatedAt TEXT NOT NULL,
+                    DecisionReason TEXT NULL
+                );
                 CREATE TABLE roles (
                     roleId BLOB PRIMARY KEY,
                     roleCode TEXT NOT NULL,

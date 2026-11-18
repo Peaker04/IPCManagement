@@ -22,6 +22,16 @@ import { approvalsApi, type ApprovalInboxItem, type ApprovalHistoryItem, type Op
 import { formatVietnameseDate, formatVietnameseDateTime } from '../../utils/dates';
 import { ApiError } from '../../api/client';
 import { getMrxShiftLabel } from '../../constants/mrxConstants';
+import { getDraftStorageKey } from '../../hooks/useClientDraftPersistence';
+import type { OperationalApprovalCommandContext } from '../../api/approvalsApi';
+
+interface PendingDecision {
+  scope: string;
+  context: OperationalApprovalCommandContext;
+  decision: OperationalApprovalAction;
+  reason: string;
+  commandId: string;
+}
 
 const decisionCopy: Record<OperationalApprovalAction, { button: string; confirm: string }> = {
   APPROVE: { button: 'Phê duyệt hồ sơ', confirm: 'Xác nhận phê duyệt' },
@@ -64,6 +74,21 @@ export function ApprovalPage() {
 }
 
 function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
+  const { user } = useAuth();
+  const commandKey = mode === 'MATERIAL_RECONCILIATION' && user
+    ? getDraftStorageKey(`mrx_approval_command_${mode}`, user.userId) : null;
+  const [restoredCommand] = useState<PendingDecision | null>(() => {
+    if (!commandKey) return null;
+    try {
+      const saved = JSON.parse(localStorage.getItem(commandKey) || 'null') as PendingDecision | null;
+      return saved && typeof saved.scope === 'string' && saved.context?.mode === mode
+        && typeof saved.context.item?.targetType === 'string' && typeof saved.context.item.targetId === 'string'
+        && typeof saved.context.fingerprint === 'string' && typeof saved.context.modeVersion === 'number'
+        && decisionActions.includes(saved.decision) && typeof saved.reason === 'string' && typeof saved.commandId === 'string'
+        ? saved : null;
+    } catch { return null; }
+  });
+  const pendingCommand = useRef(restoredCommand);
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const initialType = params.get('targetType') || params.get('type') || 'ALL';
@@ -87,14 +112,15 @@ function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
   const [historyError, setHistoryError] = useState<Error | null>(null);
   const [historyLoading, setHistoryLoading] = useState(Boolean(params.get('targetId')));
   const [historyRevision, setHistoryRevision] = useState(0);
-  const [decision, setDecision] = useState<OperationalApprovalAction | null>(null);
-  const [reason, setReason] = useState('');
+  const [decision, setDecision] = useState<OperationalApprovalAction | null>(restoredCommand?.scope === scope ? restoredCommand.decision : null);
+  const [reason, setReason] = useState(restoredCommand?.reason ?? '');
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
-  const commandRef = useRef('');
+  const commandRef = useRef(restoredCommand?.commandId ?? '');
   const [mutationError, setMutationError] = useState<Error | null>(null);
   const [accepted, setAccepted] = useState<string | null>(null);
-  const [uncertain, setUncertain] = useState(false);
+  const [uncertain, setUncertain] = useState(Boolean(restoredCommand));
+  const recoveryScopeChanged = Boolean(restoredCommand && restoredCommand.scope !== scope);
 
   useEffect(() => {
     if (mode !== 'MATERIAL_RECONCILIATION') return;
@@ -141,27 +167,46 @@ function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
     if (mode !== 'MATERIAL_RECONCILIATION') setDetail(null);
     setDetailError(null); setDetailLoading(true);
     setHistory([]); setHistoryError(null); setHistoryLoading(true);
-    setSelection({ type: item.targetType, id: item.targetId }); setReason(''); setMutationError(null); setUncertain(false);
+    setSelection({ type: item.targetType, id: item.targetId }); setReason(''); setMutationError(null); setUncertain(Boolean(pendingCommand.current));
   };
   const detailCurrent = Boolean(selection && detail && detail.item.targetId === selection.id
     && detail.item.targetType === selection.type && (mode !== 'MATERIAL_RECONCILIATION' || detail.mode === mode)
     && !detailLoading && !detailError);
   const submit = async () => {
-    if (!detail || !detailCurrent || !decision || sendingRef.current) return;
+    if ((!pendingCommand.current && (!detail || !detailCurrent)) || !decision || sendingRef.current) return;
     if (!reason.trim()) { setMutationError(new Error('Vui lòng nhập căn cứ quyết định.')); return; }
+    const command: PendingDecision = pendingCommand.current ?? { scope, context: {
+      mode: detail!.mode, modeVersion: detail!.modeVersion, fingerprint: detail!.fingerprint,
+      item: { targetType: detail!.item.targetType, targetId: detail!.item.targetId },
+    }, decision, reason: reason.trim(), commandId: commandRef.current };
+    if (command.scope !== scope || command.context.mode !== mode) {
+      setMutationError(new Error('Vai trò hoặc phiên bản chế độ đã thay đổi. Cần đối chiếu lệnh đã gửi trong đúng phiên làm việc.')); return;
+    }
+    if (commandKey) {
+      try { localStorage.setItem(commandKey, JSON.stringify(command)); }
+      catch { setMutationError(new Error('Chưa lưu được mã lệnh khôi phục. Hãy kiểm tra bộ nhớ trình duyệt trước khi gửi.')); return; }
+      pendingCommand.current = command;
+    }
     sendingRef.current = true; setSending(true); setMutationError(null);
     try {
-      const result = await approvalsApi.decideOperational(detail, decision, reason.trim(), commandRef.current);
+      const result = await approvalsApi.decideOperational(command.context, command.decision, command.reason, command.commandId);
+      pendingCommand.current = null;
+      if (commandKey) { try { localStorage.removeItem(commandKey); } catch { /* Server receipt remains authoritative on recovery. */ } }
       const outcome = result.status === 'PENDING_NEXT_APPROVAL' ? result.status : result.newStatus || result.status;
-      setAccepted(`Đã ghi nhận quyết định · ${statusLabel(outcome, detail.item.targetType)}`);
+      setAccepted(`Đã ghi nhận quyết định · ${statusLabel(outcome, command.context.item.targetType)}`);
       setUncertain(false);
       setDecision(null); setSelection(null); setDetail(null); setReason('');
       await recovery.refetch();
     } catch (cause) {
       const failure = cause instanceof Error ? cause : new Error(String(cause));
       setMutationError(failure);
-      if (!(failure instanceof ApiError) || failure.status >= 500 || failure.status === 0) setUncertain(true);
-      else { setUncertain(false); commandRef.current = crypto.randomUUID(); }
+      if (!(failure instanceof ApiError) || failure.status >= 500 || failure.status === 0
+        || (commandKey && (failure.status === 401 || failure.code === 'SESSION_CHANGED'))) setUncertain(true);
+      else {
+        pendingCommand.current = null;
+        if (commandKey) { try { localStorage.removeItem(commandKey); } catch { /* Retain server-side conflict evidence. */ } }
+        setUncertain(false); commandRef.current = crypto.randomUUID();
+      }
     } finally { sendingRef.current = false; setSending(false); }
   };
 
@@ -201,6 +246,11 @@ function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
         recovery.updateFilter('cursor', data.nextCursor);
       }}>Trang sau</Button></>} />
     {accepted && <InlineBanner variant="success" onClose={() => setAccepted(null)}>{accepted}</InlineBanner>}
+    {recoveryScopeChanged && <InlineBanner variant="warning" title="Có lệnh duyệt cần đối chiếu"
+      actionLabel="Tra cứu lịch sử hồ sơ" onAction={() => {
+        const target = pendingCommand.current!.context.item;
+        navigate(`/approvals?targetType=${encodeURIComponent(target.targetType)}&targetId=${encodeURIComponent(target.targetId)}&state=PROCESSED`);
+      }}>Vai trò hoặc phiên bản chế độ đã thay đổi. Lệnh cũ được giữ lại; cần đăng nhập đúng vai trò và chế độ đã gửi để kiểm tra kết quả.</InlineBanner>}
     {(data?.unavailableSources ?? []).map(source => <InlineBanner key={source.targetType} variant="warning"
       actionLabel="Tải lại hàng đợi" onAction={() => {
         if (recovery.filters.cursor) changeScope({ cursor: '' });
@@ -229,6 +279,17 @@ function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
                 {detail.supplementalDemand && <div><dt className="text-xs text-slate-500">Ngày phục vụ</dt><dd>{formatVietnameseDate(detail.supplementalDemand.serviceDate)}</dd></div>}
                 <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Lý do</dt><dd className="break-words">{detail.item.reason || '—'}</dd></div>
               </dl>
+              {detail.historicalPurpose && <section className="space-y-2">
+                <h3 className="font-semibold">Phân bổ đề xuất</h3>
+                <div>{detail.historicalPurpose.issueCode} · {detail.historicalPurpose.ingredientName} · {detail.historicalPurpose.unitName}</div>
+                <div>Dòng phiếu <IdentifierText value={detail.historicalPurpose.issueLineId} /></div>
+                <DataGrid data={detail.historicalPurpose.allocations} keyExtractor={row => `${row.purpose}:${row.demandMaterialId ?? ''}`} columns={[
+                  { id: 'purpose', header: 'Mục đích', cell: row => row.purpose === 'BASELINE_SHORTAGE' ? 'Bù nhu cầu gốc'
+                    : row.purpose === 'UNPLANNED_EXTRA' ? 'Cấp ngoài nhu cầu' : 'Cấp nhu cầu đã duyệt' },
+                  { id: 'demand', header: 'Dòng nhu cầu', cell: row => row.demandMaterialId ? <IdentifierText value={row.demandMaterialId} /> : '—' },
+                  { id: 'quantity', header: 'Lượng phân bổ', align: 'right', cell: row => <Num value={row.quantity} format="plain" decimals={6} /> },
+                ]} />
+              </section>}
               {detail.legacyLineage && <section className="space-y-3">
                 <h3 className="font-semibold">Liên kết chứng từ đã đối chiếu</h3>
                 <p className="text-slate-600">Duyệt đối chiếu chưa gắn liên kết. Admin áp dụng sau khi duyệt; thao tác không thay đổi số lượng hoặc tồn kho.</p>
@@ -308,8 +369,10 @@ function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
         <Button disabled={sending || uncertain || !reason.trim()} loading={sending} onClick={() => void submit()}>{decisionCopy[decision || 'APPROVE'].confirm}</Button></>}>
       <div className="space-y-3 text-sm">
         <p>Quyết định được ghi nhận theo bước duyệt và thẩm quyền của hồ sơ.</p>
-        {uncertain ? <InlineBanner variant="warning" title="Chưa xác định kết quả duyệt" actionLabel="Kiểm tra kết quả"
-          isActionLoading={sending} onAction={() => void submit()}>Kiểm tra lại bằng mã lệnh đã gửi trước khi thực hiện quyết định khác.</InlineBanner>
+        {uncertain ? <InlineBanner variant="warning" title="Chưa xác định kết quả duyệt" actionLabel={recoveryScopeChanged ? undefined : 'Kiểm tra kết quả'}
+          isActionLoading={sending} onAction={recoveryScopeChanged ? undefined : () => void submit()}>{recoveryScopeChanged
+            ? 'Vai trò hoặc phiên bản chế độ đã thay đổi. Đăng nhập đúng vai trò và chế độ đã gửi để đối chiếu lệnh; không gửi một quyết định mới.'
+            : 'Kiểm tra lại bằng mã lệnh đã gửi trước khi thực hiện quyết định khác.'}</InlineBanner>
           : mutationError && <InlineBanner variant={mutationError instanceof ApiError && mutationError.status === 409 ? 'conflict' : 'error'}>{mutationError.message}</InlineBanner>}
         <label className="block space-y-1"><span>Căn cứ quyết định</span><Input value={reason} disabled={sending || uncertain} onChange={event => setReason(event.target.value)} /></label>
       </div>
