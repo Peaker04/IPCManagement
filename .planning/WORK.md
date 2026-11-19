@@ -1,5 +1,11 @@
 # Current task — IDLE
 
+2026-11-19. FR-CAT / BOM-05 MRX workbook usability follow-up on PR #62. All MRX templates now reserve five blank ingredient rows per missing dish and applicable effective-date interval. Retain published rows in full exports. Hide start and end date columns while preserving their cells for reimport. The visible dish code column uses a wider cell, no wrapping and shrink-to-fit. PASS 44 Catalog and workbook tests including Open XML and import round trips across three tiers, plus lint of the updated browser test. Merge paused for user follow-up.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Superpowers TDD and verification | MRX Excel template refinement | Missing dishes exported one input row and dish codes wrapped | Workbook shape and Open XML assertions with reimport coverage | Yes | Release DLL was held by the running local API, so focused tests ran in Debug | Keep the import contract and simplify workbook entry |
+
 2026-11-19. FR-CHEF / FR-RECON, MRX kitchen menu order and integration review. Source at both the original branch HEAD and origin/main preserved API insertion order in the kitchen list. This interleaved Chay and Mặn dishes and placed afternoon dishes before morning. The workbench now sorts by service date, morning then afternoon, and Chay then Mặn. It preserves API order within each menu. The MRX-only route, shifts, local search, ingredient details and export scopes retain their existing contracts.
 
 PASS DOM regression RED/GREEN with both dates, all four groups and the afternoon filter, 24 focused Chef/BOM UI tests, Impeccable detector, and npm run verify with 1,777 backend and 758 frontend tests. The dev server served the updated module. NEEDS_EVIDENCE for the exact authenticated ANV lot from the screenshot. The original stage overlap was reviewed for MRX handoff, issue state, supplemental demand, BOM and workbook behavior. origin/main remains 6a35dec8. The branch candidate remains staged locally.

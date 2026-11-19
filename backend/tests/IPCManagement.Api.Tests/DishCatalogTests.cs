@@ -1038,7 +1038,7 @@ public class DishCatalogTests
                 using var sheet = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
                 var xml = XDocument.Load(sheet);
                 var rows = xml.Descendants(xml.Root!.Name.Namespace + "row").Skip(4).ToArray();
-                rows.Should().HaveCount(type == "all" || !expected ? 1 : 0);
+                rows.Should().HaveCount(!expected ? 5 : type == "all" ? 1 : 0);
                 if (type == "all")
                     rows[0].Elements().Single(c => (string?)c.Attribute("r") == "D5").Value.Should().Be(expected ? "0.3" : "");
             }
@@ -1086,20 +1086,30 @@ public class DishCatalogTests
             var ns = xml.Root!.Name.Namespace;
             xml.Descendants(ns + "sheetProtection").Should().BeEmpty();
             var cells = xml.Descendants(ns + "c").ToDictionary(cell => (string)cell.Attribute("r")!);
+            Enumerable.Range(5, 5).Should().OnlyContain(row => cells[$"G{row}"].Value == "DISH-MISSING" && cells[$"B{row}"].Value == "");
+            var hidden = xml.Descendants(ns + "col").Where(col => (string?)col.Attribute("hidden") == "1")
+                .SelectMany(col => Enumerable.Range((int)col.Attribute("min")!, (int)col.Attribute("max")! - (int)col.Attribute("min")! + 1));
+            hidden.Should().Contain([10, 11]);
+            XDocument styles;
+            using (var source = archive.GetEntry("xl/styles.xml")!.Open()) styles = XDocument.Load(source);
+            var dishCodeStyle = (int?)cells["G5"].Attribute("s") ?? 0;
+            var alignment = styles.Root!.Element(ns + "cellXfs")!.Elements(ns + "xf").ElementAt(dishCodeStyle).Element(ns + "alignment")!;
+            ((string?)alignment.Attribute("wrapText")).Should().Be("0");
+            ((string?)alignment.Attribute("shrinkToFit")).Should().Be("1");
             cells["H5"].Value.Should().Be(tier.ToString());
-            cells["H6"].Value.Should().Be(tier.ToString());
+            cells["H10"].Value.Should().Be(tier.ToString());
             cells["D5"].Value.Should().BeEmpty();
-            cells["D6"].Element(ns + "v")!.Value = "0.48";
-            cells["M6"].Value.Should().Be("ING-BOM");
-            cells["M7"].Value.Should().Be("ING-BOM");
-            cells["N7"].Value.Should().Be("G");
-            var added = new XElement(cells["B6"].Parent!);
-            added.SetAttributeValue("r", 8);
+            cells["D10"].Element(ns + "v")!.Value = "0.48";
+            cells["M10"].Value.Should().Be("ING-BOM");
+            cells["M11"].Value.Should().Be("ING-BOM");
+            cells["N11"].Value.Should().Be("G");
+            var added = new XElement(cells["B10"].Parent!);
+            added.SetAttributeValue("r", 12);
             foreach (var cell in added.Elements(ns + "c"))
-                cell.SetAttributeValue("r", ((string)cell.Attribute("r")!)[..^1] + "8");
-            added.Elements(ns + "c").Single(cell => (string?)cell.Attribute("r") == "B8")
+                cell.SetAttributeValue("r", ((string)cell.Attribute("r")!)[..^2] + "12");
+            added.Elements(ns + "c").Single(cell => (string?)cell.Attribute("r") == "B12")
                 .Descendants(ns + "t").Single().Value = "Nguyên liệu bổ sung";
-            added.Elements(ns + "c").Single(cell => (string?)cell.Attribute("r") == "D8")
+            added.Elements(ns + "c").Single(cell => (string?)cell.Attribute("r") == "D12")
                 .Element(ns + "v")!.Value = "0.33";
             xml.Descendants(ns + "sheetData").Single().Add(added);
             sheet.Delete();
@@ -1143,7 +1153,7 @@ public class DishCatalogTests
 
     [Theory]
     [InlineData(false, 25000, 8)]
-    [InlineData(true, 34000, 1)]
+    [InlineData(true, 34000, 5)]
     public async Task DishService_MrxMissingTemplate_Should_ContainOnlyScheduledDishesMissingOnServiceDate(bool shared, int tier, int templateRows)
     {
         await using var fixture = await CreateCatalogFixtureAsync();

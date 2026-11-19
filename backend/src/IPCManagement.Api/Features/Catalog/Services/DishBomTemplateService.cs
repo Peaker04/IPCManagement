@@ -10,6 +10,7 @@ namespace IPCManagement.Api.Features.Catalog.Services;
 public sealed class DishBomTemplateService : IDishBomTemplateService
 {
     private const int BlankBomRowsPerDish = 8;
+    private const int MrxBlankBomRowsPerDish = 5;
     private readonly IpcManagementContext _context;
 
     public DishBomTemplateService(IpcManagementContext context)
@@ -38,7 +39,7 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
             foreach (var dish in coverage.MissingDishes)
             foreach (var (from, to) in dish.Intervals)
                 AddBlankBomRows(rows, dish.DishCode, dish.DishName, priceTier, null, FormatDate(from),
-                    to is { } end ? FormatDate(end) : null, 1);
+                    to is { } end ? FormatDate(end) : null, MrxBlankBomRowsPerDish);
         }
         else if (templateType == "mrx-missing")
         {
@@ -126,7 +127,7 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
                 if (currentLines.Count == 0)
                 {
                     AddBlankBomRows(rows, dish.DishCode, dish.DishName, priceTier, customerCode, effectiveFrom,
-                        count: query.MrxShared ? 1 : BlankBomRowsPerDish);
+                        count: query.MrxShared ? MrxBlankBomRowsPerDish : BlankBomRowsPerDish);
                     continue;
                 }
 

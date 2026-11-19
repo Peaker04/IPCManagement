@@ -121,11 +121,12 @@ internal static class BomTemplateWorkbookBuilder
           </fills>
           <borders count="2"><border/><border><left style="thin"><color rgb="FFD9E2F3"/></left><right style="thin"><color rgb="FFD9E2F3"/></right><top style="thin"><color rgb="FFD9E2F3"/></top><bottom style="thin"><color rgb="FFD9E2F3"/></bottom></border></borders>
           <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-          <cellXfs count="4">
+          <cellXfs count="5">
             <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
             <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
             <xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyProtection="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/><protection locked="0"/></xf>
             <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
+            <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="0" shrinkToFit="1"/></xf>
           </cellXfs>
           <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="0"/>
           <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
@@ -149,13 +150,13 @@ internal static class BomTemplateWorkbookBuilder
         for (var index = 0; index < VisibleColumnWidths.Length; index++)
             builder.AppendLine(CultureInfo.InvariantCulture, $"<col min=\"{index + 1}\" max=\"{index + 1}\" width=\"{VisibleColumnWidths[index]}\" customWidth=\"1\"/>");
         if (editableRows)
-            builder.AppendLine("<col min=\"7\" max=\"7\" width=\"16\" customWidth=\"1\"/><col min=\"8\" max=\"9\" hidden=\"1\"/><col min=\"10\" max=\"11\" width=\"16\" customWidth=\"1\"/><col min=\"12\" max=\"14\" hidden=\"1\"/></cols><sheetData>");
+            builder.AppendLine("<col min=\"7\" max=\"7\" width=\"24\" customWidth=\"1\"/><col min=\"8\" max=\"14\" hidden=\"1\"/></cols><sheetData>");
         else
             builder.AppendLine("<col min=\"7\" max=\"12\" width=\"14\" hidden=\"1\" customWidth=\"1\"/></cols><sheetData>");
         AddTextRow(builder, 1, ["IPC - ĐỊNH LƯỢNG NGUYÊN LIỆU THEO SUẤT"], styleIndex: 3, height: 30);
         AddTextRow(builder, 2, ["Mức giá", priceTier.ToString("0", CultureInfo.InvariantCulture), "Phạm vi", scope, "Ngày tạo", generatedDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)], height: 48);
         AddTextRow(builder, 3, [editableRows
-            ? "Sao chép dòng có cùng mã món và khoảng hiệu lực để thêm nguyên liệu. Xóa dòng chỉ bỏ dòng đó khỏi lần nhập."
+            ? "Món thiếu BOM có 5 dòng trống. Mỗi dòng điền một nguyên liệu. Nếu cần thêm, sao chép cả dòng của món."
             : "Ô màu vàng là vùng nhập liệu. Chọn nguyên liệu và đơn vị từ danh sách để hạn chế sai lệch."], height: 32);
         AddTextRow(builder, 4, editableRows ? [.. DisplayHeaders, "Mã nguyên liệu", "BomUnitCode"] : DisplayHeaders, styleIndex: 1, height: 36);
         var rowNumber = 5;
@@ -164,7 +165,7 @@ internal static class BomTemplateWorkbookBuilder
             var displayed = DisplayOrder.Select(index => row[index]).ToList();
             if (editableRows)
                 displayed.AddRange([row.ElementAtOrDefault(12) ?? "", row.ElementAtOrDefault(13) ?? ""]);
-            AddTextRow(builder, rowNumber++, displayed, editableColumns: EditableColumns, numericColumns: NumericColumns, height: EstimateDataRowHeight(displayed));
+            AddTextRow(builder, rowNumber++, displayed, editableColumns: EditableColumns, numericColumns: NumericColumns, height: EstimateDataRowHeight(displayed), singleLineDishCode: editableRows);
         }
         builder.AppendLine("  </sheetData>");
         if (!editableRows)
@@ -191,7 +192,7 @@ internal static class BomTemplateWorkbookBuilder
         AddTextRow(builder, 1, ["HƯỚNG DẪN NHẬP ĐỊNH LƯỢNG"], styleIndex: 3);
         AddTextRow(builder, 3, ["Cột", "Yêu cầu", "Cách nhập"], styleIndex: 1);
         AddTextRow(builder, 4, editableRows
-            ? ["Mã món / hiệu lực", "Giữ khi sao chép", "Dùng mã món và khoảng hiệu lực từ dòng mẫu để gắn nguyên liệu đúng công thức"]
+            ? ["Mã món / hiệu lực", "Giữ khi sao chép", "Dùng 5 dòng trống có sẵn cho món thiếu BOM. Khi cần thêm, sao chép cả dòng để giữ mã món và ngày hiệu lực."]
             : ["Tên món", "Hệ thống khóa", "Dùng để xác định món đang khai báo"]);
         AddTextRow(builder, 5, ["Nguyên liệu chính", "Bắt buộc", "Ưu tiên chọn từ danh sách; có thể nhập tên mới"]);
         AddTextRow(builder, 6, ["Đơn vị", "Bắt buộc", "Chọn trong danh sách"]);
@@ -229,13 +230,13 @@ internal static class BomTemplateWorkbookBuilder
         return Math.Clamp(lines * 15 + 8, 28, 409);
     }
 
-    private static void AddTextRow(StringBuilder builder, int rowNumber, IReadOnlyList<string> cells, int styleIndex = 0, IReadOnlySet<int>? editableColumns = null, IReadOnlySet<int>? numericColumns = null, double? height = null)
+    private static void AddTextRow(StringBuilder builder, int rowNumber, IReadOnlyList<string> cells, int styleIndex = 0, IReadOnlySet<int>? editableColumns = null, IReadOnlySet<int>? numericColumns = null, double? height = null, bool singleLineDishCode = false)
     {
         var rowHeight = height.HasValue ? FormattableString.Invariant($" ht=\"{height.Value}\"") : string.Empty;
         builder.Append(CultureInfo.InvariantCulture, $"<row r=\"{rowNumber}\"{rowHeight}>");
         for (var index = 0; index < cells.Count; index++)
         {
-            var resolvedStyle = editableColumns?.Contains(index + 1) == true ? 2 : styleIndex;
+            var resolvedStyle = singleLineDishCode && index == 6 ? 4 : editableColumns?.Contains(index + 1) == true ? 2 : styleIndex;
             var style = resolvedStyle > 0 ? $" s=\"{resolvedStyle}\"" : string.Empty;
             var reference = $"{ColumnIndexToLetter(index + 1)}{rowNumber}";
             if (numericColumns?.Contains(index + 1) == true && decimal.TryParse(cells[index], NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var number))

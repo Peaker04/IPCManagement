@@ -144,10 +144,10 @@ test('@MRX-ModalAcceptance both BOM downloads round-trip independently across al
     await selectTier(tier);
     const full = await download(tier, 'all', start, 'before');
     const missing = await download(tier, 'missing', start, 'before');
-    expect(full.matching).toHaveLength(1);
-    expect(missing.matching).toHaveLength(1);
+    expect(full.matching).toHaveLength(5);
+    expect(missing.matching).toHaveLength(5);
     const blank = missing.matching[0];
-    expect(full.matching[0].row).toEqual(blank.row);
+    expect(full.matching.map(({ row }) => row)).toEqual(missing.matching.map(({ row }) => row));
     expect(missing.rows.map(row => row[6]).sort()).toEqual(full.rows.filter(row => !row[1]).map(row => row[6]).sort());
     const sample = full.rows.find(row => row[1] && Number(row[3]) > 0)!;
     expect(sample, 'At least one current recipe in the cloned catalog at this tier').toBeDefined();
