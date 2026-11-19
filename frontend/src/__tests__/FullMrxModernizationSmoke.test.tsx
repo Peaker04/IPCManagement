@@ -14,6 +14,7 @@ import { adminApi } from '../api/adminApi';
 import { MrxQuantityInspectionPage } from '../features/weekly-menu/MrxQuantityInspectionPage';
 import { weeklyMenuApi } from '../api/weeklyMenuApi';
 import { systemApi } from '../api/systemApi';
+import { bomApi } from '../api/bomApi';
 
 describe('Full MRX Modernization & Anti-Slop Suite (Zero-Skeleton, Truthful Stepper, Actionable Empty Canvas)', () => {
   beforeEach(() => {
@@ -49,6 +50,8 @@ describe('Full MRX Modernization & Anti-Slop Suite (Zero-Skeleton, Truthful Step
       { customerId: 'c-anv', customerCode: 'ANV', customerName: 'AMANN' },
       { customerId: 'c-dav', customerCode: 'DAV', customerName: 'Draxlmaier' },
     ]);
+    vi.spyOn(bomApi, 'getMrxWeeklyCoverage').mockImplementation(async (customerId, weekStartDate, menuVersionId) =>
+      ({ customerId, weekStartDate, menuVersionId, priceTierAmount: 25000, missingDishes: [] }));
 
     vi.spyOn(mrxApi, 'getDraftSources').mockResolvedValue([
       {

@@ -1306,7 +1306,7 @@ public class WeeklyMenuImportParserTests
         return output.ToArray();
     }
 
-    private static byte[] PopulateAnvTemplate(
+    internal static byte[] PopulateAnvTemplate(
         byte[] workbookBytes,
         IReadOnlyDictionary<string, string> valuesByCell)
     {

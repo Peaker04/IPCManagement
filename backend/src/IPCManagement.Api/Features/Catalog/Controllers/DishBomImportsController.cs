@@ -1,4 +1,5 @@
 using IPCManagement.Api.Exceptions;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Catalog.Contracts;
 using IPCManagement.Api.Features.Catalog.Services;
 using IPCManagement.Api.Features.SampleData.Services;
@@ -26,10 +27,52 @@ public sealed class DishBomImportsController(
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> DownloadBomTemplateAsync(
         [FromQuery] BomTemplateQueryDto query,
+        [FromServices] SystemOperationRequestContext operation,
         CancellationToken cancellationToken)
+    {
+        if (string.Equals(query.TemplateType?.Trim(), "mrx-missing", StringComparison.OrdinalIgnoreCase) &&
+            !operation.IsMaterialReconciliation)
+            return Conflict(ApiResponse.FailResult("Chỉ tải mẫu món thiếu theo tuần trong chế độ Đối chiếu nguyên liệu."));
+        return await BuildTemplateResponseAsync(query, cancellationToken);
+    }
+
+    [HttpGet("mrx/bom-template")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DownloadMrxBomTemplateAsync([FromQuery] BomTemplateQueryDto query, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(query.CustomerId))
+            return BadRequest(ApiResponse.FailResult("Chỉ tải mẫu BOM dùng chung trong luồng này."));
+        query.MrxShared = true;
+        return await BuildTemplateResponseAsync(query, cancellationToken);
+    }
+
+    private async Task<IActionResult> BuildTemplateResponseAsync(BomTemplateQueryDto query, CancellationToken cancellationToken)
     {
         var template = await templateService.BuildAsync(query, cancellationToken);
         return File(template.Content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", template.FileName);
+    }
+
+    [HttpPost("mrx/bom-import/preview")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(XlsxSecurityLimits.MaxUploadBytes)]
+    [ProducesResponseType(typeof(ApiResponse<BomImportPreviewDto>), StatusCodes.Status200OK)]
+    public Task<IActionResult> PreviewMrxBomImportAsync([FromForm] BomImportPreviewRequestDto request, CancellationToken cancellationToken)
+    {
+        request.MrxShared = true;
+        return PreviewBomImportAsync(request, cancellationToken);
+    }
+
+    [HttpPost("mrx/bom-import/commit")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(XlsxSecurityLimits.MaxUploadBytes)]
+    [ProducesResponseType(typeof(ApiResponse<BomImportCommitResultDto>), StatusCodes.Status200OK)]
+    public Task<IActionResult> CommitMrxBomImportAsync([FromForm] BomImportCommitRequestDto request, CancellationToken cancellationToken)
+    {
+        request.MrxShared = true;
+        return CommitBomImportAsync(request, cancellationToken);
     }
 
     [HttpPost("bom-import/preview")]

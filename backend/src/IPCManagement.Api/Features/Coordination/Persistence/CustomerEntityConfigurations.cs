@@ -16,6 +16,7 @@ internal sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         entity.Property(e => e.CustomerName).HasMaxLength(200).HasColumnName("customerName");
         entity.Property(e => e.IsActive).IsRequired().HasDefaultValueSql("'1'").HasColumnName("isActive");
         entity.Property(e => e.Note).HasColumnType("text").HasColumnName("note");
+        entity.Property(e => e.ServiceShiftNames).HasMaxLength(100).HasColumnName("serviceShiftNames");
     }
 }
 

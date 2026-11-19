@@ -276,7 +276,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
         foreach (var row in detailRows)
             RegisterCustomer(customerDefinitionsById, row.CustomerId, row.CustomerCode, row.CustomerName);
 
-        if (query.IncludeMenus)
+        if (query.IncludeMenus && !query.SupplierDemand)
         {
             var cooking = new ReconciliationKitchenExportService(context);
             foreach (var batch in batches.OrderBy(item => Convert.ToHexString(item.BatchId), StringComparer.Ordinal))
@@ -353,7 +353,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
         CancellationToken token = default)
     {
         var workbook = await GetWorkbookAsync(query, token);
-        return PreparationWorkbookBuilder.BuildXlsx(workbook, query.IncludeMenus);
+        return PreparationWorkbookBuilder.BuildXlsx(workbook, query.IncludeMenus, query.SupplierDemand);
     }
 
     private void EnsureReconciliationMode()

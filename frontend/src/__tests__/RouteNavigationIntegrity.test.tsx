@@ -111,6 +111,8 @@ describe('Route Navigation Integrity & Subview Synchronization (DOM-MODE-1 & Rul
       hasNext: false,
     });
     vi.spyOn(bomApi, 'getSupportedPriceTiers').mockResolvedValue([]);
+    vi.spyOn(bomApi, 'getMrxWeeklyCoverage').mockImplementation(async (customerId, weekStartDate, menuVersionId) =>
+      ({ customerId, weekStartDate, menuVersionId, priceTierAmount: 25000, missingDishes: [] }));
   });
 
   // Kịch bản 1: Sửa triệt để lỗi Screenshot — Khi ở mode MRX, truy cập /weekly-menu tự động chuyển sang ?view=mrx-batch

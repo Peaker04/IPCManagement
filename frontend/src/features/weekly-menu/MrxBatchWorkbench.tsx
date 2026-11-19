@@ -8,7 +8,7 @@ import { ActionGuard } from '../../components/ui/action-guard';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { InlineBanner } from '../../components/ui/inline-banner';
-import { weekStartFor } from '../../utils/dates';
+import { toVietnameseDate, weekStartFor } from '../../utils/dates';
 import { WeeklyMenuImportModal } from './WeeklyMenuImportModal';
 import { MrxPendingRequestsPanel } from './MrxPendingRequestsPanel';
 import { MrxSourceEditGrid } from './MrxSourceEditGrid';
@@ -21,7 +21,9 @@ import { MrxBatchHeaderBranch } from './branches/MrxBatchHeaderBranch';
 import { workspaceSessionStore } from '../../store/workspaceSessionStore';
 import { useMrxBatchWorkspace } from './hooks/useMrxBatchWorkspace';
 import { useOptionalDirtyNavigation } from '../../components/workbench/dirty-navigation-context';
-import { MRX_STATUS_LABELS } from '../../constants/mrxConstants';
+import { getMrxShiftLabel, MRX_STATUS_LABELS } from '../../constants/mrxConstants';
+import { bomApi } from '../../api/bomApi';
+import { useWorkbenchQuery } from '../../hooks/useWorkbenchQuery';
 
 const STATUS_LABELS: Record<string, string> = {
   ...MRX_STATUS_LABELS,
@@ -36,7 +38,7 @@ export function MrxBatchWorkbench() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [sourceMode, setSourceMode] = useState<'completion' | 'dish-edit'>('completion');
-  const [isBatchBomModalOpen, setIsBatchBomModalOpen] = useState(false);
+  const [openBomScope, setOpenBomScope] = useState<string | null>(null);
   const [sourceChangeReason, setSourceChangeReason] = useState('');
   const [isSourceReviewOpen, setIsSourceReviewOpen] = useState(false);
   const sourceGridRef = useRef<HTMLDivElement>(null);
@@ -115,6 +117,25 @@ export function MrxBatchWorkbench() {
   const canImportMenus = operationalMode === 'MATERIAL_RECONCILIATION'
     && actorRole !== 'WAREHOUSE' && canNavigate('/weekly-menu', '?view=mrx-batch');
   const canEditSource = canImportMenus && !isCompleted;
+  const menuVersionId = source?.menuVersionId ?? '';
+  const bomScopeKey = `mrx_bom_coverage:${customerId}:${weekStartDate}:${menuVersionId}`;
+  const isBatchBomModalOpen = openBomScope === bomScopeKey;
+  const canReadBomCoverage = operationalMode === 'MATERIAL_RECONCILIATION' && canImportCurrentWeek
+    && Boolean(customerId && weekStartDate && menuVersionId) && !stateProps.isPreviousData;
+  const bomCoverageQuery = useWorkbenchQuery({
+    scopeKey: bomScopeKey,
+    cacheKey: bomScopeKey,
+    enabled: canReadBomCoverage,
+    queryFn: (_, signal) => bomApi.getMrxWeeklyCoverage(customerId, weekStartDate, menuVersionId, signal),
+  });
+  const coverage = bomCoverageQuery.data;
+  const currentBomCoverage = canReadBomCoverage && !bomCoverageQuery.stateProps.error
+    && !bomCoverageQuery.stateProps.isPreviousData && coverage?.customerId.toLowerCase() === customerId.toLowerCase()
+    && coverage.weekStartDate === weekStartDate && coverage.menuVersionId.toLowerCase() === menuVersionId.toLowerCase()
+    ? coverage : null;
+  const missingBoms = currentBomCoverage?.missingDishes ?? [];
+  const canWriteBom = (actorRole === 'ADMIN' || actorRole === 'MANAGER')
+    && canNavigate('/admin-data', '?view=bom');
   const isNewImport = searchParams.get('action') === 'import';
   const importDisabledReason = customers.length === 0
     ? 'Cần tải được danh sách khách hàng trước khi nhập thực đơn.'
@@ -217,7 +238,10 @@ export function MrxBatchWorkbench() {
         statusLabels={STATUS_LABELS}
         isSubmitting={busy || Boolean(reviewRequest)}
         isRefreshing={isRefreshing}
-        onRefresh={handleRefresh}
+        onRefresh={() => {
+          handleRefresh();
+          if (canReadBomCoverage) void bomCoverageQuery.refetch(true);
+        }}
         onOpenImport={canImportMenus && !stateProps.error ? () => {
           if (!source || !canImportCurrentWeek) openNewImport();
           else if (canOpenImport) setIsImportModalOpen(true);
@@ -426,20 +450,32 @@ export function MrxBatchWorkbench() {
               />
             ) : (
               <div className="flex h-full min-h-0 flex-col bg-white">
+                {missingBoms.length > 0 && (
+                  <InlineBanner variant="warning" title="Thực đơn đã lưu"
+                    actionLabel={canWriteBom && !busy && !bomCoverageQuery.stateProps.isFetching ? 'Bổ sung BOM' : undefined}
+                    onAction={() => setOpenBomScope(bomScopeKey)}>
+                    <details>
+                      <summary><Badge variant="warning">{missingBoms.length} món thiếu BOM</Badge></summary>
+                      <ul>
+                        {missingBoms.map(dish => <li key={dish.dishId}>
+                          {dish.dishName} · {dish.occurrences.map(item => `${toVietnameseDate(item.serviceDate)} ${getMrxShiftLabel(item.shiftName)}`).join(', ')}
+                        </li>)}
+                      </ul>
+                    </details>
+                    {!canWriteBom && <p>Gửi danh sách này cho người có quyền quản lý BOM.</p>}
+                  </InlineBanner>
+                )}
+                {canReadBomCoverage && bomCoverageQuery.stateProps.isLoading &&
+                  <p role="status" className="sr-only">Đang kiểm tra món thiếu BOM…</p>}
+                {canReadBomCoverage && bomCoverageQuery.stateProps.error &&
+                  <InlineBanner variant="error" title="Chưa kiểm tra được BOM"
+                    actionLabel="Thử lại" onAction={() => void bomCoverageQuery.refetch(true)}>
+                    {bomCoverageQuery.stateProps.error.message}
+                  </InlineBanner>}
                 {preview?.diagnostics.length && sourceEdit.changedLines.length === 0 ? (
-                  <div role="alert" className="mx-3 mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                    <div className="flex items-center justify-between gap-3">
-                      <strong className="font-semibold">Chưa thể tạo lô đối soát</strong>
-                      <span className="text-xs font-medium text-amber-800">Cần bổ sung định mức nguyên liệu</span>
-                    </div>
-                    <ul className="mt-1 list-disc space-y-1 pl-5">
-                      {preview.diagnostics.map((item, idx) => <li key={idx} className="text-xs">{item}</li>)}
-                    </ul>
-                    <div className="mt-2 flex items-center justify-end gap-2 border-t border-amber-200/80 pt-2">
-                      <Button size="xs" variant="default" onClick={() => setIsBatchBomModalOpen(true)} className="text-xs font-semibold">Nhập BOM Excel cho các món thiếu</Button>
-                      <Button size="xs" variant="outline" onClick={() => navigate('/admin-data?view=bom&bomStatus=MISSING')} className="text-xs">Mở món thiếu BOM →</Button>
-                    </div>
-                  </div>
+                  <InlineBanner variant="warning" title="Chưa thể tạo lô đối soát">
+                    <ul>{preview.diagnostics.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                  </InlineBanner>
                 ) : null}
 
                 {sourceEdit.error && <InlineBanner variant="error">{sourceEdit.error.message}</InlineBanner>}
@@ -514,16 +550,25 @@ export function MrxBatchWorkbench() {
         customerName={customers.find((c) => c.customerId === customerId)?.customerName || ''}
       />
 
-      <DishBomBatchImportModal
+      {currentBomCoverage && canWriteBom && <DishBomBatchImportModal
+        key={bomScopeKey}
         isOpen={isBatchBomModalOpen}
-        onClose={() => setIsBatchBomModalOpen(false)}
+        onClose={() => setOpenBomScope(null)}
+        mrxShared
+        initialPriceTier={currentBomCoverage.priceTierAmount}
         initialCustomerId={customerId}
         initialTemplateType="missing"
         mrxWeekStartDate={weekStartDate}
-        mrxMenuVersionId={source?.menuVersionId ?? undefined}
-        missingDishesDiagnostics={preview?.diagnostics}
-        onImportSuccess={() => handleImportSuccess()}
-      />
+        mrxMenuVersionId={menuVersionId}
+        missingDishesDiagnostics={missingBoms.map(dish =>
+          `${dish.dishName} · ${dish.occurrences.map(item => toVietnameseDate(item.serviceDate)).filter((day, index, days) => days.indexOf(day) === index).join(', ')}`)}
+        onImportSuccess={() => {
+          setOpenBomScope(null);
+          setChangeMessage('Đã lưu BOM dùng chung.');
+          handleImportSuccess();
+          void bomCoverageQuery.refetch(true);
+        }}
+      />}
     </WorkspaceFrame.Root>
   );
 }

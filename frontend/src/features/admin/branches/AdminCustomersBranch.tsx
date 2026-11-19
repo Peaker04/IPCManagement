@@ -7,6 +7,8 @@ import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Num } from '../../../components/ui/num';
 import { CreateCustomerModal } from '../CreateCustomerModal';
+import { CustomerServiceShiftField } from '../CustomerServiceShiftField';
+import { getMrxShiftLabel } from '../../../constants/mrxConstants';
 import { customerApi, type CustomerContractItem } from '../../../api/customerApi';
 import { LocalFindBar } from '../../../components/workbench/LocalFindBar';
 import { normalizeSearchText } from '../../../utils/search';
@@ -19,6 +21,10 @@ import { Checkbox } from '../../../components/ui/checkbox';
 import { useWorkbenchQuery } from '../../../hooks/useWorkbenchQuery';
 
 const CUSTOMER_WRITE_ROLES = ['ADMIN', 'MANAGER', 'Quản lý', 'COORDINATOR', 'Điều phối'];
+
+const serviceShiftsFor = (customer: CustomerContractItem) => customer.serviceShiftNames ?? customer.shiftNames;
+const editableServiceShiftsFor = (customer: CustomerContractItem): string[] => serviceShiftsFor(customer)
+  .filter(shift => shift === 'MORNING' || shift === 'AFTERNOON');
 
 export function AdminCustomersBranch() {
   const { user, operationalMode, hasRole } = useAuth();
@@ -41,10 +47,14 @@ export function AdminCustomersBranch() {
   const [statusTarget, setStatusTarget] = useState<CustomerContractItem | null>(null);
   const [editNote, setEditNote] = useState('');
   const [editActive, setEditActive] = useState(true);
+  const [editServiceShifts, setEditServiceShifts] = useState<string[]>([]);
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const statusPending = useRef(false);
-  const metadataDirty = Boolean(statusTarget && (editNote.trim() !== (statusTarget.note || '') || editActive !== statusTarget.isActive));
+  const previousServiceShifts = statusTarget ? editableServiceShiftsFor(statusTarget) : [];
+  const serviceShiftsChanged = editServiceShifts.length !== previousServiceShifts.length
+    || editServiceShifts.some(shift => !previousServiceShifts.includes(shift));
+  const metadataDirty = Boolean(statusTarget && (editNote.trim() !== (statusTarget.note || '') || editActive !== statusTarget.isActive || serviceShiftsChanged));
   const saveCustomer = async () => {
     if (!statusTarget || statusPending.current || !canManage || !metadataDirty) return;
     statusPending.current = true;
@@ -54,6 +64,7 @@ export function AdminCustomersBranch() {
       const saved = await customerApi.updateCustomerContract(statusTarget.customerId, {
         ...(editNote.trim() !== (statusTarget.note || '') ? { note: editNote.trim() } : {}),
         ...(editActive !== statusTarget.isActive ? { isActive: editActive } : {}),
+        ...(serviceShiftsChanged ? { serviceShiftNames: editServiceShifts } : {}),
       });
       setContracts(current => (current ?? []).map(customer => customer.customerId === saved.customerId ? saved : customer));
       setStatusTarget(null);
@@ -96,15 +107,14 @@ export function AdminCustomersBranch() {
       header: 'Ca phục vụ',
       width: '18%',
       minWidth: '130px',
-      cell: (row) => (
-        <div className="flex flex-wrap gap-1 text-xs">
-          {(row.shiftNames || ['MORNING']).map((s, idx) => (
-            <span key={idx} className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
-              {s === 'MORNING' ? 'Sáng' : s === 'AFTERNOON' ? 'Chiều' : s}
-            </span>
-          ))}
-        </div>
-      ),
+      cell: (row) => {
+        const shifts = serviceShiftsFor(row);
+        return shifts.length ? (
+          <div className="flex flex-wrap gap-1">
+            {shifts.map(shift => <Badge key={shift} variant="neutral" size="sm">{getMrxShiftLabel(shift)}</Badge>)}
+          </div>
+        ) : <span className="text-xs text-slate-500">Chưa thiết lập</span>;
+      },
     },
     {
       id: 'status',
@@ -155,6 +165,7 @@ export function AdminCustomersBranch() {
                 setStatusTarget(selectedCustomer);
                 setEditNote(selectedCustomer.note || '');
                 setEditActive(selectedCustomer.isActive);
+                setEditServiceShifts(editableServiceShiftsFor(selectedCustomer));
                 setStatusError(null);
               }}>Chỉnh sửa</Button>
           </ActionGuard>
@@ -238,6 +249,7 @@ export function AdminCustomersBranch() {
           </Button>
         </>}>
         <div className="space-y-4">
+          <CustomerServiceShiftField value={editServiceShifts} onChange={setEditServiceShifts} disabled={statusSaving} />
           <div>
             <label htmlFor="customer-edit-note" className="block text-xs font-semibold mb-1">Ghi chú</label>
             <Input id="customer-edit-note" aria-label="Ghi chú khách hàng" value={editNote}

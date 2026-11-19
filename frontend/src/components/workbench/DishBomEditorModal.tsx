@@ -30,6 +30,7 @@ export interface DishBomEditorModalProps {
   onSaved?: () => void;
   readOnly?: boolean;
   initialPriceTier?: number;
+  mrxShared?: boolean;
 }
 
 export function DishBomEditorModal({
@@ -39,6 +40,7 @@ export function DishBomEditorModal({
   onSaved,
   readOnly = false,
   initialPriceTier,
+  mrxShared = false,
 }: DishBomEditorModalProps) {
   const [bomLines, setBomLines] = useState<DishBomLine[]>([]);
   const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
@@ -177,7 +179,7 @@ export function DishBomEditorModal({
       const [lines, ingResult, custList] = await Promise.all([
         bomApi.getDishBomLines(dishId),
         readOnly ? Promise.resolve({ items: [] as IngredientItem[] }) : adminApi.getIngredients({ pageSize: 200 }).catch(() => ({ items: [] })),
-        readOnly ? Promise.resolve([] as CustomerOption[]) : weeklyMenuApi.getCustomers().catch(() => []),
+        readOnly || mrxShared ? Promise.resolve([] as CustomerOption[]) : weeklyMenuApi.getCustomers().catch(() => []),
       ]);
       setBomLines(lines || []);
       const ingItems = ingResult?.items || [];
@@ -206,7 +208,7 @@ export function DishBomEditorModal({
     Promise.all([
       bomApi.getDishBomLines(dish.dishId),
       readOnly ? Promise.resolve({ items: [] as IngredientItem[] }) : adminApi.getIngredients({ pageSize: 200 }).catch(() => ({ items: [] })),
-      readOnly ? Promise.resolve([] as CustomerOption[]) : weeklyMenuApi.getCustomers().catch(() => []),
+      readOnly || mrxShared ? Promise.resolve([] as CustomerOption[]) : weeklyMenuApi.getCustomers().catch(() => []),
     ]).then(([lines, ingResult, custList]) => {
       if (ignore) return;
       setBomLines(lines || []);
@@ -223,7 +225,7 @@ export function DishBomEditorModal({
       if (!ignore) setIsLoading(false);
     });
     return () => { ignore = true; };
-  }, [dish?.dishId, isOpen, readOnly]);
+  }, [dish?.dishId, isOpen, readOnly, mrxShared]);
 
   useEffect(() => {
     if (!isOpen || readOnly || (!debouncedIngredientSearch.trim() && !hasSearched.current)) return;
@@ -274,7 +276,7 @@ export function DishBomEditorModal({
         return;
       }
       const selectedIng = ingredients.find((i) => i.ingredientId === selectedIngredientId);
-      const isCustomerSpecific = scopeCustomer !== 'GLOBAL';
+      const isCustomerSpecific = !mrxShared && scopeCustomer !== 'GLOBAL';
       await bomApi.addDishBomLine(dish.dishId, {
         ingredientId: selectedIngredientId,
         grossQtyPerServing: qty,
@@ -401,7 +403,7 @@ export function DishBomEditorModal({
             </div>
           </div>
 
-          {!readOnly && <div className="flex items-center gap-2">
+          {!readOnly && (mrxShared ? <p><strong>Phạm vi</strong> · Dùng chung</p> : <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Phạm vi áp dụng:</span>
             <Select
               aria-label="Phạm vi áp dụng BOM"
@@ -414,7 +416,7 @@ export function DishBomEditorModal({
               ]}
               className="h-7 text-xs font-medium w-56"
             />
-          </div>}
+          </div>)}
         </div>
 
         {/* Existing BOM table for selected tier */}
@@ -474,7 +476,7 @@ export function DishBomEditorModal({
                       {!readOnly && <td className="py-2 px-2 text-center">
                         <div className="flex items-center justify-center gap-1">
                         <Button variant="outline" size="sm" aria-label={`Chỉnh sửa ${line.ingredientName}`}
-                          disabled={isSubmitting || reloadNeeded || Boolean(editingLine) || grossQty !== ''}
+                          disabled={isSubmitting || reloadNeeded || Boolean(editingLine) || grossQty !== '' || (mrxShared && Boolean(line.customerId))}
                           onClick={() => {
                             setEditingLine(line);
                             setSelectedIngredientId(line.ingredientId);
@@ -486,7 +488,7 @@ export function DishBomEditorModal({
                           type="button"
                           aria-label={`Xóa ${line.ingredientName} khỏi BOM`}
                           onClick={() => void handleDeleteLine(line.bomId)}
-                          disabled={isSubmitting || reloadNeeded || Boolean(editingLine) || grossQty !== ''}
+                          disabled={isSubmitting || reloadNeeded || Boolean(editingLine) || grossQty !== '' || (mrxShared && Boolean(line.customerId))}
                           className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors cursor-pointer"
                         >
                           <Trash2 size={14} aria-hidden="true" />

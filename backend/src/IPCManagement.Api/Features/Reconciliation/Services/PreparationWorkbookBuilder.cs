@@ -14,43 +14,52 @@ public static class PreparationWorkbookBuilder
     private static readonly HashSet<int> DetailNumericColumns = [7];
     private const string PrintSettings = "<pageMargins left=\"0.25\" right=\"0.25\" top=\"0.4\" bottom=\"0.4\" header=\"0.2\" footer=\"0.2\"/><pageSetup paperSize=\"9\" orientation=\"landscape\" fitToWidth=\"1\" fitToHeight=\"0\"/>";
 
-    private static string BuildPreparationSheet(ReconciliationPreparationWorkbookDto workbook)
+    private static string BuildPreparationSheet(ReconciliationPreparationWorkbookDto workbook, bool supplierDemand)
     {
-        const string last = "E";
+        var last = supplierDemand ? "C" : "E";
         var duplicateNames = workbook.SummaryRows.GroupBy(row => row.IngredientName.Trim(), StringComparer.OrdinalIgnoreCase)
             .Where(group => group.Select(row => row.IngredientId).Distinct().Skip(1).Any())
             .Select(group => group.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var xml = new StringBuilder("""<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="1" width="55" customWidth="1"/><col min="2" max="2" width="18" customWidth="1"/><col min="3" max="5" width="24" customWidth="1"/></cols><sheetData>""");
-        AppendXlsxRow(xml, 1, ["NHU CẦU NGUYÊN LIỆU"], true);
+        AppendXlsxRow(xml, 1, [supplierDemand ? "NHU CẦU THEO NCC" : "NHU CẦU NGUYÊN LIỆU"], true);
         AppendXlsxRow(xml, 2, [ScopeLabel(workbook)], false);
         var customerText = "Khách hàng: " + string.Join("; ", workbook.CustomerColumns);
         AppendXlsxRow(xml, 3, [customerText], false, wrap: true, height: WrappedHeight(customerText, 72));
-        AppendXlsxRow(xml, 4, ["Nguyên liệu", "ĐVT", "Tổng nhu cầu", "Còn thiếu", "Cấp ngoài nhu cầu"], true);
+        AppendXlsxRow(xml, 4, supplierDemand ? ["Nguyên liệu", "ĐVT", "Tổng nhu cầu"] : ["Nguyên liệu", "ĐVT", "Tổng nhu cầu", "Còn thiếu", "Cấp ngoài nhu cầu"], true);
         var rowNumber = 5;
         var merges = new List<string> { $"A1:{last}1", $"A2:{last}2", $"A3:{last}3" };
-        foreach (var supplyGroup in workbook.SummaryRows.GroupBy(row => row.PreparationGroupCode).OrderBy(group => group.Key == PreparationSupplyGroups.Unclassified ? 1 : 0).ThenBy(group => group.Key, StringComparer.Ordinal))
+        foreach (var supplyGroup in workbook.SummaryRows.GroupBy(row => supplierDemand ? string.Empty : row.PreparationGroupCode)
+            .OrderBy(group => group.Key == PreparationSupplyGroups.Unclassified ? 1 : 0).ThenBy(group => group.Key, StringComparer.Ordinal))
         {
-        merges.Add($"A{rowNumber}:{last}{rowNumber}");
-        AppendXlsxRow(xml, rowNumber++, [$"NHÓM CUNG ỨNG: {PreparationSupplyGroups.Labels.GetValueOrDefault(supplyGroup.Key, "Chưa phân nhóm")}"], true);
-        foreach (var supplier in supplyGroup.GroupBy(row => new { row.SupplierId, row.SupplierName }).OrderBy(group => group.Key.SupplierName, StringComparer.Ordinal))
-        {
-            merges.Add($"A{rowNumber}:{last}{rowNumber}");
-            var supplierLabel = supplier.Key.SupplierName + (supplier.First().SupplierCode is { } code ? $" ({code})" : "");
-            AppendXlsxRow(xml, rowNumber++, [$"NHÀ CUNG CẤP: {supplierLabel}"], true);
-            foreach (var row in supplier.OrderBy(item => item.IngredientName, StringComparer.Ordinal))
+            if (!supplierDemand)
             {
-                var name = duplicateNames.Contains(row.IngredientName.Trim()) ? $"{row.IngredientName} ({row.IngredientCode})" : row.IngredientName;
-                AppendXlsxRow(xml, rowNumber++, [name, row.CanonicalUnitName, Number(row.TotalQuantity),
-                    row.RemainingQuantity is { } remaining ? Number(remaining) : "Chưa xác định", Number(row.UnplannedIssuedQuantity)],
-                    false, DemandNumericColumns, wrap: true);
+                merges.Add($"A{rowNumber}:{last}{rowNumber}");
+                AppendXlsxRow(xml, rowNumber++, [$"NHÓM CUNG ỨNG: {PreparationSupplyGroups.Labels.GetValueOrDefault(supplyGroup.Key, "Chưa phân nhóm")}"], true);
             }
-        }
+            foreach (var supplier in supplyGroup.GroupBy(row => new { row.SupplierId, row.SupplierName })
+                .OrderBy(group => supplierDemand && group.Key.SupplierId is null).ThenBy(group => group.Key.SupplierName, StringComparer.Ordinal))
+            {
+                merges.Add($"A{rowNumber}:{last}{rowNumber}");
+                var supplierLabel = supplier.Key.SupplierName + (supplier.First().SupplierCode is { } code ? $" ({code})" : "");
+                var heading = supplierDemand && supplier.Key.SupplierId is null ? "CẦN XÁC MINH NCC" : "NHÀ CUNG CẤP";
+                AppendXlsxRow(xml, rowNumber++, [$"{heading}: {supplierLabel}"], true);
+                foreach (var row in supplier.OrderBy(item => item.IngredientName, StringComparer.Ordinal))
+                {
+                    var name = duplicateNames.Contains(row.IngredientName.Trim()) ? $"{row.IngredientName} ({row.IngredientCode})" : row.IngredientName;
+                    var quantity = Number(row.TotalQuantity);
+                    AppendXlsxRow(xml, rowNumber++, supplierDemand
+                        ? [name, row.CanonicalUnitName, quantity]
+                        : [name, row.CanonicalUnitName, quantity, row.RemainingQuantity is { } remaining ? Number(remaining) : "Chưa xác định", Number(row.UnplannedIssuedQuantity)],
+                        false, DemandNumericColumns,
+                        wrap: true, integer: supplierDemand && !quantity.Contains('.'));
+                }
+            }
         }
         xml.Append($"</sheetData><mergeCells count=\"{merges.Count}\">");
         foreach (var merge in merges) xml.Append($"<mergeCell ref=\"{merge}\"/>");
         return xml.Append("</mergeCells>" + PrintSettings + "</worksheet>").ToString();
     }
-    public static byte[] BuildXlsx(ReconciliationPreparationWorkbookDto workbook, bool includeMenus = false)
+    public static byte[] BuildXlsx(ReconciliationPreparationWorkbookDto workbook, bool includeMenus = false, bool supplierDemand = false)
     {
         var customerIds = workbook.CustomerColumnDefinitions.Select(customer => customer.CustomerId).ToHashSet(StringComparer.Ordinal);
         if (customerIds.Count != workbook.CustomerColumnDefinitions.Count || customerIds.Any(string.IsNullOrWhiteSpace)
@@ -58,13 +67,13 @@ public static class PreparationWorkbookBuilder
             || workbook.SummaryRows.Any(row => row.CustomerQuantities.Count != customerIds.Count || row.CustomerQuantities.Keys.Any(key => !customerIds.Contains(key)))
             || workbook.MenuRows.Any(row => !customerIds.Contains(row.CustomerId)))
             throw new InvalidOperationException("Thiếu hoặc không khớp định danh khách hàng trong bảng chuẩn bị.");
-        var includesMenus = includeMenus || workbook.MenuRows.Count > 0;
-        const string secondSheetType = """<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>""";
-        var secondSheet = """<sheet name="Chi tiết phân bổ" sheetId="2" r:id="rId2"/>""";
-        const string secondSheetLink = """<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>""";
+        var includesMenus = !supplierDemand && (includeMenus || workbook.MenuRows.Count > 0);
+        var secondSheetType = supplierDemand ? "" : """<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>""";
+        var secondSheet = supplierDemand ? "" : """<sheet name="Chi tiết phân bổ" sheetId="2" r:id="rId2"/>""";
+        var secondSheetLink = supplierDemand ? "" : """<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>""";
         if (includesMenus) secondSheet = secondSheet.Replace("Chi tiết phân bổ", "Thực đơn cho bếp");
-        var firstSheetName = includesMenus ? "Nhu cầu nguyên liệu" : "Chuẩn bị nguyên liệu";
-        var titles = includesMenus
+        var firstSheetName = supplierDemand ? "Nhu cầu theo NCC" : includesMenus ? "Nhu cầu nguyên liệu" : "Chuẩn bị nguyên liệu";
+        var titles = supplierDemand ? "<definedNames><definedName name=\"_xlnm.Print_Titles\" localSheetId=\"0\">'Nhu cầu theo NCC'!$1:$4</definedName></definedNames>" : includesMenus
             ? "<definedNames><definedName name=\"_xlnm.Print_Titles\" localSheetId=\"0\">'Nhu cầu nguyên liệu'!$1:$4</definedName><definedName name=\"_xlnm.Print_Titles\" localSheetId=\"1\">'Thực đơn cho bếp'!$1:$3</definedName></definedNames>"
             : "<definedNames><definedName name=\"_xlnm.Print_Titles\" localSheetId=\"0\">'Chuẩn bị nguyên liệu'!$1:$1</definedName><definedName name=\"_xlnm.Print_Titles\" localSheetId=\"1\">'Chi tiết phân bổ'!$1:$1</definedName></definedNames>";
         using var output = new MemoryStream();
@@ -75,8 +84,9 @@ public static class PreparationWorkbookBuilder
             WriteEntry(archive, "xl/workbook.xml", $"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="{firstSheetName}" sheetId="1" r:id="rId1"/>{secondSheet}</sheets>{titles}</workbook>""");
             WriteEntry(archive, "xl/_rels/workbook.xml.rels", $"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>{secondSheetLink}<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>""");
             WriteEntry(archive, "xl/styles.xml", """<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.######"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Aptos"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Aptos"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F4E78"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="1" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs></styleSheet>""");
-            WriteEntry(archive, "xl/worksheets/sheet1.xml", includesMenus ? BuildPreparationSheet(workbook) : BuildSummarySheet(workbook));
-            WriteEntry(archive, "xl/worksheets/sheet2.xml", includesMenus ? BuildMenuSheet(workbook) : BuildDetailSheet(workbook.DetailRows));
+            WriteEntry(archive, "xl/worksheets/sheet1.xml", supplierDemand || includesMenus ? BuildPreparationSheet(workbook, supplierDemand) : BuildSummarySheet(workbook));
+            if (!supplierDemand)
+                WriteEntry(archive, "xl/worksheets/sheet2.xml", includesMenus ? BuildMenuSheet(workbook) : BuildDetailSheet(workbook.DetailRows));
 
         }
         return output.ToArray();

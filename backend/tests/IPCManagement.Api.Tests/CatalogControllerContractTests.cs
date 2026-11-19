@@ -23,6 +23,9 @@ public class CatalogControllerContractTests
         new("GET", "api/Dishes/bom-template", AuthorizationPolicies.CatalogReadAccess),
         new("POST", "api/Dishes/bom-import/preview", AuthorizationPolicies.CatalogAccess),
         new("POST", "api/Dishes/bom-import/commit", AuthorizationPolicies.CatalogAccess),
+        new("GET", "api/Dishes/mrx/bom-template", AuthorizationPolicies.CatalogReadAccess),
+        new("POST", "api/Dishes/mrx/bom-import/preview", AuthorizationPolicies.CatalogAccess),
+        new("POST", "api/Dishes/mrx/bom-import/commit", AuthorizationPolicies.CatalogAccess),
         new("GET", "api/Dishes", AuthorizationPolicies.CatalogReadAccess),
         new("GET", "api/Dishes/{id}", AuthorizationPolicies.CatalogReadAccess),
         new("GET", "api/Dishes/{id}/bom", AuthorizationPolicies.CatalogReadAccess),
@@ -69,6 +72,8 @@ public class CatalogControllerContractTests
     [Theory]
     [InlineData("PreviewBomImportAsync")]
     [InlineData("CommitBomImportAsync")]
+    [InlineData("PreviewMrxBomImportAsync")]
+    [InlineData("CommitMrxBomImportAsync")]
     public void BomUploadRoutes_Should_PreserveMultipartAndTenMegabyteLimit(string methodName)
     {
         var method = CatalogControllerTypes()

@@ -9,12 +9,15 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Caching.Memory;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Reflection;
 using System.Security.Claims;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Approvals.Services;
+using IPCManagement.Api.Features.Catalog.Contracts;
+using IPCManagement.Api.Features.Catalog.Services;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.Coordination.Services;
 using IPCManagement.Api.Features.Inventory.Contracts;
@@ -801,6 +804,72 @@ CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (
         persisted.SourceChecksum.Should().Be("TEST-NEW-DISH-CHECKSUM");
         result.Counts.DishesCreated.Should().Be(1);
         (await context.Menuitems.AsNoTracking().SingleAsync()).DishSlot.Should().Be("vegetarian-main");
+    }
+
+    [Fact]
+    public async Task MrxBomCoverage_Should_ClearDishAfterImportingWeeklyMenuAndSharedBomWorkbooks()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var customer = new Customer { CustomerId = fixture.CustomerId, CustomerCode = "ANV", CustomerName = "AMANN", IsActive = true };
+        var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "BOM-KG", UnitName = "BOM Kilogram", ConvertRateToBase = 1 };
+        var ingredient = new Ingredient { IngredientId = GuidHelper.NewId(), IngredientCode = "TEST-BOM-ING",
+            IngredientName = "Nguyên liệu kiểm thử BOM", UnitId = unit.UnitId, WarehouseId = fixture.WarehouseId, IsActive = true };
+        var warehouse = new Warehouse { WarehouseId = fixture.WarehouseId, WarehouseCode = "BOM-TEST",
+            WarehouseName = "Kho kiểm thử BOM", WarehouseType = "DRY" };
+        var role = new Role { RoleId = GuidHelper.NewId(), RoleCode = "ADMIN", RoleName = "Admin" };
+        var actor = new User { UserId = fixture.UserId, Username = "bom-workbook-test", FullName = "BOM Workbook Test",
+            PasswordHash = "test", RoleId = role.RoleId, IsActive = true, CreatedAt = DateTime.UtcNow };
+        context.AddRange(customer, unit, warehouse, ingredient, role, actor);
+        await context.SaveChangesAsync();
+
+        var week = new DateOnly(2026, 7, 20);
+        const decimal tier = 25000;
+        var menuWorkbook = WeeklyMenuImportParserTests.PopulateAnvTemplate(
+            WeeklyMenuTemplateWorkbookBuilder.Build(week, customer.CustomerCode),
+            new Dictionary<string, string> { ["D9"] = "Món kiểm thử chưa có BOM" });
+        var file = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        WeeklyMenuImportPlan plan;
+        try
+        {
+            await File.WriteAllBytesAsync(file, menuWorkbook);
+            plan = WeeklyMenuWorkbookParser.Parse(new XlsxWorkbookReader(), file, "menu-test.xlsx", week, priceTierAmount: tier);
+        }
+        finally { File.Delete(file); }
+        plan.SourceChecksum = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(menuWorkbook));
+        var saved = await CreateWeeklyMenuImportPersistence(context).CommitAsync(plan, customer, tier, fixture.UserIdString, default);
+        await context.SaveChangesAsync();
+        saved.MenuVersionId.Should().NotBeNullOrEmpty();
+
+        var customerKey = GuidHelper.ToGuidString(customer.CustomerId);
+        var coverage = new MrxWeeklyBomCoverageQuery(context);
+        var before = await coverage.ReadAsync(customerKey, week, saved.MenuVersionId, default);
+        before.PriceTierAmount.Should().Be(tier);
+        var dish = before.MissingDishes.Should().ContainSingle().Which;
+        dish.DishName.Should().Be("Món kiểm thử chưa có BOM");
+        var rows = dish.Intervals.Select(interval => (IReadOnlyList<string>)new[]
+        {
+            dish.DishCode, dish.DishName, "25000", "", ingredient.IngredientName, unit.UnitCode,
+            "0.125", "0", interval.EffectiveFrom.ToString("yyyy-MM-dd"),
+            interval.EffectiveTo?.ToString("yyyy-MM-dd") ?? "", "PUBLISHED", ""
+        }).ToList();
+        var workbook = BomTemplateWorkbookBuilder.Build(tier, "Dùng chung", week, rows, editableRows: true);
+        var request = new BomImportCommitRequestDto { MrxShared = true, ScopeCustomerId = customerKey,
+            MenuVersionId = saved.MenuVersionId, WeekStartDate = week, PriceTier = tier };
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var import = new DishBomImportService(context, cache, new EfTransactionRunner(context), CreateOperationalWarehouseResolver(context));
+        using var stream = new MemoryStream(workbook);
+        var preview = await import.PreviewAsync(stream, request);
+        preview.CanCommit.Should().BeTrue(string.Join(", ", preview.Rows.SelectMany(item => item.Errors)));
+        request.PreviewFingerprint = preview.PreviewFingerprint;
+        var added = await import.CommitAsync(stream, request, fixture.UserIdString);
+        added.CreatedRows.Should().Be(rows.Count);
+
+        await using var reopened = fixture.CreateContext();
+        var after = await new MrxWeeklyBomCoverageQuery(reopened).ReadAsync(customerKey, week, saved.MenuVersionId, default);
+        after.MissingDishes.Should().BeEmpty();
+        (await reopened.Dishboms.ToListAsync()).Should().HaveCount(rows.Count)
+            .And.OnlyContain(item => item.CustomerId == null && item.PriceTierAmount == tier && item.GrossQtyPerServing == 0.125m);
     }
 
     [Fact]

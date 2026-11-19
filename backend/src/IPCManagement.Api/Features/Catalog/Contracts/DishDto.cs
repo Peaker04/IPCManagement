@@ -242,6 +242,8 @@ public class UpdateDishBomLineRequest
 
 public class BomTemplateQueryDto
 {
+    internal bool MrxShared { get; set; }
+    public string? ScopeCustomerId { get; set; }
     [Range(25000, 34000)]
     public decimal PriceTier { get; set; } = 25000m;
 
@@ -259,6 +261,10 @@ public class BomTemplateQueryDto
 
 public class BomImportPreviewRequestDto
 {
+    internal bool MrxShared { get; set; }
+    public string? ScopeCustomerId { get; set; }
+    public DateOnly? WeekStartDate { get; set; }
+    public string? MenuVersionId { get; set; }
     [Required]
     public IFormFile File { get; set; } = null!;
 
@@ -274,10 +280,12 @@ public class BomImportPreviewRequestDto
 
 public class BomImportCommitRequestDto : BomImportPreviewRequestDto
 {
+    public string? PreviewFingerprint { get; set; }
 }
 
 public class BomImportPreviewDto
 {
+    public string? PreviewFingerprint { get; set; }
     public DateTime GeneratedAt { get; set; }
     public decimal PriceTier { get; set; }
     public string? CustomerId { get; set; }

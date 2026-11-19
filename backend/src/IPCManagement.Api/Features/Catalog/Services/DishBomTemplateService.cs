@@ -10,6 +10,7 @@ namespace IPCManagement.Api.Features.Catalog.Services;
 public sealed class DishBomTemplateService : IDishBomTemplateService
 {
     private const int BlankBomRowsPerDish = 8;
+    private const int MrxBlankBomRowsPerDish = 5;
     private readonly IpcManagementContext _context;
 
     public DishBomTemplateService(IpcManagementContext context)
@@ -19,15 +20,28 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
 
     public async Task<(byte[] Content, string FileName)> BuildAsync(BomTemplateQueryDto query, CancellationToken cancellationToken = default)
     {
-        var priceTier = DishBomPolicy.NormalizePriceTier(query.PriceTier);
-        var customerId = DishBomPolicy.ParseOptionalCustomerId(query.CustomerId);
+        var contextual = query.MrxShared && string.Equals(query.TemplateType, "mrx-shared-missing", StringComparison.OrdinalIgnoreCase);
+        if (query.MrxShared && !contextual && !MenuPriceTierPolicy.SupportedPriceTiers.Contains(query.PriceTier))
+            throw new ArgumentException("Chọn đúng mốc giá BOM trước khi tải file.");
+        var coverage = contextual
+            ? await new MrxWeeklyBomCoverageQuery(_context).ReadAsync(query.ScopeCustomerId, query.WeekStartDate, query.MenuVersionId, cancellationToken)
+            : null;
+        var priceTier = coverage?.PriceTierAmount ?? DishBomPolicy.NormalizePriceTier(query.PriceTier);
+        var customerId = query.MrxShared ? null : DishBomPolicy.ParseOptionalCustomerId(query.CustomerId);
         var dishId = DishBomPolicy.ParseOptionalDishId(query.DishId);
-        var templateType = DishBomPolicy.NormalizeTemplateType(query.TemplateType, dishId is not null);
+        var templateType = contextual ? "mrx-missing" : DishBomPolicy.NormalizeTemplateType(query.TemplateType, dishId is not null);
         var customerCode = await ResolveCustomerCodeAsync(customerId, cancellationToken);
         var rows = new List<IReadOnlyList<string>>();
         var today = query.EffectiveDate ?? ServiceCalendar.Today();
 
-        if (templateType == "mrx-missing")
+        if (coverage is not null)
+        {
+            foreach (var dish in coverage.MissingDishes)
+            foreach (var (from, to) in dish.Intervals)
+                AddBlankBomRows(rows, dish.DishCode, dish.DishName, priceTier, null, FormatDate(from),
+                    to is { } end ? FormatDate(end) : null, MrxBlankBomRowsPerDish);
+        }
+        else if (templateType == "mrx-missing")
         {
             if (customerId is null || query.WeekStartDate is null || string.IsNullOrWhiteSpace(query.MenuVersionId))
                 throw new ArgumentException("Cần khách hàng, tuần và phiên bản thực đơn để tải BOM thiếu của MRX.");
@@ -62,7 +76,7 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
                     var last = first;
                     while (++index < missingDates.Count && missingDates[index].DayNumber == last.DayNumber + 1)
                         last = missingDates[index];
-                    AddBlankBomRows(rows, dish, priceTier, customerCode,
+                    AddBlankBomRows(rows, dish.DishCode, dish.DishName, priceTier, customerCode,
                         first.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                         last.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
                 }
@@ -88,6 +102,13 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
                 .OrderBy(dish => dish.DishCode)
                 .ToListAsync(cancellationToken);
             var effectiveFrom = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            if (query.MrxShared)
+            {
+                dishes = dishes.OrderBy(dish => dish.Dishboms.Any(line => line.CustomerId is null &&
+                    line.PriceTierAmount == priceTier && DishBomPolicy.IsPublished(line) &&
+                    line.EffectiveFrom <= today && (line.EffectiveTo is null || line.EffectiveTo >= today)))
+                    .ThenBy(dish => dish.DishCode, StringComparer.Ordinal).ToList();
+            }
 
             foreach (var dish in dishes)
             {
@@ -95,7 +116,7 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
                     ? (customerId is null
                         ? dish.Dishboms.Where(line => line.CustomerId is null && line.PriceTierAmount == priceTier && DishBomPolicy.IsPublished(line) && line.EffectiveFrom <= today && (line.EffectiveTo is null || line.EffectiveTo >= today)).ToList()
                         : BomSelectionResolver.Resolve(dish.Dishboms, customerId, priceTier, today).ToList())
-                        .OrderBy(line => line.Ingredient.IngredientName).ToList()
+                        .OrderBy(line => line.Ingredient.IngredientName).ThenByDescending(line => line.Unit.UnitCode).ToList()
                     : [];
 
                 if (templateType == "missing" && currentLines.Count > 0)
@@ -105,7 +126,8 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
 
                 if (currentLines.Count == 0)
                 {
-                    AddBlankBomRows(rows, dish, priceTier, customerCode, effectiveFrom);
+                    AddBlankBomRows(rows, dish.DishCode, dish.DishName, priceTier, customerCode, effectiveFrom,
+                        count: query.MrxShared ? MrxBlankBomRowsPerDish : BlankBomRowsPerDish);
                     continue;
                 }
 
@@ -123,7 +145,9 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
                         line.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                         line.EffectiveTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
                         line.BomStatus,
-                        string.Empty
+                        string.Empty,
+                        line.Ingredient.IngredientCode,
+                        line.Unit.UnitCode
                     ]);
                 }
             }
@@ -155,7 +179,7 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
             today,
             rows,
             ingredientNames,
-            unitOptions);
+            unitOptions, editableRows: query.MrxShared);
         return (content, TemplateFileNames.Bom(customerCode, priceTier, scopeLabel));
     }
 
@@ -172,19 +196,23 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
         return customer?.CustomerCode;
     }
 
+    private static string FormatDate(DateOnly value) => value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
     private static void AddBlankBomRows(
         ICollection<IReadOnlyList<string>> rows,
-        Dish dish,
+        string dishCode,
+        string dishName,
         decimal priceTier,
         string? customerCode,
         string effectiveFrom,
-        string? effectiveTo = null)
+        string? effectiveTo = null,
+        int count = BlankBomRowsPerDish)
     {
-        for (var index = 0; index < BlankBomRowsPerDish; index++)
+        for (var index = 0; index < count; index++)
         {
             rows.Add([
-                dish.DishCode,
-                dish.DishName,
+                dishCode,
+                dishName,
                 priceTier.ToString("0.##", CultureInfo.InvariantCulture),
                 customerCode ?? string.Empty,
                 string.Empty,

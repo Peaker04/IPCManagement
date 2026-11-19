@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, expect } from '../fixtures/mrxTest';
-import { createTransferredBatch, scenarioScope, parseCookingFile, captureStationUI } from '../fixtures/mrxWorkflow';
+import { downloadRetainedMrxWorkbook, createTransferredBatch, scenarioScope, parseCookingFile, captureStationUI } from '../fixtures/mrxWorkflow';
 import type { StockSnapshot } from '../core/mysqlVerifier';
 import { readQualificationCredentials, respectApiBudget, respectLoginBudget } from '../fixtures/authHelpers';
 import type { CreateMrxIssueRequest, MrxIssueCreated, MrxWarehouseDaily, CreateCoordinatedPreparationIssueRequest, CoordinatedPreparationIssueResult, MrxPreparation, MrxKitchenCooking } from '../../../src/api/mrxApi';
@@ -370,18 +370,25 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     const preparationResponse = thukhoPage.waitForResponse((r) => r.url().includes('/api/reconciliation/preparation?') && r.request().method() === 'GET');
     await thukhoPage.goto(`/warehouse?view=mrx-preparation&date=${scope.weekStartDate}&range=day`);
     const prepared = (await (await preparationResponse).json()).data as MrxPreparation;
-    await expect(thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true })).toBeEnabled();
+    await expect(thukhoPage.getByRole('button', { name: 'Xuất nhu cầu theo NCC', exact: true })).toBeEnabled();
     await expect(thukhoPage.getByRole('button', { name: /^Xác nhận xuất phối hợp/ })).toHaveCount(0);
     const preparedMembers = prepared.batches.filter((b) => batchIds.includes(b.batchId));
     expect(preparedMembers).toHaveLength(2);
-    await captureStationUI(thukhoPage, 'preparation', 1280, 720, thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true }));
+    await captureStationUI(thukhoPage, 'preparation', 1280, 720, thukhoPage.getByRole('button', { name: 'Xuất nhu cầu theo NCC', exact: true }));
     const workbookDownload = thukhoPage.waitForEvent('download');
-    await thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true }).click();
+    await thukhoPage.getByRole('button', { name: 'Xuất nhu cầu theo NCC', exact: true }).click();
     const preparationFile = path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'coordinated-preparation.xlsx');
     await (await workbookDownload).saveAs(preparationFile);
     const summaryRows = parseCookingFile(preparationFile, 'xlsx', 1);
-    const menuRows = parseCookingFile(preparationFile, 'xlsx', 2);
-    expect(summaryRows[3]).toEqual(['Nguyên liệu', 'ĐVT', 'Tổng nhu cầu', 'Còn thiếu', 'Cấp ngoài nhu cầu']);
+    expect(summaryRows[3]).toEqual(['Nguyên liệu', 'ĐVT', 'Tổng nhu cầu']);
+    expect(() => parseCookingFile(preparationFile, 'xlsx', 2)).toThrow('Missing worksheet');
+    const legacyQuery = new URLSearchParams({ serviceDate: scope.weekStartDate, includeMenus: 'true', isSupplemental: 'false' });
+    batchIds.forEach(id => legacyQuery.append('batchIds', id));
+    const legacyDownload = thukhoPage.waitForEvent('download');
+    await downloadRetainedMrxWorkbook(thukhoPage, `/api/reconciliation/preparation/export-workbook?${legacyQuery}`);
+    const legacyFile = path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'coordinated-preparation-legacy.xlsx');
+    await (await legacyDownload).saveAs(legacyFile);
+    const menuRows = parseCookingFile(legacyFile, 'xlsx', 2);
     expect(menuRows[2]).toEqual(['Khách hàng', 'Ngày', 'Ca', 'Loại thực đơn', 'Món', 'Số suất']);
     const scopedBatches = batchIds.map(id => `UNHEX('${binaryId(id)}')`).join(',');
     const expectedMenus = dbVerifier.query<{ customer: string; date: string; shift: string; variant: string; name: string; servings: string }>(`SELECT DISTINCT CONCAT(c.customerCode,' · ',c.customerName) AS customer, DATE_FORMAT(d.ServiceDate,'%d/%m/%Y') AS date, rc.FrozenShiftName AS shift, rc.FrozenMenuVariant AS variant, rc.FrozenDishName AS name, CAST(rc.FrozenServings AS CHAR) AS servings FROM reconciliationbatchcontributors rc JOIN reconciliationbatchdailylines d ON d.DailyLineId=rc.DailyLineId JOIN reconciliationbatches b ON b.BatchId=d.BatchId JOIN menuversions v ON v.menuVersionId=b.MenuVersionId JOIN customers c ON c.customerId=v.customerId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate = '${scope.weekStartDate}' AND d.RequiredQuantity>0 AND rc.InvalidatedAt IS NULL;`);
@@ -456,7 +463,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     expect(conflict.body.message).toMatch(/phiên bản|thay đổi|cập nhật/i);
     expect(rejectedBaseline()).toEqual(afterCompetingWrite);
     await thukhoPage.reload();
-    await expect(thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true })).toBeEnabled();
+    await expect(thukhoPage.getByRole('button', { name: 'Xuất nhu cầu theo NCC', exact: true })).toBeEnabled();
     fs.writeFileSync(path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'coordinated-stale-member-rollback.json'), JSON.stringify({batchIds, staleLastMember:staleMember.batchId,preparedVersion:staleMember.batchVersion,actualVersion,status:409,baselineAfterCompetingWrite:true,noDurableEffects:true,members:afterCompetingWrite.members},null,2));
     let command: CreateCoordinatedPreparationIssueRequest | undefined;
     let committed: CoordinatedPreparationIssueResult | undefined;
@@ -516,7 +523,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     }
     await thukhoPage.reload();
     await expect(thukhoPage.getByRole('button', { name: /^Xác nhận xuất phối hợp/ })).toHaveCount(0);
-    await expect(thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true })).toBeEnabled();
+    await expect(thukhoPage.getByRole('button', { name: 'Xuất nhu cầu theo NCC', exact: true })).toBeEnabled();
     for (const id of batchIds) {
       await thukhoPage.goto(`/warehouse?view=mrx-daily&batchId=${id}&date=${scope.weekStartDate}`);
       await expect(thukhoPage.getByRole('button', { name: /^Lịch sử phiếu \(\s*1\s*\)$/ })).toBeVisible();
@@ -539,7 +546,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       const daily = await readDaily();
       expect(daily.dates.find((day) => day.serviceDate === weekStartDate)!.remainingQuantity).toBe(0);
       const issuedDates: string[] = [];
-      for (const day of daily.dates.filter((item) => item.isApplicable && item.remainingQuantity > 0)) {
+      for (const day of daily.dates.filter((item) => item.isApplicable && (item.remainingQuantity ?? 0) > 0)) {
         expect(day.serviceDate).not.toBe(weekStartDate);
         await thukhoPage.goto(`/warehouse?view=mrx-daily&batchId=${id}&date=${day.serviceDate}`);
         await thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
@@ -577,7 +584,8 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       const end = new Date(`${identity.week}T00:00:00Z`); end.setUTCDate(end.getUTCDate()+6);
       for (const format of ['csv','xlsx'] as const) {
         const downloaded = beptruongPage.waitForEvent('download');
-        await beptruongPage.getByRole('button', { name: format === 'csv' ? 'Tải CSV cả lô' : 'Tải Excel cả lô', exact: true }).click();
+        if (format === 'csv') await beptruongPage.getByRole('button', { name: 'Tải CSV cả lô', exact: true }).click();
+        else await downloadRetainedMrxWorkbook(beptruongPage, `/api/reconciliation/batches/${id}/kitchen-cooking/xlsx`);
         const file = path.join(evidence, `coordinated-menu-${id}.${format}`);
         await (await downloaded).saveAs(file);
         exports[format] = parseCookingFile(file, format);

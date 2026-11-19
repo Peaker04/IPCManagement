@@ -1,3 +1,6 @@
+using System.Data;
+using System.Security.Cryptography;
+using System.Text.Json;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Catalog.Contracts;
@@ -33,11 +36,11 @@ public sealed class DishBomImportService : IDishBomImportService
         _operationalWarehouseResolver = operationalWarehouseResolver;
     }
 
-    public Task<BomImportPreviewDto> PreviewAsync(
+    public async Task<BomImportPreviewDto> PreviewAsync(
         Stream fileStream,
         BomImportPreviewRequestDto request,
         CancellationToken cancellationToken = default)
-        => BuildPreviewAsync(fileStream, request, cancellationToken);
+        => (await PrepareImportAsync(fileStream, request, cancellationToken)).Preview;
 
     public async Task<BomImportCommitResultDto> CommitAsync(
         Stream fileStream,
@@ -45,23 +48,24 @@ public sealed class DishBomImportService : IDishBomImportService
         string? userId,
         CancellationToken cancellationToken = default)
     {
-        var preview = await BuildPreviewAsync(fileStream, request, cancellationToken);
-        if (!preview.CanCommit)
-        {
-            throw new BusinessRuleException("File BOM còn lỗi, cần sửa preview trước khi commit.");
-        }
-
-        var priceTier = DishBomPolicy.NormalizePriceTier(request.PriceTier);
         var customerId = DishBomPolicy.ParseOptionalCustomerId(request.CustomerId);
         var actor = GuidHelper.ParseGuidString(userId);
-        var rows = await _parser.ParseAsync(fileStream, request, cancellationToken);
-        var validRows = rows.Where(row => row.Errors.Count == 0).ToList();
+        IReadOnlyList<BomImportRow> validRows = [];
+        decimal priceTier = 0;
         var now = DateTime.UtcNow;
-        var batchCode = $"BOM-{priceTier:0}-{now:yyyyMMddHHmmss}";
 
         var result = await _transactionRunner.ExecuteAsync(
             async token =>
             {
+                var (preview, parsedRows) = await PrepareImportAsync(fileStream, request, token);
+                if (!preview.CanCommit)
+                    throw new BusinessRuleException("File BOM còn lỗi, cần xem trước lại và kiểm tra lỗi trước khi nhập.");
+                if (request.MrxShared && !string.Equals(request.PreviewFingerprint, preview.PreviewFingerprint, StringComparison.Ordinal))
+                    throw new BusinessRuleException("Bản xem trước BOM đã thay đổi. Vui lòng xem trước lại.");
+
+                priceTier = preview.PriceTier;
+                var batchCode = $"BOM-{priceTier:0}-{now:yyyyMMddHHmmss}";
+                validRows = parsedRows;
                 var created = 0;
                 var updated = 0;
                 var archived = 0;
@@ -220,16 +224,32 @@ public sealed class DishBomImportService : IDishBomImportService
 
                 return true;
             },
+            isolationLevel: request.MrxShared ? IsolationLevel.Serializable : IsolationLevel.ReadCommitted,
             cancellationToken: cancellationToken);
         DishCatalogCache.Clear(_cache);
         return result;
     }
 
-    private async Task<BomImportPreviewDto> BuildPreviewAsync(
+    private async Task<(BomImportPreviewDto Preview, IReadOnlyList<BomImportRow> ParsedRows)> PrepareImportAsync(
         Stream fileStream,
         BomImportPreviewRequestDto request,
         CancellationToken cancellationToken)
     {
+        MrxWeeklyBomCoverage? coverage = null;
+        if (request.MrxShared)
+        {
+            if (!string.IsNullOrWhiteSpace(request.CustomerId))
+                throw new BusinessRuleException("Luồng MRX chỉ nhập BOM dùng chung.");
+            if (request.ScopeCustomerId is not null || request.WeekStartDate.HasValue || request.MenuVersionId is not null)
+            {
+                coverage = await new MrxWeeklyBomCoverageQuery(_context).ReadAsync(request.ScopeCustomerId, request.WeekStartDate,
+                    request.MenuVersionId, cancellationToken);
+                if (coverage.PriceTierAmount != request.PriceTier || request.EffectiveFrom.HasValue)
+                    throw new BusinessRuleException("Mốc giá và ngày hiệu lực phải theo thực đơn tuần MRX.");
+            }
+            else if (!MenuPriceTierPolicy.SupportedPriceTiers.Contains(request.PriceTier))
+                throw new BusinessRuleException("Chọn đúng mốc giá BOM trước khi nhập.");
+        }
         var priceTier = DishBomPolicy.NormalizePriceTier(request.PriceTier);
         var customerId = DishBomPolicy.ParseOptionalCustomerId(request.CustomerId);
         var rows = await _parser.ParseAsync(fileStream, request, cancellationToken);
@@ -251,6 +271,11 @@ public sealed class DishBomImportService : IDishBomImportService
         {
             var errors = row.Errors.ToList();
             var warnings = row.Warnings.ToList();
+            if (coverage is not null && (row.Dish is null || !coverage.MissingDishes.Any(dish =>
+                    dish.DishId == GuidHelper.ToGuidString(row.Dish.DishId)
+                    && dish.Intervals.Any(interval => row.EffectiveFrom == interval.EffectiveFrom && row.EffectiveTo == interval.EffectiveTo))
+                || row.BomStatus != DishBomPolicy.Published))
+                errors.Add("Mã món hoặc khoảng hiệu lực không thuộc danh sách BOM thiếu của tuần. Hãy tải lại mẫu.");
             var key = $"{row.DishCode}|{row.IngredientCode}|{row.UnitCode}|{row.EffectiveFrom:yyyy-MM-dd}";
             if (duplicateKeys.Contains(key))
             {
@@ -280,8 +305,21 @@ public sealed class DishBomImportService : IDishBomImportService
             };
         }).ToList();
 
-        return new BomImportPreviewDto
+        string? fingerprint = null;
+        if (request.MrxShared)
         {
+            fileStream.Position = 0;
+            var contentHash = Convert.ToHexString(await SHA256.HashDataAsync(fileStream, cancellationToken));
+            var snapshot = JsonSerializer.SerializeToUtf8Bytes(new
+            {
+                contentHash, priceTier, request.EffectiveFrom, coverage, previewRows,
+                existingVersions = rows.Select(row => row.ExistingVersion)
+            });
+            fingerprint = Convert.ToHexString(SHA256.HashData(snapshot));
+        }
+        return (new BomImportPreviewDto
+        {
+            PreviewFingerprint = fingerprint,
             GeneratedAt = DateTime.UtcNow,
             PriceTier = priceTier,
             CustomerId = customerId is null ? null : GuidHelper.ToGuidString(customerId),
@@ -293,7 +331,7 @@ public sealed class DishBomImportService : IDishBomImportService
             CanCommit = previewRows.Count > 0 && previewRows.All(row => row.Errors.Count == 0),
             Rows = previewRows,
             Warnings = []
-        };
+        }, rows);
     }
 
     private static IEnumerable<int> FindOverlappingRows(IReadOnlyList<BomImportRow> rows)

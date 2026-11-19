@@ -318,6 +318,10 @@ describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification',
       { customerId: 'c-anv', customerCode: 'ANV', customerName: 'AMANN' },
     ]);
     vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue(mockSource);
+    vi.spyOn(bomApi, 'getMrxWeeklyCoverage').mockResolvedValue({
+      customerId: testCustomerId, weekStartDate: testWeek, menuVersionId: 'mv-published-1',
+      priceTierAmount: 25000, missingDishes: [],
+    });
     vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
       items: [
         {

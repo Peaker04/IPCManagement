@@ -12,6 +12,7 @@ public partial class Customer
     public string CustomerName { get; set; } = null!;
 
     public string? Note { get; set; }
+    public string? ServiceShiftNames { get; set; }
 
     public bool? IsActive { get; set; }
 
