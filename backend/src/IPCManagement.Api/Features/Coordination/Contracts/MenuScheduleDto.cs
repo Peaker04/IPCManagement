@@ -49,6 +49,7 @@ public class CustomerContractDto
     public int MenuScheduleCount { get; set; }
     public IReadOnlyList<string> ActiveWeekDays { get; set; } = [];
     public IReadOnlyList<string> ShiftNames { get; set; } = [];
+    public IReadOnlyList<string>? ServiceShiftNames { get; set; }
     public decimal? DefaultMenuPrice { get; set; }
     public decimal? DefaultBomRatePercent { get; set; }
     public string? LatestServiceDate { get; set; }
@@ -63,6 +64,7 @@ public class UpdateCustomerContractRequest
     public string? EffectiveTo { get; set; }
     public IReadOnlyList<string>? ActiveWeekDays { get; set; }
     public IReadOnlyList<string>? ShiftNames { get; set; }
+    public IReadOnlyList<string>? ServiceShiftNames { get; set; }
     public decimal? DefaultMenuPrice { get; set; }
     public decimal? DefaultBomRatePercent { get; set; }
 }
@@ -77,6 +79,7 @@ public class CreateCustomerContractRequest
     public string? EffectiveTo { get; set; }
     public IReadOnlyList<string>? ActiveWeekDays { get; set; }
     public IReadOnlyList<string>? ShiftNames { get; set; }
+    public IReadOnlyList<string>? ServiceShiftNames { get; set; }
     public decimal? DefaultMenuPrice { get; set; }
     public decimal? DefaultBomRatePercent { get; set; }
 }

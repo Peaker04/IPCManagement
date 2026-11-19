@@ -470,6 +470,11 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("note");
 
+                    b.Property<string>("ServiceShiftNames")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("serviceShiftNames");
+
                     b.HasKey("CustomerId")
                         .HasName("PRIMARY");
 

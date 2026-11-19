@@ -7,6 +7,28 @@ namespace IPCManagement.Api.Tests;
 
 public sealed class PreparationWorkbookSchemaTests
 {
+    [Fact]
+    public void Supplier_demand_is_one_sheet_and_keeps_unresolved_quantities()
+    {
+        var document = new ReconciliationPreparationWorkbookDto(["C · Khách hàng"],
+            [new("NCC A", "ingredient-a", "ING-A", "Cà rốt", "kg", "kg", new Dictionary<string, decimal> { ["c"] = 1.25m }, 1.25m) { SupplierId = "a", SupplierCode = "NCC-A" },
+             new("Nhiều nhà cung cấp cùng hiệu lực", "ingredient-b", "ING-B", "Cà rốt", "kg", "kg", new Dictionary<string, decimal> { ["c"] = 2.5m }, 2.5m)],
+            [], 3.75m, 3.75m) { CustomerColumnDefinitions = [new("c", "C", "Khách hàng")] };
+        var bytes = PreparationWorkbookBuilder.BuildXlsx(document, supplierDemand: true);
+        Validate(bytes);
+        using var package = SpreadsheetDocument.Open(new MemoryStream(bytes), false);
+        var workbook = Assert.IsType<WorkbookPart>(package.WorkbookPart);
+        Assert.Contains("Nhu cầu theo NCC", workbook.Workbook!.OuterXml);
+        var sheet = Assert.Single(workbook.WorksheetParts).Worksheet!.OuterXml;
+        Assert.Contains("NCC A (NCC-A)", sheet);
+        Assert.Contains("CẦN XÁC MINH NCC", sheet);
+        Assert.Contains("Nhiều nhà cung cấp cùng hiệu lực", sheet);
+        Assert.Contains("Cà rốt (ING-A)", sheet);
+        Assert.Contains("Cà rốt (ING-B)", sheet);
+        Assert.Contains(">1.25</", sheet);
+        Assert.Contains(">2.5</", sheet);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -324,6 +324,23 @@ export function writeBomImportWorkbook(file: string, rows: { dishCode: string; i
   execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { stdio: 'pipe', timeout: 15_000 });
 }
 
+export async function downloadRetainedMrxWorkbook(page: Page, url: string): Promise<void> {
+  await page.evaluate(async endpoint => {
+    const response = await fetch(endpoint, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION' },
+    });
+    if (!response.ok) throw new Error(`Workbook HTTP ${response.status}`);
+    const objectUrl = URL.createObjectURL(await response.blob());
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = 'retained-mrx.xlsx';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+  }, url);
+}
+
 export function parseCookingFile(file: string, format: 'csv' | 'xlsx', sheet: 1 | 2 | 3 = 1): string[][] {
   const literal = `'${file.replace(/'/g, "''")}'`;
   const script = `$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); ` + (format === 'csv'

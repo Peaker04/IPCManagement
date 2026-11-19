@@ -13,6 +13,7 @@ export interface CustomerContractItem {
   menuScheduleCount: number;
   activeWeekDays: string[];
   shiftNames: string[];
+  serviceShiftNames?: string[] | null;
   defaultMenuPrice?: number | null;
   defaultBomRatePercent?: number | null;
   latestServiceDate?: string | null;
@@ -24,6 +25,7 @@ export interface CreateCustomerContractPayload {
   defaultMenuPrice?: number;
   defaultBomRatePercent?: number;
   shiftNames?: string[];
+  serviceShiftNames?: string[];
   activeWeekDays?: string[];
   effectiveFrom?: string;
   effectiveTo?: string;
@@ -40,6 +42,7 @@ export interface UpdateCustomerContractPayload {
   defaultMenuPrice?: number;
   defaultBomRatePercent?: number;
   shiftNames?: string[];
+  serviceShiftNames?: string[];
   activeWeekDays?: string[];
 }
 

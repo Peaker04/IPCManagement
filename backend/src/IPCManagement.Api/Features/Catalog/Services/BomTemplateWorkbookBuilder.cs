@@ -30,7 +30,8 @@ internal static class BomTemplateWorkbookBuilder
         DateOnly generatedDate,
         IReadOnlyList<IReadOnlyList<string>> rows,
         IReadOnlyList<string>? ingredientNames = null,
-        IReadOnlyList<string>? unitOptions = null)
+        IReadOnlyList<string>? unitOptions = null,
+        bool editableRows = false)
     {
         ingredientNames ??= [];
         unitOptions ??= [];
@@ -97,8 +98,8 @@ internal static class BomTemplateWorkbookBuilder
                 </Relationships>
                 """);
             AddEntry(archive, "xl/styles.xml", BuildStylesXml());
-            AddEntry(archive, "xl/worksheets/sheet1.xml", BuildSheetXml(priceTier, scope, generatedDate, rows, ingredientNames.Count, unitOptions.Count));
-            AddEntry(archive, "xl/worksheets/sheet2.xml", BuildInstructionsSheetXml());
+            AddEntry(archive, "xl/worksheets/sheet1.xml", BuildSheetXml(priceTier, scope, generatedDate, rows, ingredientNames.Count, unitOptions.Count, editableRows));
+            AddEntry(archive, "xl/worksheets/sheet2.xml", BuildInstructionsSheetXml(editableRows));
             AddEntry(archive, "xl/worksheets/sheet3.xml", BuildCatalogSheetXml(ingredientNames, unitOptions));
         }
 
@@ -110,7 +111,7 @@ internal static class BomTemplateWorkbookBuilder
         <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
           <fonts count="3">
             <font><sz val="11"/><name val="Arial"/></font>
-            <font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Arial"/></font>
+            <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Arial"/></font>
             <font><b/><sz val="11"/><name val="Arial"/></font>
           </fonts>
           <fills count="4">
@@ -120,25 +121,27 @@ internal static class BomTemplateWorkbookBuilder
           </fills>
           <borders count="2"><border/><border><left style="thin"><color rgb="FFD9E2F3"/></left><right style="thin"><color rgb="FFD9E2F3"/></right><top style="thin"><color rgb="FFD9E2F3"/></top><bottom style="thin"><color rgb="FFD9E2F3"/></bottom></border></borders>
           <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-          <cellXfs count="4">
+          <cellXfs count="5">
             <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
             <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
             <xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyProtection="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/><protection locked="0"/></xf>
             <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
+            <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="0" shrinkToFit="1"/></xf>
           </cellXfs>
           <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="0"/>
           <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
         </styleSheet>
         """;
 
-    private static string BuildSheetXml(decimal priceTier, string scope, DateOnly generatedDate, IReadOnlyList<IReadOnlyList<string>> rows, int ingredientCount, int unitCount)
+    private static string BuildSheetXml(decimal priceTier, string scope, DateOnly generatedDate, IReadOnlyList<IReadOnlyList<string>> rows, int ingredientCount, int unitCount, bool editableRows)
     {
         var builder = new StringBuilder();
         var lastRow = Math.Max(5, rows.Count + 4);
+        var lastColumn = editableRows ? "N" : "L";
         builder.AppendLine("""<?xml version="1.0" encoding="UTF-8"?>""");
         builder.AppendLine("""<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">""");
         builder.AppendLine("  <sheetPr><pageSetUpPr fitToPage=\"1\"/></sheetPr>");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"  <dimension ref=\"A1:L{lastRow}\"/>");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"  <dimension ref=\"A1:{lastColumn}{lastRow}\"/>");
         builder.AppendLine("""
           <sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
           <sheetFormatPr defaultRowHeight="28"/>
@@ -146,20 +149,29 @@ internal static class BomTemplateWorkbookBuilder
         """);
         for (var index = 0; index < VisibleColumnWidths.Length; index++)
             builder.AppendLine(CultureInfo.InvariantCulture, $"<col min=\"{index + 1}\" max=\"{index + 1}\" width=\"{VisibleColumnWidths[index]}\" customWidth=\"1\"/>");
-        builder.AppendLine("<col min=\"7\" max=\"12\" width=\"14\" hidden=\"1\" customWidth=\"1\"/></cols><sheetData>");
+        if (editableRows)
+            builder.AppendLine("<col min=\"7\" max=\"7\" width=\"24\" customWidth=\"1\"/><col min=\"8\" max=\"14\" hidden=\"1\"/></cols><sheetData>");
+        else
+            builder.AppendLine("<col min=\"7\" max=\"12\" width=\"14\" hidden=\"1\" customWidth=\"1\"/></cols><sheetData>");
         AddTextRow(builder, 1, ["IPC - ĐỊNH LƯỢNG NGUYÊN LIỆU THEO SUẤT"], styleIndex: 3, height: 30);
         AddTextRow(builder, 2, ["Mức giá", priceTier.ToString("0", CultureInfo.InvariantCulture), "Phạm vi", scope, "Ngày tạo", generatedDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)], height: 48);
-        AddTextRow(builder, 3, ["Ô màu vàng là vùng nhập liệu. Chọn nguyên liệu và đơn vị từ danh sách để hạn chế sai lệch."], height: 32);
-        AddTextRow(builder, 4, DisplayHeaders, styleIndex: 1, height: 36);
+        AddTextRow(builder, 3, [editableRows
+            ? "Món thiếu BOM có 5 dòng trống. Mỗi dòng điền một nguyên liệu. Nếu cần thêm, sao chép cả dòng của món."
+            : "Ô màu vàng là vùng nhập liệu. Chọn nguyên liệu và đơn vị từ danh sách để hạn chế sai lệch."], height: 32);
+        AddTextRow(builder, 4, editableRows ? [.. DisplayHeaders, "Mã nguyên liệu", "BomUnitCode"] : DisplayHeaders, styleIndex: 1, height: 36);
         var rowNumber = 5;
         foreach (var row in rows)
         {
-            var displayed = DisplayOrder.Select(index => row[index]).ToArray();
-            AddTextRow(builder, rowNumber++, displayed, editableColumns: EditableColumns, numericColumns: NumericColumns, height: EstimateDataRowHeight(displayed));
+            var displayed = DisplayOrder.Select(index => row[index]).ToList();
+            if (editableRows)
+                displayed.AddRange([row.ElementAtOrDefault(12) ?? "", row.ElementAtOrDefault(13) ?? ""]);
+            AddTextRow(builder, rowNumber++, displayed, editableColumns: EditableColumns, numericColumns: NumericColumns, height: EstimateDataRowHeight(displayed), singleLineDishCode: editableRows);
         }
         builder.AppendLine("  </sheetData>");
-        builder.AppendLine("  <sheetProtection sheet=\"1\" objects=\"1\" scenarios=\"1\" autoFilter=\"0\" sort=\"0\"/>");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"  <autoFilter ref=\"A4:F{lastRow}\"/>");
+        if (!editableRows)
+            builder.AppendLine("  <sheetProtection sheet=\"1\" objects=\"1\" scenarios=\"1\" autoFilter=\"0\" sort=\"0\"/>");
+        var lastFilterColumn = editableRows ? "L" : "F";
+        builder.AppendLine(CultureInfo.InvariantCulture, $"  <autoFilter ref=\"A4:{lastFilterColumn}{lastRow}\"/>");
         builder.AppendLine("  <mergeCells count=\"2\"><mergeCell ref=\"A1:F1\"/><mergeCell ref=\"A3:F3\"/></mergeCells>");
         builder.AppendLine("  <dataValidations count=\"4\">");
         var ingredientEnd = Math.Max(2, ingredientCount + 1);
@@ -173,20 +185,24 @@ internal static class BomTemplateWorkbookBuilder
         return builder.ToString();
     }
 
-    private static string BuildInstructionsSheetXml()
+    private static string BuildInstructionsSheetXml(bool editableRows)
     {
         var builder = new StringBuilder();
         builder.AppendLine("""<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:C14"/><sheetFormatPr defaultRowHeight="42"/><cols><col min="1" max="1" width="28" customWidth="1"/><col min="2" max="2" width="24" customWidth="1"/><col min="3" max="3" width="56" customWidth="1"/></cols><sheetData>""");
         AddTextRow(builder, 1, ["HƯỚNG DẪN NHẬP ĐỊNH LƯỢNG"], styleIndex: 3);
         AddTextRow(builder, 3, ["Cột", "Yêu cầu", "Cách nhập"], styleIndex: 1);
-        AddTextRow(builder, 4, ["Tên món", "Hệ thống khóa", "Dùng để xác định món đang khai báo"]);
+        AddTextRow(builder, 4, editableRows
+            ? ["Mã món / hiệu lực", "Giữ khi sao chép", "Dùng 5 dòng trống có sẵn cho món thiếu BOM. Khi cần thêm, sao chép cả dòng để giữ mã món và ngày hiệu lực."]
+            : ["Tên món", "Hệ thống khóa", "Dùng để xác định món đang khai báo"]);
         AddTextRow(builder, 5, ["Nguyên liệu chính", "Bắt buộc", "Ưu tiên chọn từ danh sách; có thể nhập tên mới"]);
         AddTextRow(builder, 6, ["Đơn vị", "Bắt buộc", "Chọn trong danh sách"]);
         AddTextRow(builder, 7, ["Định lượng/suất", "Bắt buộc", "Số dương, theo đúng đơn vị đã chọn"]);
         AddTextRow(builder, 8, ["Hao hụt (%)", "Tùy chọn", "Từ 0 đến 100; để trống được hiểu là 0"]);
         AddTextRow(builder, 9, ["Ghi chú", "Tùy chọn", "Ghi cách sơ chế hoặc yêu cầu riêng"]);
-        AddTextRow(builder, 11, ["Quy trình", "1. Chọn danh mục", "2. Nhập định lượng → 3. Tải lên → 4. Kiểm tra file"]);
-        AddTextRow(builder, 13, ["Lưu ý", "Không sửa cột ẩn", "Hệ thống quản lý mức giá, phạm vi, ngày hiệu lực và trạng thái"], height: 42);
+        AddTextRow(builder, 11, ["Quy trình", "1. Điền nguyên liệu", "2. Tải lên → 3. Xem trước → 4. Xác nhận nhập"]);
+        AddTextRow(builder, 13, editableRows
+            ? ["Lưu ý", "Giữ cột ẩn", "File chỉ dùng cho mốc giá lúc tải. Xóa một dòng khỏi file không xóa BOM đã lưu."]
+            : ["Lưu ý", "Không sửa cột ẩn", "Hệ thống quản lý mức giá, phạm vi, ngày hiệu lực và trạng thái"], height: 42);
         builder.AppendLine("</sheetData><mergeCells count=\"1\"><mergeCell ref=\"A1:C1\"/></mergeCells><pageMargins left=\"0.25\" right=\"0.25\" top=\"0.4\" bottom=\"0.4\" header=\"0.2\" footer=\"0.2\"/><pageSetup paperSize=\"9\" orientation=\"landscape\" fitToWidth=\"1\" fitToHeight=\"0\"/></worksheet>");
         return builder.ToString();
     }
@@ -214,13 +230,13 @@ internal static class BomTemplateWorkbookBuilder
         return Math.Clamp(lines * 15 + 8, 28, 409);
     }
 
-    private static void AddTextRow(StringBuilder builder, int rowNumber, IReadOnlyList<string> cells, int styleIndex = 0, IReadOnlySet<int>? editableColumns = null, IReadOnlySet<int>? numericColumns = null, double? height = null)
+    private static void AddTextRow(StringBuilder builder, int rowNumber, IReadOnlyList<string> cells, int styleIndex = 0, IReadOnlySet<int>? editableColumns = null, IReadOnlySet<int>? numericColumns = null, double? height = null, bool singleLineDishCode = false)
     {
         var rowHeight = height.HasValue ? FormattableString.Invariant($" ht=\"{height.Value}\"") : string.Empty;
         builder.Append(CultureInfo.InvariantCulture, $"<row r=\"{rowNumber}\"{rowHeight}>");
         for (var index = 0; index < cells.Count; index++)
         {
-            var resolvedStyle = editableColumns?.Contains(index + 1) == true ? 2 : styleIndex;
+            var resolvedStyle = singleLineDishCode && index == 6 ? 4 : editableColumns?.Contains(index + 1) == true ? 2 : styleIndex;
             var style = resolvedStyle > 0 ? $" s=\"{resolvedStyle}\"" : string.Empty;
             var reference = $"{ColumnIndexToLetter(index + 1)}{rowNumber}";
             if (numericColumns?.Contains(index + 1) == true && decimal.TryParse(cells[index], NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var number))

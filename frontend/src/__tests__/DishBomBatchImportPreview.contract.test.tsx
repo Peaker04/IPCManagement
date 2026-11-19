@@ -17,7 +17,10 @@ beforeEach(() => {
   vi.spyOn(transport, 'apiClient').mockImplementation(async (endpoint, options) => {
     if (endpoint === '/Dishes/bom-price-tiers') return [25000, 30000, 34000];
     if (endpoint === '/coordination/customers') return [{ customerId: 'c-1', customerCode: 'ANV', customerName: 'AMANN' }];
-    if (endpoint === '/Dishes/bom-import/preview' && options?.method === 'POST') return preview;
+    if (['/Dishes/bom-import/preview', '/Dishes/mrx/bom-import/preview'].includes(endpoint) && options?.method === 'POST') return preview;
+    if (endpoint === '/Dishes/mrx/bom-import/commit' && options?.method === 'POST') {
+      return { ...preview, createdRows: 1, updatedRows: 0, archivedRows: 0, auditBatchCode: 'BOM-34000-TEST' };
+    }
     throw new Error(`Unexpected BOM request ${options?.method ?? 'GET'} ${endpoint}`);
   });
 });
@@ -83,4 +86,31 @@ it('downloads MRX missing BOM by the selected customer, week and source version'
   expect(url.searchParams.get('WeekStartDate')).toBe('2026-07-06');
   expect(url.searchParams.get('MenuVersionId')).toBe('v-1');
   vi.unstubAllGlobals();
+});
+
+it('uses read-only 34k weekly scope and sends no customer override on MRX preview or commit', async () => {
+  preview = { generatedAt: '2026-11-18T00:00:00Z', priceTier: 34000, bomScope: 'global',
+    previewFingerprint: 'preview-34k', canCommit: true, totalRows: 1, validRows: 1, errorRows: 0,
+    warningRows: 0, warnings: [], rows: [rows[0]] };
+  const onSaved = vi.fn();
+  render(<DishBomBatchImportModal isOpen mrxShared onClose={vi.fn()} onImportSuccess={onSaved}
+    initialPriceTier={34000} initialTemplateType="missing" initialCustomerId="c-1"
+    mrxWeekStartDate="2026-11-16" mrxMenuVersionId="v-1" />);
+  expect(await screen.findByRole('radio', { name: /34.000 ₫/ })).toBeChecked();
+  expect(screen.getByRole('radio', { name: /25.000 ₫/ })).toBeDisabled();
+  expect(screen.queryByLabelText('Phạm vi áp dụng BOM')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Ngày áp dụng bản chỉnh sửa')).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Chọn file Excel định mức BOM'), { target: { files: [new File(['bom'], 'bom.xlsx')] } });
+  fireEvent.click(screen.getByRole('button', { name: 'Xem trước' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận nhập BOM hàng loạt' }));
+  await vi.waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
+  const forms = vi.mocked(transport.apiClient).mock.calls
+    .filter(([path]) => path.startsWith('/Dishes/mrx/bom-import/'))
+    .map(([path, options]) => [path, Object.fromEntries((options?.body as FormData).entries())]);
+  expect(forms).toEqual([
+    ['/Dishes/mrx/bom-import/preview', { File: expect.any(File), PriceTier: '34000',
+      ScopeCustomerId: 'c-1', WeekStartDate: '2026-11-16', MenuVersionId: 'v-1' }],
+    ['/Dishes/mrx/bom-import/commit', { File: expect.any(File), PriceTier: '34000',
+      ScopeCustomerId: 'c-1', WeekStartDate: '2026-11-16', MenuVersionId: 'v-1', PreviewFingerprint: 'preview-34k' }],
+  ]);
 });

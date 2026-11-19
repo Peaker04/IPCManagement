@@ -47,11 +47,20 @@ public sealed class ReconciliationPreparationController(
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> ExportWorkbook(
         [FromQuery] ReconciliationPreparationWorkbookQuery query,
+        [FromQuery] string? layout,
         CancellationToken token)
     {
+        query.Layout = layout;
+        if (layout is not null && !query.SupplierDemand)
+            return BadRequest(ApiResponse.FailResult("Bố cục file chuẩn bị không hợp lệ."));
+        if (query.SupplierDemand && query.BatchIds is not { Count: > 0 })
+            return BadRequest(ApiResponse.FailResult("Chọn ít nhất một lô để xuất nhu cầu nguyên liệu."));
+        if (query.SupplierDemand && query.IsSupplemental == true)
+            return BadRequest(ApiResponse.FailResult("File nhu cầu theo NCC dùng định lượng đã chốt của các lô đã chọn."));
         var bytes = await service.ExportWorkbookXlsxAsync(query, token);
         var dateStr = (query.ServiceDate ?? query.WeekStartDate)!.Value.ToString("yyyyMMdd");
-        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"bang-chuan-bi-nguyen-lieu-{dateStr}.xlsx");
+        var name = query.SupplierDemand ? "nhu-cau-theo-ncc" : "bang-chuan-bi-nguyen-lieu";
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{name}-{dateStr}.xlsx");
     }
 
     [HttpPost("issue")]

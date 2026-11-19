@@ -62,6 +62,8 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
       items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0, hasPrev: false, hasNext: false,
     });
     vi.spyOn(bomApi, 'getSupportedPriceTiers').mockResolvedValue([]);
+    vi.spyOn(bomApi, 'getMrxWeeklyCoverage').mockImplementation(async (customerId, weekStartDate, menuVersionId) =>
+      ({ customerId, weekStartDate, menuVersionId, priceTierAmount: 25000, missingDishes: [] }));
     vi.spyOn(mrxApi, 'getSourceChangeInbox').mockResolvedValue([]);
   });
   it('keeps the cold matrix skeleton until edit scope is ready and retries a scope read failure', async () => {
@@ -543,10 +545,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     await userEvent.click(await screen.findByRole('button', { name: 'Lưu & kiểm tra định lượng' }));
 
     expect(await screen.findByText('Món Canh bí đỏ chưa có định mức nguyên liệu.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Mở món thiếu BOM →' })).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Nhập BOM Excel cho các món thiếu' }));
-    expect(await screen.findByText(/Với nguyên liệu mới, để trống mã nguyên liệu/)).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Đóng' }));
+    expect(screen.queryByRole('button', { name: 'Bổ sung BOM' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
     expect(screen.getAllByText('Canh bí đỏ').length).toBeGreaterThan(0);
     expect(screen.queryByText('Tóm tắt định lượng và nguyên liệu')).not.toBeInTheDocument();

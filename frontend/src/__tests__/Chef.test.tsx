@@ -181,7 +181,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     const header = screen.getByRole('banner');
     expect(within(header).getByRole('button', { name: 'In phiếu nấu' })).toBeEnabled();
     expect(within(header).getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
-    expect(within(header).getByRole('button', { name: 'Tải Excel cả lô' })).toBeEnabled();
+    expect(within(header).getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeEnabled();
 
     // Forbidden fields & mutations MUST NOT exist
     expect(screen.queryByText(/Đơn giá/i)).not.toBeInTheDocument();
@@ -200,10 +200,68 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(openSpy).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
 
+    const catalog = await mrxApi.getBatchPage();
+    vi.mocked(mrxApi.getBatchPage).mockResolvedValue({ ...catalog, totalCount: 2, items: [
+      ...catalog.items,
+      { ...catalog.items[0], batchId: 'batch-2', customerId: 'customer-2', customerCode: 'KH2', customerName: 'Khách thứ hai' },
+    ] });
+    const download = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json({
+      success: false, message: 'Lô của KH2 thiếu dữ liệu phiếu nấu.',
+    }, { status: 409 }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' }));
+    const dialog = screen.getByRole('dialog', { name: 'Xuất phiếu nấu Excel' });
+    expect(await within(dialog).findByRole('checkbox', { name: /lô đang xem/ })).toBeChecked();
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /Khách thứ hai/ }));
+    await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Ngày phục vụ' }), '2026-06-16');
+    await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Ca phục vụ' }), 'AFTERNOON');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Tải Excel · 2 lô' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Lô của KH2 thiếu dữ liệu phiếu nấu.');
+    const request = download.mock.calls.find(([url]) => String(url).includes('/kitchen-cooking/xlsx'))!;
+    const params = new URL(String(request[0]), 'http://localhost').searchParams;
+    expect(params.getAll('batchIds')).toEqual(['batch-1', 'batch-2']);
+    expect(params.get('weekStartDate')).toBe('2026-06-15');
+    expect(params.get('serviceDate')).toBe('2026-06-16');
+    expect(params.get('shift')).toBe('AFTERNOON');
+    await userEvent.click(within(dialog).getByRole('button', { name: /^Đóng$/ }));
+
     const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
     const printBtn = screen.getByRole('button', { name: 'In phiếu nấu' });
     await userEvent.click(printBtn);
     expect(printSpy).toHaveBeenCalled();
+  });
+
+  it('keeps the four cooking menus together by service date when API rows are interleaved', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({
+      mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 1,
+      updatedAt: '2026-06-15T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} },
+    });
+    const mealRows = [
+      ['2026-06-16', 'Ca sáng', 'Mặn', 'Đậu kho'],
+      ['2026-06-15', 'Ca chiều', 'Mặn', 'Cá kho'],
+      ['2026-06-15', 'Ca chiều', 'Chay', 'Cải xào'],
+      ['2026-06-15', 'Ca sáng', 'Mặn', 'Gà kho'],
+      ['2026-06-15', 'Ca sáng', 'Chay', 'Bún chay'],
+      ['2026-06-15', 'Ca chiều', 'Mặn', 'Canh cá'],
+    ];
+    vi.spyOn(mrxApi, 'getKitchenCooking').mockResolvedValue({
+      batchId: 'batch-1', sourceVersion: 2,
+      rows: mealRows.map(([serviceDate, shiftName, menuVariant, dishName], index) => ({
+        serviceDate, weekday: serviceDate === '2026-06-15' ? 'Thứ Hai' : 'Thứ Ba', shiftName, menuVariant,
+        dishCode: `MON-${index + 1}`, dishName, servings: 10, approvedExtraServings: 0, approvedDemandIds: [],
+        ingredientCode: 'NL-01', ingredientName: 'Dầu ăn', unitName: 'kg',
+        bomQuantityPerServing: 0.1, wasteRatePercent: 0, totalRequiredQuantity: 1,
+      })),
+    });
+    renderChef('/chef?view=mrx-cooking&batchId=batch-1');
+    const menuOrder = () => screen.getAllByRole('region', { name: /^Món / }).map(item => item.getAttribute('aria-label'));
+    await screen.findByRole('region', { name: 'Món Bún chay · Chay' });
+    expect(menuOrder()).toEqual([
+      'Món Bún chay · Chay', 'Món Gà kho · Mặn', 'Món Cải xào · Chay',
+      'Món Cá kho · Mặn', 'Món Canh cá · Mặn', 'Món Đậu kho · Mặn',
+    ]);
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Lọc theo ca nấu' }), 'AFTERNOON');
+    expect(menuOrder()).toEqual(['Món Cải xào · Chay', 'Món Cá kho · Mặn', 'Món Canh cá · Mặn']);
   });
 
   it('groups cooking by menu variant and recovers a shift with no dishes without changing whole-batch exports', async () => {
@@ -238,7 +296,10 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(await screen.findByRole('region', { name: 'Món Cơm sườn nướng · Mặn' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Món Cơm sườn nướng · Chay' })).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Món Cơm sườn nướng · Mặn' })).getByText('Mặn')).toBeInTheDocument();
-    expect(screen.getByText('Chay')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Món Cơm sườn nướng · Chay' })).getByText('Chay')).toBeInTheDocument();
+    expect(screen.getByText('Rau củ')).toBeVisible();
+    expect(screen.queryByText('Sườn heo')).not.toBeInTheDocument();
+    await userEvent.click(within(screen.getByRole('region', { name: 'Món Cơm sườn nướng · Mặn' })).getByRole('button'));
     expect(screen.getByText('Sườn heo')).toBeVisible();
     expect(screen.queryByText('Rau củ')).not.toBeInTheDocument();
     await userEvent.click(within(screen.getByRole('region', { name: 'Món Cơm sườn nướng · Chay' })).getByRole('button'));
@@ -270,7 +331,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: 'Xem tất cả ca' }));
     expect(screen.getByRole('combobox', { name: 'Lọc theo ca nấu' })).toHaveValue('ALL');
@@ -349,7 +410,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(screen.queryByText(/được tạo từ phiên bản trước/)).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' })).toHaveValue('batch-incomplete');
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
     expect(screen.getByRole('searchbox', { name: 'Tìm món, nguyên liệu trong phiếu nấu' })).toBeDisabled();
     expect(screen.queryByRole('region', { name: /Món/ })).not.toBeInTheDocument();
@@ -379,7 +440,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(screen.queryByText('Gạo lô cũ')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeDisabled();
     await act(async () => { resolveCooking({ ...foreign, batchId: 'batch-target', sourceVersion: 3,
       rows: [{ ...foreign.rows[0], dishCode: 'MON-B', dishName: 'Món lô đang chọn', ingredientName: 'Gạo lô đang chọn' }] }); });
     expect(await screen.findByText('Món lô đang chọn')).toBeVisible();
@@ -394,12 +455,12 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' }), 'batch-foreign');
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeDisabled();
     await act(async () => { resolveNext(foreign); });
     expect(await screen.findByText('Món lô cũ')).toBeVisible();
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeEnabled();
   });
 
   it('keeps cooking URL scope through navigation and catalogue paging beyond the first fifty batches', async () => {

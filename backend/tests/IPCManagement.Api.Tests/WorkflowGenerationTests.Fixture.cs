@@ -76,6 +76,17 @@ public partial class WorkflowGenerationTests
 
         public IpcManagementContext CreateContext() => new(_options);
 
+        internal static Task EnsureReconciliationSchemaAsync(IpcManagementContext context) => context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS systemoperationmodes (Id INTEGER PRIMARY KEY, Mode TEXT NOT NULL, Version INTEGER NOT NULL, UpdatedAt TEXT NOT NULL, UpdatedBy BLOB NOT NULL, Reason TEXT NULL);
+            CREATE TABLE IF NOT EXISTS reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
+            CREATE TABLE IF NOT EXISTS reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL, UNIQUE (dailyLineId, batchId, ingredientId, canonicalUnitId));
+            CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, dailyLineId BLOB NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, dishId BLOB NULL, frozenShiftName TEXT NOT NULL, frozenDishCode TEXT NULL, frozenDishName TEXT NULL, frozenServings INTEGER NULL, frozenBomQuantityPerServing TEXT NULL, FrozenBomUnitToBaseRate TEXT NULL, FrozenCanonicalUnitToBaseRate TEXT NULL, frozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL, InvalidatedAt TEXT NULL, InvalidatedBySourceRevisionId BLOB NULL);
+            CREATE TABLE IF NOT EXISTS reconciliationsourcedeltas (SourceDeltaId BLOB PRIMARY KEY, SourceRevisionId BLOB NOT NULL, BatchId BLOB NOT NULL, DailyLineId BLOB NULL, ServiceDate TEXT NOT NULL, IngredientId BLOB NOT NULL, CanonicalUnitId BLOB NOT NULL, PreviousRequiredQuantity TEXT NOT NULL, NewRequiredQuantity TEXT NOT NULL, DeltaQuantity TEXT NOT NULL, WorkKind TEXT NOT NULL, Status TEXT NOT NULL, Version INTEGER NOT NULL, CreatedAt TEXT NOT NULL, ResolvedAt TEXT NULL, ResolvedBy BLOB NULL, ResolutionEntity TEXT NULL, ResolutionId BLOB NULL, ResolutionCommandId TEXT NULL);
+            CREATE TABLE IF NOT EXISTS reconciliationdailydispositions (DispositionId BLOB PRIMARY KEY, DailyLineId BLOB NOT NULL, Category TEXT NOT NULL, Reason TEXT NOT NULL, Version INTEGER NOT NULL, DisposedBy BLOB NOT NULL, DisposedAt TEXT NOT NULL, InvalidatedAt TEXT NULL, InvalidatedBy BLOB NULL, InvalidationReason TEXT NULL, ActiveOwnerKey BLOB NULL);
+            CREATE TABLE IF NOT EXISTS reconciliationsourcerevisions (SourceRevisionId BLOB PRIMARY KEY, MenuAmendmentId BLOB NULL, BatchId BLOB NOT NULL, PreviousMenuVersionId BLOB NOT NULL, AppliedMenuVersionId BLOB NOT NULL, RevisionNumber INTEGER NOT NULL, Status TEXT NOT NULL, Reason TEXT NOT NULL, AppliedBy BLOB NOT NULL, AppliedAt TEXT NOT NULL, AppliedByRole TEXT NULL, ApplyMode TEXT NULL);
+            """);
+
         public async Task SeedMenuWithDemandAsync(bool includeMissingDish)
         {
             await using var context = CreateContext();
@@ -488,7 +499,8 @@ public partial class WorkflowGenerationTests
                     customerCode TEXT NOT NULL,
                     customerName TEXT NOT NULL,
                     note TEXT NULL,
-                    isActive INTEGER NOT NULL
+                    isActive INTEGER NOT NULL,
+                    serviceShiftNames TEXT NULL
                 );
                 CREATE TABLE supplierquotations (
                     quotationId BLOB PRIMARY KEY,
