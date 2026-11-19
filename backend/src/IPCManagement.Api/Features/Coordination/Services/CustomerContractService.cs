@@ -4,6 +4,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using static IPCManagement.Api.Features.Coordination.Services.CustomerContractSchedulePolicy;
+
 namespace IPCManagement.Api.Features.Coordination.Services;
 
 public sealed class CustomerContractService : ICustomerContractService
@@ -63,12 +65,16 @@ public sealed class CustomerContractService : ICustomerContractService
             CustomerCode = customerCode,
             CustomerName = customerName,
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
+            ServiceShiftNames = SerializeServiceShifts(request.ServiceShiftNames),
             IsActive = request.IsActive ?? true
         };
 
         _context.Customers.Add(customer);
         AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
             "CustomerCreated", null, customer.CustomerCode, "Tạo khách hàng từ màn contract");
+        if (customer.ServiceShiftNames is not null)
+            AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
+                nameof(Customer.ServiceShiftNames), null, customer.ServiceShiftNames, "Thiết lập ca phục vụ khách hàng");
 
         if (defaultMenuPrice is not null)
         {
@@ -116,6 +122,7 @@ public sealed class CustomerContractService : ICustomerContractService
             .ToList();
         if (request.DefaultMenuPrice is not null)
             MenuPriceTierPolicy.Normalize(request.DefaultMenuPrice.Value);
+        var serviceShifts = SerializeServiceShifts(request.ServiceShiftNames);
 
         var actorId = ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
@@ -145,6 +152,14 @@ public sealed class CustomerContractService : ICustomerContractService
                 nameof(Customer.IsActive), customer.IsActive.ToString(), request.IsActive.Value.ToString(),
                 "Cập nhật trạng thái khách hàng", auditCorrelationId);
             customer.IsActive = request.IsActive.Value;
+        }
+
+        if (serviceShifts is not null && !string.Equals(customer.ServiceShiftNames, serviceShifts, StringComparison.Ordinal))
+        {
+            AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
+                nameof(Customer.ServiceShiftNames), customer.ServiceShiftNames, serviceShifts,
+                "Cập nhật ca phục vụ khách hàng", auditCorrelationId);
+            customer.ServiceShiftNames = serviceShifts;
         }
 
         var changesContract = request.EffectiveFrom is not null || request.EffectiveTo is not null ||
@@ -378,99 +393,6 @@ public sealed class CustomerContractService : ICustomerContractService
         return activeDays.Contains(ToDayCode(schedule.ServiceDate)) && shifts.Contains(schedule.ShiftName);
     }
 
-    private static IReadOnlyList<string> NormalizeWeekDays(
-        IReadOnlyList<string>? requestedWeekDays,
-        IReadOnlyList<MenuSchedule> schedules)
-    {
-        var values = requestedWeekDays is { Count: > 0 }
-            ? requestedWeekDays
-            : schedules.Select(schedule => ToDayCode(schedule.ServiceDate)).Distinct().ToList();
-        if (values.Count == 0)
-        {
-            values = ["t2", "t3", "t4", "t5", "t6", "t7"];
-        }
-
-        var normalized = values
-            .Select(NormalizeDayCode)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(DaySortOrder)
-            .ToList();
-        if (normalized.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Ngày làm việc contract không hợp lệ.");
-        }
-
-        return normalized;
-    }
-
-    private static IReadOnlyList<string> NormalizeShiftNames(
-        IReadOnlyList<string>? requestedShiftNames,
-        IReadOnlyList<MenuSchedule> schedules)
-    {
-        var values = requestedShiftNames is { Count: > 0 }
-            ? requestedShiftNames
-            : schedules.Select(schedule => schedule.ShiftName).Distinct().ToList();
-        if (values.Count == 0)
-        {
-            values = ["MORNING", "AFTERNOON"];
-        }
-
-        var normalized = values
-            .Select(NormalizeShiftName)
-            .ToList();
-        if (normalized.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Ca phục vụ contract không hợp lệ.");
-        }
-
-        return normalized
-            .Select(shift => shift!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(shift => shift)
-            .ToList();
-    }
-
-    private static string NormalizeDayCode(string value)
-        => value.Trim().ToLowerInvariant() switch
-        {
-            "t2" or "mon" or "monday" => "t2",
-            "t3" or "tue" or "tuesday" => "t3",
-            "t4" or "wed" or "wednesday" => "t4",
-            "t5" or "thu" or "thursday" => "t5",
-            "t6" or "fri" or "friday" => "t6",
-            "t7" or "sat" or "saturday" => "t7",
-            "cn" or "sun" or "sunday" => "cn",
-            _ => string.Empty
-        };
-
-    private static int DaySortOrder(string dayCode)
-        => dayCode switch
-        {
-            "t2" => 1,
-            "t3" => 2,
-            "t4" => 3,
-            "t5" => 4,
-            "t6" => 5,
-            "t7" => 6,
-            "cn" => 7,
-            _ => 99
-        };
-
-    private static DateOnly? ParseDateOnly(string? value, string fieldName)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        if (DateOnly.TryParse(value, out var parsed))
-        {
-            return parsed;
-        }
-
-        throw new ArgumentException($"{fieldName} không hợp lệ.");
-    }
-
     private static decimal? ResolveDefaultMenuPrice(IReadOnlyList<MenuSchedule> schedules)
     {
         var prices = schedules.Select(schedule => DecimalPolicy.RoundMoney(schedule.MenuPrice)).Distinct().ToList();
@@ -518,6 +440,7 @@ public sealed class CustomerContractService : ICustomerContractService
             MenuScheduleCount = schedules.Count,
             ActiveWeekDays = activeWeekDays,
             ShiftNames = shiftNames,
+            ServiceShiftNames = customer.ServiceShiftNames is null ? null : SplitCsv(customer.ServiceShiftNames),
             DefaultMenuPrice = contract is null ? ResolveDefaultMenuPrice(schedules) : contract.DefaultMenuPrice,
             DefaultBomRatePercent = FixedBomRatePercent,
             LatestServiceDate = schedules.LastOrDefault()?.ServiceDate.ToString("yyyy-MM-dd")
@@ -562,26 +485,6 @@ public sealed class CustomerContractService : ICustomerContractService
             : correlationId.Trim();
         return value[..Math.Min(value.Length, 128)];
     }
-
-    private static string? NormalizeShiftName(string? shift)
-        => (shift ?? string.Empty).Trim().ToUpperInvariant() switch
-        {
-            "MORNING" or "CA SANG" or "CA SÁNG" => "MORNING",
-            "AFTERNOON" or "CA CHIEU" or "CA CHIỀU" => "AFTERNOON",
-            _ => null
-        };
-
-    private static string ToDayCode(DateOnly serviceDate)
-        => serviceDate.DayOfWeek switch
-        {
-            DayOfWeek.Monday => "t2",
-            DayOfWeek.Tuesday => "t3",
-            DayOfWeek.Wednesday => "t4",
-            DayOfWeek.Thursday => "t5",
-            DayOfWeek.Friday => "t6",
-            DayOfWeek.Saturday => "t7",
-            _ => "cn"
-        };
 
     private static bool IsLockedSchedule(MenuSchedule schedule)
         => string.Equals(schedule.Status, "LOCKED", StringComparison.OrdinalIgnoreCase);

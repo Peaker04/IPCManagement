@@ -17,10 +17,15 @@ public sealed class DishCatalogDiagnosticsService : IDishCatalogDiagnosticsServi
         _context = context;
     }
 
-    public async Task<BomCoverageReportDto> GetBomCoverageAsync(decimal? priceTier = null)
+    public Task<BomCoverageReportDto> GetBomCoverageAsync(decimal? priceTier = null) =>
+        ReadBomCoverageAsync(priceTier, ServiceCalendar.Today(), sharedOnly: false);
+
+    public Task<BomCoverageReportDto> GetMrxBomCoverageAsync(decimal? priceTier, DateOnly? effectiveDate) =>
+        ReadBomCoverageAsync(priceTier, effectiveDate ?? ServiceCalendar.Today(), sharedOnly: true);
+
+    private async Task<BomCoverageReportDto> ReadBomCoverageAsync(decimal? priceTier, DateOnly effectiveDate, bool sharedOnly)
     {
         if (priceTier.HasValue) priceTier = DishBomPolicy.NormalizePriceTier(priceTier.Value);
-        var today = ServiceCalendar.Today();
         var dishes = await _context.Dishes
             .AsNoTracking()
             .Where(dish => dish.IsActive ?? true)
@@ -29,11 +34,12 @@ public sealed class DishCatalogDiagnosticsService : IDishCatalogDiagnosticsServi
         var activeBomLines = await _context.Dishboms
             .AsNoTracking()
             .Where(line => !priceTier.HasValue || line.PriceTierAmount == priceTier.Value)
+            .Where(line => !sharedOnly || line.CustomerId == null && (line.Dish.IsActive ?? true))
             .Where(line =>
                 SupportedBomPriceTiers.Contains(line.PriceTierAmount) &&
                 line.BomStatus == BomStatusPublished &&
-                line.EffectiveFrom <= today &&
-                (line.EffectiveTo == null || line.EffectiveTo >= today))
+                line.EffectiveFrom <= effectiveDate &&
+                (line.EffectiveTo == null || line.EffectiveTo >= effectiveDate))
             .ToListAsync();
         var bomCountByDish = activeBomLines
             .GroupBy(line => GuidHelper.ToGuidString(line.DishId))

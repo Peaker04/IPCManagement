@@ -616,7 +616,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(within(allocationDialog).getByText('Khách B')).toBeVisible();
     expect(within(allocationDialog).getByRole('row', { name: /Khách A/ })).toHaveTextContent('5');
     await userEvent.click(within(allocationDialog).getByRole('button', { name: 'Đóng' }));
-    expect(screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Xuất nhu cầu theo NCC' })).toBeEnabled();
     await userEvent.click(screen.getByRole('button', { name: /Khách hàng:/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /Khách B/ }));
     expect(screen.getByRole('checkbox', { name: /Khách A/ })).toBeEnabled();
@@ -656,20 +656,20 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     const customerSearch = screen.getByRole('searchbox', { name: 'Tìm khách hàng hoặc mã' });
     await userEvent.type(customerSearch, 'không khớp');
     expect(screen.queryByRole('checkbox', { name: /Khách A/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Xuất nhu cầu theo NCC' })).toBeEnabled();
     await userEvent.clear(customerSearch);
     const selection = screen.getByRole('checkbox', { name: /Khách A/ });
     await userEvent.click(selection);
     await userEvent.keyboard('{Escape}');
     expect(customerTrigger).toHaveFocus();
-    expect(screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xuất nhu cầu theo NCC' })).toBeDisabled();
     expect(screen.getByRole('searchbox', { name: 'Tìm nguyên liệu chuẩn bị' })).toBeVisible();
     expect(screen.getByText('Chọn ít nhất một lô để xem nguyên liệu cần chuẩn bị.')).toBeVisible();
     expect(fetch.mock.calls.some(([url]) => String(url).includes('/preparation/export-workbook'))).toBe(false);
     await userEvent.click(customerTrigger);
     await userEvent.click(screen.getByRole('checkbox', { name: /Khách A/ }));
     await userEvent.keyboard('{Escape}');
-    const exportBtn = screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' });
+    const exportBtn = screen.getByRole('button', { name: 'Xuất nhu cầu theo NCC' });
     const wholeWeek = screen.getByRole('button', { name: 'Cả tuần (Tổng hợp)' });
     expect(wholeWeek).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('combobox', { name: 'Phạm vi xuất' })).not.toBeInTheDocument();
@@ -692,7 +692,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       expect.anything()
     );
     const exportRequest = fetch.mock.calls.find(([url]) => String(url).includes('/preparation/export-workbook'))!;
-    expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.get('includeMenus')).toBe('true');
+    expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.get('layout')).toBe('supplier-demand');
     expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.has('isSupplemental')).toBe(false);
     expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.has('search')).toBe(false);
     await userEvent.click(screen.getByRole('button', { name: 'Xóa tìm kiếm' }));
@@ -701,7 +701,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     await userEvent.click(screen.getByRole('button', { name: /T2.*15\/06/ }));
     await waitFor(() => expect(exportBtn).toBeEnabled());
     await userEvent.click(exportBtn);
-    await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url).includes('export-workbook?serviceDate=2026-06-15') && String(url).includes('includeMenus=true'))).toBe(true));
+    await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url).includes('export-workbook?serviceDate=2026-06-15') && String(url).includes('layout=supplier-demand'))).toBe(true));
     expect(screen.getByRole('button', { name: /T2.*15\/06/ })).toHaveAttribute('aria-pressed', 'true');
     expect(apiTransport.apiClient).toHaveBeenCalledWith('/reconciliation/preparation?serviceDate=2026-06-15', { signal: expect.any(AbortSignal) });
     expect(openSpy).not.toHaveBeenCalled();
@@ -1089,7 +1089,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
 
     await act(async () => { await router.navigate(-1); });
     expect(screen.getByRole('textbox', { name: 'Tuần chuẩn bị' })).toHaveValue('02/11/2026');
-    expect(screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xuất nhu cầu theo NCC' })).toBeDisabled();
   });
 
   it('same_mounted_history_targets_the_visible_batch', async () => {
@@ -1400,7 +1400,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(document.body.style.overflow).not.toBe('hidden');
   });
 
-  it('renders variance badges (Xuất vượt / Xuất thiếu) in ReconciliationIssueDetailModal', async () => {
+  it('renders actual issue shortages and excess in ReconciliationIssueDetailModal', async () => {
     vi.spyOn(apiTransport, 'apiClient').mockResolvedValue({
       issueId: 'issue-test-1',
       issueCode: 'ISS-20261019-01',
@@ -1432,8 +1432,8 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
           ingredientName: 'Rau cải ngọt',
           unitId: 'u-1',
           unitName: 'kg',
-          requestedQty: 8,
-          issuedQty: 6,
+          requestedQty: 8.77503,
+          issuedQty: 2,
         },
       ],
     });
@@ -1453,9 +1453,10 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.getByRole('cell', { name: '0,002586' })).toBeVisible();
     expect(screen.getByRole('cell', { name: '0,002587' })).toBeVisible();
     expect(screen.getByText('Rau cải ngọt')).toBeInTheDocument();
-    expect(screen.getByText(/Xuất thiếu/)).toHaveTextContent('Xuất thiếu (2)');
-    expect(screen.queryByText('Trạng thái Bếp nhận:')).not.toBeInTheDocument();
+    expect(screen.getByText(/Xuất thiếu/)).toHaveTextContent('Xuất thiếu (6,77503)');
+    expect(screen.queryByText(/Tiết kiệm/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Đã tự động bù tồn kho/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Đã tự động bù tồn kho/)).not.toBeInTheDocument();
     expect(screen.queryByText(/\+99 kg/)).not.toBeInTheDocument();
 
     vi.setSystemTime(new Date('2026-11-08T08:00:00Z')); // Sunday

@@ -1,10 +1,18 @@
 import { ApiError, authenticatedFetch } from '../api/client';
 
 /** Download authenticated bytes; callers own visible pending/error feedback. */
-export async function downloadAuthenticatedFile(url: string, filename?: string): Promise<void> {
+export async function downloadAuthenticatedFile(url: string, filename?: string, options?: { showScopeErrors?: boolean }): Promise<void> {
   const response = await authenticatedFetch(url);
   const token = localStorage.getItem('ipc_v3_token');
-  if (!response.ok) throw new Error(`Không thể tải tệp (HTTP ${response.status}). Vui lòng thử lại.`);
+  if (!response.ok) {
+    if (options?.showScopeErrors && (response.status === 400 || response.status === 409)) {
+      const body: unknown = await response.json().catch(() => null);
+      if (body && typeof body === 'object' && 'message' in body && typeof body.message === 'string' && body.message.trim()) {
+        throw new Error(body.message);
+      }
+    }
+    throw new Error(`Không thể tải tệp (HTTP ${response.status}). Vui lòng thử lại.`);
+  }
   const contentType = response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase();
   if (contentType !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && contentType !== 'application/octet-stream')
     throw new Error('Máy chủ không trả về tệp Excel hợp lệ. Vui lòng tải lại và thử lại.');

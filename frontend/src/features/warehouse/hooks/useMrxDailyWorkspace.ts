@@ -338,6 +338,7 @@ export function useMrxDailyWorkspace({
     return Array.from(map.values()).sort((a, b) => b.requiredQuantity - a.requiredQuantity);
   }, [daily]);
 
+  // Check the lifecycle too, so older API responses cannot offer writes before handoff.
   const canIssueBatch = daily?.batchId === activeBatchId && daily.compatibility.canIssueByDate
     && (daily.batchStatus === 'TRANSFERRED' || daily.batchStatus === 'IN_PROGRESS');
 

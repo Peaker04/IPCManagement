@@ -274,6 +274,8 @@ describe('MRX direct source edit', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(bomApi, 'getSupportedPriceTiers').mockResolvedValue([25000, 30000, 34000]);
+    vi.spyOn(bomApi, 'getMrxWeeklyCoverage').mockImplementation(async (customerId, weekStartDate, menuVersionId) =>
+      ({ customerId, weekStartDate, menuVersionId, priceTierAmount: 25000, missingDishes: [] }));
     vi.spyOn(mrxApi, 'getEditScope').mockResolvedValue(scope);
     vi.spyOn(adminApi, 'getDishes').mockResolvedValue({
       items: [

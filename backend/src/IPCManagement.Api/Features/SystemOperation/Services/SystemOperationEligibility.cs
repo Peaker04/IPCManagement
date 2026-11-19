@@ -62,6 +62,9 @@ public static class SystemOperationEligibility
 
     public static OperationDisposition Classify(string controller, string action)
     {
+        if (controller == "MrxWeeklyBomCoverage" ||
+            (controller == "DishBomImports" && action is "DownloadMrxBomTemplate" or "PreviewMrxBomImport" or "CommitMrxBomImport"))
+            return OperationDisposition.ReconciliationOnly;
         if (controller.Equals("ReconciliationActuals", StringComparison.OrdinalIgnoreCase)
             && (action.Equals("Purchased", StringComparison.OrdinalIgnoreCase) || action.Equals("Issued", StringComparison.OrdinalIgnoreCase)))
             return OperationDisposition.ExcludedInMaterialReconciliation;

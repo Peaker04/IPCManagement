@@ -169,6 +169,7 @@ export interface MrxPreparationWorkbookQuery {
   supplierName?: string;
   isSupplemental?: boolean;
   includeMenus?: boolean;
+  layout?: 'supplier-demand';
 }
 
 export type MrxEditScope = Schema['MrxEditScopeDto'];
@@ -427,6 +428,18 @@ export const mrxApi = {
   getKitchenCooking: (batchId: string) =>
     apiClient<MrxKitchenCooking>(batchPath(batchId, '/kitchen-cooking')),
 
+  getScopedKitchenCookingExportUrl: ({ weekStartDate, batchIds, serviceDate, shift }: {
+    weekStartDate: string;
+    batchIds: string[];
+    serviceDate?: string;
+    shift: 'ALL' | 'MORNING' | 'AFTERNOON';
+  }) => {
+    const params = new URLSearchParams({ weekStartDate, shift });
+    if (serviceDate) params.set('serviceDate', serviceDate);
+    batchIds.forEach(id => params.append('batchIds', id));
+    return `/api/reconciliation/kitchen-cooking/xlsx?${params}`;
+  },
+
   getPreparation: (serviceDate: string, batchIds?: string[], wholeWeek = false, signal?: AbortSignal) => {
     const query = new URLSearchParams(wholeWeek ? { weekStartDate: serviceDate } : { serviceDate });
     batchIds?.forEach((id) => query.append('batchIds', id));
@@ -457,6 +470,7 @@ export const mrxApi = {
     if (query.weekStartDate) params.set('weekStartDate', query.weekStartDate);
     if (query.supplierName) params.set('supplierName', query.supplierName);
     if (query.isSupplemental !== undefined) params.set('isSupplemental', String(query.isSupplemental));
+    if (query.layout) params.set('layout', query.layout);
     if (query.includeMenus !== undefined) params.set('includeMenus', String(query.includeMenus));
     query.customerIds?.forEach((c) => params.append('customerIds', c));
     query.batchIds?.forEach((b) => params.append('batchIds', b));

@@ -135,6 +135,10 @@ public sealed record ReconciliationKitchenCookingRowDto(DateOnly ServiceDate, st
     public IReadOnlyList<string> ApprovedDemandIds { get; init; } = [];
     public string MenuVariant { get; init; } = string.Empty;
     public string? QuantityUnavailableReasonCode { get; init; }
+    internal string FrozenDishIdentity { get; init; } = string.Empty;
+    internal string IngredientIdentity { get; init; } = string.Empty;
+    internal string CanonicalUnitIdentity { get; init; } = string.Empty;
+    internal bool CanCompareRecipeLine { get; init; }
 }
 
 public sealed record MrxEditScopeDto(
@@ -259,6 +263,8 @@ public sealed class ReconciliationPreparationWorkbookQuery
     public string? SupplierName { get; set; }
     public bool? IsSupplemental { get; set; }
     public bool IncludeMenus { get; set; }
+    internal string? Layout { get; set; }
+    internal bool SupplierDemand => Layout == "supplier-demand";
 
     public (DateOnly Start, DateOnly End) GetDateRange()
     {

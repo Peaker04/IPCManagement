@@ -52,6 +52,11 @@ public sealed class ReconciliationPreparationWorkbookTests
         Assert.Equal(combinedQuantity, combined.SummaryRows.Single(x => x.IngredientId == GuidHelper.ToGuidString(ingredient)).TotalQuantity);
         var selected = await exporter.GetWorkbookAsync(new() { ServiceDate = date, CustomerIds = [GuidHelper.ToGuidString(customerA)] });
         Assert.Equal(customerQuantity, selected.SummaryRows.Single(x => x.IngredientId == GuidHelper.ToGuidString(ingredient)).TotalQuantity);
+        var supplierQuery = new ReconciliationPreparationWorkbookQuery { ServiceDate = date,
+            BatchIds = [GuidHelper.ToGuidString(batchA), GuidHelper.ToGuidString(batchB)], Layout = "supplier-demand" };
+        var supplier = await exporter.GetWorkbookAsync(supplierQuery);
+        Assert.Equal(combinedQuantity, supplier.SummaryRows.Single(x => x.IngredientId == GuidHelper.ToGuidString(ingredient)).TotalQuantity);
+        PreparationWorkbookSchemaTests.Validate(await exporter.ExportWorkbookXlsxAsync(supplierQuery));
         var withoutA = await exporter.GetWorkbookAsync(new() { ServiceDate = date, CustomerIds = [GuidHelper.ToGuidString(customerB)] });
         Assert.Equal(6m, withoutA.SummaryRows.Single(x => x.IngredientId == GuidHelper.ToGuidString(ingredient)).TotalQuantity);
         if (status == "APPROVED")
@@ -104,6 +109,20 @@ public sealed class ReconciliationPreparationWorkbookTests
         Assert.Contains(xml.Descendants(), element => element.Name.LocalName == "t" && element.Value == "Rau Muống (ING-SINGLE)");
         var reduced = await exporter.GetWorkbookAsync(new() { WeekStartDate = monday, BatchIds = ids.Take(2).ToList() });
         Assert.DoesNotContain(reduced.SummaryRows, r => r.IngredientCode == "ING-C-ONLY" || r.SupplierCode == "SUP-02");
+
+        var supplierWorkbook = await exporter.ExportWorkbookXlsxAsync(new() { WeekStartDate = monday, BatchIds = ids, Layout = "supplier-demand", IncludeMenus = true });
+        PreparationWorkbookSchemaTests.Validate(supplierWorkbook);
+        using var supplierZip = new ZipArchive(new MemoryStream(supplierWorkbook));
+        Assert.Null(supplierZip.GetEntry("xl/worksheets/sheet2.xml"));
+        using var supplierSheet = supplierZip.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var supplierXml = System.Xml.Linq.XDocument.Load(supplierSheet);
+        var supplierRows = supplierXml.Descendants().Where(element => element.Name.LocalName == "row")
+            .Select(element => element.Elements().Select(cell => cell.Value).ToArray()).ToArray();
+        Assert.Contains(supplierRows, row => row.SequenceEqual(new[] { "Rau Muống (ING-SINGLE)", "kg", "10" }));
+        Assert.Contains(supplierRows, row => row.SequenceEqual(new[] { "Rau Muống (ING-SINGLE)", "kg", "7" }));
+        Assert.Contains(supplierRows, row => row[0].Contains("(SUP-01)"));
+        Assert.Contains(supplierRows, row => row[0].Contains("(SUP-02)"));
+        Assert.Contains(supplierRows, row => row[0].StartsWith("CẦN XÁC MINH NCC"));
     }
 
     [Fact]
@@ -256,7 +275,7 @@ public sealed class ReconciliationPreparationWorkbookTests
 
     private static async Task<(byte[] CustomerAId, byte[] CustomerBId, byte[] BatchAId, byte[] BatchBId, byte[] IngSingleSupplier, byte[] IngNoSupplier, byte[] IngAmbiguousSupplier, DateOnly ServiceDate)> SetupWorkbookFixtureAsync(WorkflowGenerationTests.WorkflowFixture fixture, IpcManagementContext context, bool variedUnits = false)
     {
-        await EnsureSchemaAsync(context);
+        await WorkflowGenerationTests.WorkflowFixture.EnsureReconciliationSchemaAsync(context);
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         var serviceDate = new DateOnly(2026, 6, 15);
@@ -954,7 +973,7 @@ public sealed class ReconciliationPreparationWorkbookTests
     {
         await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
         await using var context = fixture.CreateContext();
-        await EnsureSchemaAsync(context);
+        await WorkflowGenerationTests.WorkflowFixture.EnsureReconciliationSchemaAsync(context);
         var runner = Substitute.For<IEfTransactionRunner>();
         runner.ExecuteAsync(Arg.Any<Func<CancellationToken, Task<InitializationResult>>>(), Arg.Any<Func<CancellationToken, Task<bool>>>(), Arg.Any<System.Data.IsolationLevel>(), Arg.Any<CancellationToken>())
             .Returns(call => call.ArgAt<Func<CancellationToken, Task<InitializationResult>>>(0)(CancellationToken.None));

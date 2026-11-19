@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { test, expect } from '../fixtures/mrxTest';
-import { createTransferredBatch, scenarioScope, parseCookingFile } from '../fixtures/mrxWorkflow';
+import { downloadRetainedMrxWorkbook, createTransferredBatch, scenarioScope, parseCookingFile } from '../fixtures/mrxWorkflow';
 import type { MrxWarehouseDaily, CreateMrxIssueRequest, MrxKitchenCooking } from '../../../src/api/mrxApi';
 import { assertServingInputs, materialTotals, writeMenuCoverage, type CoverageDish, type CoverageSource, type CoverageServings, type ServingInputFact } from '../fixtures/menuCoverage';
 import type { MrxEditScope, MrxMenuChangeRequest, MrxMenuChangeResult } from '../../../src/api/mrxApi';
@@ -312,7 +312,8 @@ test(`@G6-Direct-Source-Edit ${schedule}: source correction preserves issued dat
   const outputs: Record<string, string[][]> = {};
   for (const format of ['csv', 'xlsx'] as const) {
     const download = beptruongPage.waitForEvent('download');
-    await beptruongPage.getByRole('button', { name: format === 'csv' ? 'Tải CSV cả lô' : 'Tải Excel cả lô', exact: true }).click();
+    if (format === 'csv') await beptruongPage.getByRole('button', { name: 'Tải CSV cả lô', exact: true }).click();
+    else await downloadRetainedMrxWorkbook(beptruongPage, `/api/reconciliation/batches/${batchId}/kitchen-cooking/xlsx`);
     const file = path.join(evidence, `source-tail-menu.${format}`);
     await (await download).saveAs(file);
     outputs[format] = parseCookingFile(file, format);
@@ -906,7 +907,8 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
   const exports: Record<string, string[][]> = {};
   for (const format of ['csv', 'xlsx'] as const) {
     const download = beptruongPage.waitForEvent('download');
-    await beptruongPage.getByRole('button', { name: format === 'csv' ? 'Tải CSV cả lô' : 'Tải Excel cả lô', exact: true }).click();
+    if (format === 'csv') await beptruongPage.getByRole('button', { name: 'Tải CSV cả lô', exact: true }).click();
+    else await downloadRetainedMrxWorkbook(beptruongPage, `/api/reconciliation/batches/${batchId}/kitchen-cooking/xlsx`);
     const file = path.join(evidence, `menu-coverage-chef.${format}`); await (await download).saveAs(file);
     exports[format] = parseCookingFile(file, format);
   }

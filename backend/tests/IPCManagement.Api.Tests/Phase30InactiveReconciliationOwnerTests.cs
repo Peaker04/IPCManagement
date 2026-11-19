@@ -1037,8 +1037,8 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             };
         }
 
-        // PreparationGroupCode and all five supplemental/allocation tables participate in full reconstruction; no cells are excluded.
-        private const string ExpectedScalarSchemaHash = "2B8F70C8988C09CC211020235A0A24E1E99F2C1CFF3FA49A71B317A8AFCFE500";
+        // PreparationGroupCode, ServiceShiftNames and the supplemental/allocation tables participate in full reconstruction; no cells are excluded.
+        private const string ExpectedScalarSchemaHash = "2456D4661D83C6FEE68BDEBE0D218BD05FFDA46F4945C8F5720099CD44BCB343";
 
         private sealed record EntityMapping(IEntityType Entity, string Table, StoreObjectIdentifier Store);
 

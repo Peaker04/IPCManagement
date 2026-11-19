@@ -4993,6 +4993,13 @@
         ],
         "parameters": [
           {
+            "name": "ScopeCustomerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "PriceTier",
             "in": "query",
             "schema": {
@@ -5081,7 +5088,109 @@
         }
       }
     },
-    "/api/Dishes/bom-import/preview": {
+    "/api/Dishes/mrx/bom-template": {
+      "get": {
+        "tags": [
+          "Dishes"
+        ],
+        "parameters": [
+          {
+            "name": "ScopeCustomerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PriceTier",
+            "in": "query",
+            "schema": {
+              "maximum": 34000,
+              "minimum": 25000,
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "CustomerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "DishId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "IncludeCurrent",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "TemplateType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "EffectiveDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "WeekStartDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "MenuVersionId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Dishes/mrx/bom-import/preview": {
       "post": {
         "tags": [
           "Dishes"
@@ -5095,6 +5204,16 @@
                 ],
                 "type": "object",
                 "properties": {
+                  "ScopeCustomerId": {
+                    "type": "string"
+                  },
+                  "WeekStartDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "MenuVersionId": {
+                    "type": "string"
+                  },
                   "File": {
                     "type": "string",
                     "format": "binary"
@@ -5118,6 +5237,219 @@
                 }
               },
               "encoding": {
+                "ScopeCustomerId": {
+                  "style": "form"
+                },
+                "WeekStartDate": {
+                  "style": "form"
+                },
+                "MenuVersionId": {
+                  "style": "form"
+                },
+                "File": {
+                  "style": "form"
+                },
+                "PriceTier": {
+                  "style": "form"
+                },
+                "CustomerId": {
+                  "style": "form"
+                },
+                "EffectiveFrom": {
+                  "style": "form"
+                },
+                "Mode": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomImportPreviewDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomImportPreviewDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomImportPreviewDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Dishes/mrx/bom-import/commit": {
+      "post": {
+        "tags": [
+          "Dishes"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "File"
+                ],
+                "type": "object",
+                "properties": {
+                  "PreviewFingerprint": {
+                    "type": "string"
+                  },
+                  "ScopeCustomerId": {
+                    "type": "string"
+                  },
+                  "WeekStartDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "MenuVersionId": {
+                    "type": "string"
+                  },
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "PriceTier": {
+                    "maximum": 34000,
+                    "minimum": 25000,
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "CustomerId": {
+                    "type": "string"
+                  },
+                  "EffectiveFrom": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "Mode": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "PreviewFingerprint": {
+                  "style": "form"
+                },
+                "ScopeCustomerId": {
+                  "style": "form"
+                },
+                "WeekStartDate": {
+                  "style": "form"
+                },
+                "MenuVersionId": {
+                  "style": "form"
+                },
+                "File": {
+                  "style": "form"
+                },
+                "PriceTier": {
+                  "style": "form"
+                },
+                "CustomerId": {
+                  "style": "form"
+                },
+                "EffectiveFrom": {
+                  "style": "form"
+                },
+                "Mode": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomImportCommitResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomImportCommitResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomImportCommitResultDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Dishes/bom-import/preview": {
+      "post": {
+        "tags": [
+          "Dishes"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "File"
+                ],
+                "type": "object",
+                "properties": {
+                  "ScopeCustomerId": {
+                    "type": "string"
+                  },
+                  "WeekStartDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "MenuVersionId": {
+                    "type": "string"
+                  },
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "PriceTier": {
+                    "maximum": 34000,
+                    "minimum": 25000,
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "CustomerId": {
+                    "type": "string"
+                  },
+                  "EffectiveFrom": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "Mode": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "ScopeCustomerId": {
+                  "style": "form"
+                },
+                "WeekStartDate": {
+                  "style": "form"
+                },
+                "MenuVersionId": {
+                  "style": "form"
+                },
                 "File": {
                   "style": "form"
                 },
@@ -5215,6 +5547,19 @@
                 ],
                 "type": "object",
                 "properties": {
+                  "PreviewFingerprint": {
+                    "type": "string"
+                  },
+                  "ScopeCustomerId": {
+                    "type": "string"
+                  },
+                  "WeekStartDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "MenuVersionId": {
+                    "type": "string"
+                  },
                   "File": {
                     "type": "string",
                     "format": "binary"
@@ -5238,6 +5583,18 @@
                 }
               },
               "encoding": {
+                "PreviewFingerprint": {
+                  "style": "form"
+                },
+                "ScopeCustomerId": {
+                  "style": "form"
+                },
+                "WeekStartDate": {
+                  "style": "form"
+                },
+                "MenuVersionId": {
+                  "style": "form"
+                },
                 "File": {
                   "style": "form"
                 },
@@ -5333,6 +5690,14 @@
             "schema": {
               "type": "number",
               "format": "double"
+            }
+          },
+          {
+            "name": "effectiveDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
             }
           }
         ],
@@ -7516,6 +7881,79 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MrxHistoricalPurposeDetailApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/weekly-menu/bom-coverage": {
+      "get": {
+        "tags": [
+          "MrxWeeklyBomCoverage"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "weekStartDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "menuVersionId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxWeeklyBomCoverageApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxWeeklyBomCoverageApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxWeeklyBomCoverageApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
                 }
               }
             }
@@ -9990,6 +10428,55 @@
         }
       }
     },
+    "/api/reconciliation/kitchen-cooking/xlsx": {
+      "get": {
+        "tags": [
+          "ReconciliationKitchenCooking"
+        ],
+        "parameters": [
+          {
+            "name": "weekStartDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "batchIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "serviceDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "shift",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "ALL"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/reconciliation/preparation": {
       "get": {
         "tags": [
@@ -10196,6 +10683,13 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "layout",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -23838,6 +24332,10 @@
         ],
         "type": "object",
         "properties": {
+          "previewFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
           "generatedAt": {
             "type": "string",
             "format": "date-time"
@@ -23939,6 +24437,10 @@
         ],
         "type": "object",
         "properties": {
+          "previewFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
           "generatedAt": {
             "type": "string",
             "format": "date-time"
@@ -24927,6 +25429,13 @@
             "nullable": true
           },
           "shiftNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "serviceShiftNames": {
             "type": "array",
             "items": {
               "type": "string"
@@ -26211,6 +26720,10 @@
             "type": "string",
             "nullable": true
           },
+          "serviceShiftNames": {
+            "type": "string",
+            "nullable": true
+          },
           "isActive": {
             "type": "boolean",
             "nullable": true
@@ -26395,6 +26908,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "serviceShiftNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           },
           "defaultMenuPrice": {
             "type": "number",
@@ -33320,6 +33840,41 @@
         },
         "additionalProperties": false
       },
+      "MrxBomMissingInterval": {
+        "required": [
+          "effectiveFrom"
+        ],
+        "type": "object",
+        "properties": {
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxBomOccurrence": {
+        "required": [
+          "serviceDate",
+          "shiftName"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "MrxCompletedRegisterReportDto": {
         "required": [
           "rows",
@@ -33890,6 +34445,40 @@
         },
         "additionalProperties": false
       },
+      "MrxMissingBomDish": {
+        "required": [
+          "dishCode",
+          "dishId",
+          "dishName",
+          "intervals",
+          "occurrences"
+        ],
+        "type": "object",
+        "properties": {
+          "dishId": {
+            "type": "string"
+          },
+          "dishCode": {
+            "type": "string"
+          },
+          "dishName": {
+            "type": "string"
+          },
+          "occurrences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxBomOccurrence"
+            }
+          },
+          "intervals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxBomMissingInterval"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "MrxOperationalQueueItemDto": {
         "required": [
           "actionKind",
@@ -34331,6 +34920,61 @@
           "unplannedIssuedQuantity": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxWeeklyBomCoverage": {
+        "required": [
+          "customerId",
+          "menuVersionId",
+          "missingDishes",
+          "priceTierAmount",
+          "weekStartDate"
+        ],
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "weekStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "menuVersionId": {
+            "type": "string"
+          },
+          "priceTierAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "missingDishes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxMissingBomDish"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxWeeklyBomCoverageApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MrxWeeklyBomCoverage"
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -46285,6 +46929,13 @@
             },
             "nullable": true
           },
+          "serviceShiftNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
           "defaultMenuPrice": {
             "type": "number",
             "format": "double",
@@ -48222,6 +48873,9 @@
     },
     {
       "name": "MrxHistoricalPurpose"
+    },
+    {
+      "name": "MrxWeeklyBomCoverage"
     },
     {
       "name": "OperationalApprovals"
