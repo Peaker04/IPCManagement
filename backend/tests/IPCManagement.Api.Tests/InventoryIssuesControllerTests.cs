@@ -204,6 +204,26 @@ public class InventoryIssuesControllerTests
         conflict.StatusCode.Should().Be(StatusCodes.Status409Conflict);
     }
 
+    [Fact]
+    public async Task Create_Should_Identify_Stale_Mrx_Issue_Without_Labeling_Other_Conflicts_As_Stale()
+    {
+        var userId = Guid.NewGuid().ToString();
+        _currentUserService.GetRoleNames(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(["WarehouseStaff"]);
+        _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(userId);
+        var controller = CreateController(SystemOperationEligibility.MaterialReconciliation);
+        var request = new CreateInventoryIssueRequest { ReconciliationBatchId = Guid.NewGuid().ToString() };
+        _inventoryIssueService.CreateAsync(request, userId)
+            .Returns<Task<InventoryIssueCreatedDto?>>(
+                _ => throw new Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException("Phiên bản đã thay đổi."),
+                _ => throw new IPCManagement.Api.Exceptions.ResourceConflictException("Lô chưa chuyển sang Kho."));
+        var stale = (ConflictObjectResult)await controller.CreateAsync(request);
+        var staleBody = System.Text.Json.JsonSerializer.SerializeToElement(stale.Value);
+        Assert.Equal("MRX_ISSUE_STALE", staleBody.GetProperty("code").GetString());
+
+        var blocked = (ConflictObjectResult)await controller.CreateAsync(request);
+        Assert.Equal("Lô chưa chuyển sang Kho.", Assert.IsType<ApiResponse>(blocked.Value).Message);
+    }
+
     private InventoryIssuesController CreateController(string? mode = null)
         => new(_inventoryIssueService, _currentUserService, new SystemOperationRequestContext { Mode = mode })
         {

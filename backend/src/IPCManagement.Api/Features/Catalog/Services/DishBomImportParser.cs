@@ -108,6 +108,8 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
 
             var tierText = Get("PriceTier");
             var hasTierText = !string.IsNullOrWhiteSpace(tierText);
+            if (request.MrxShared && !string.IsNullOrWhiteSpace(Get("CustomerCode")))
+                errors.Add("BOM MRX dùng chung không nhận mã khách hàng trong file.");
             var normalizedRowTier = priceTier;
             if (hasTierText && !DishBomPolicy.TryNormalizeImportPriceTier(tierText, out normalizedRowTier))
             {
@@ -225,6 +227,8 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
                 effectiveFrom = request.EffectiveFrom ?? ServiceCalendar.Today();
                 warnings.Add("Hiệu lực từ trống/không hợp lệ, dùng ngày đã chọn.");
             }
+            if (request.MrxShared && request.EffectiveFrom is { } selectedStart)
+                effectiveFrom = selectedStart;
             DateOnly? effectiveTo = null;
             var effectiveToText = Get("EffectiveTo");
             var parsedEffectiveTo = default(DateOnly);
@@ -260,17 +264,34 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             }
 
             var action = "create";
+            BomImportExistingVersion? existingVersion = null;
             if (dish is not null && ingredient is not null && unit is not null)
             {
-                var overlaps = existingLines.Where(line =>
+                var matchingLines = existingLines.Where(line =>
                     line.DishId.SequenceEqual(dish.DishId) &&
                     line.IngredientId.SequenceEqual(ingredient.IngredientId) &&
-                    line.UnitId.SequenceEqual(unit.UnitId) &&
+                    line.UnitId.SequenceEqual(unit.UnitId));
+                if (request.MrxShared && request.ScopeCustomerId is null)
+                {
+                    var next = matchingLines.Where(line => line.EffectiveFrom > effectiveFrom)
+                        .OrderBy(line => line.EffectiveFrom).FirstOrDefault();
+                    if (next is not null && (effectiveTo is null || effectiveTo >= next.EffectiveFrom))
+                    {
+                        effectiveTo = next.EffectiveFrom.AddDays(-1);
+                        warnings.Add("Giới hạn hiệu lực đến trước phiên bản BOM tiếp theo.");
+                    }
+                }
+                var overlaps = matchingLines.Where(line =>
                     line.EffectiveFrom <= (effectiveTo ?? DateOnly.MaxValue) &&
                     (line.EffectiveTo == null || line.EffectiveTo >= effectiveFrom)).ToList();
+                if (request.MrxShared && overlaps.Count > 1)
+                    errors.Add("Có nhiều phiên bản BOM trùng khoảng hiệu lực. Hãy kiểm tra trước khi nhập.");
                 if (overlaps.Count(line => line.EffectiveFrom == effectiveFrom) > 1)
                     errors.Add("Có nhiều dòng BOM cùng ngày hiệu lực; hãy xử lý dữ liệu trùng trước khi nhập lại.");
                 var overlap = overlaps.OrderByDescending(line => line.EffectiveFrom).FirstOrDefault();
+                if (request.MrxShared && overlap is not null)
+                    existingVersion = new(GuidHelper.ToGuidString(overlap.BomId), overlap.GrossQtyPerServing,
+                        overlap.WasteRatePercent, overlap.BomStatus, overlap.EffectiveFrom, overlap.EffectiveTo);
                 if (overlap is not null && overlap.EffectiveFrom == effectiveFrom && DishBomPolicy.IsPublished(overlap))
                 {
                     if (status != DishBomPolicy.Published ||
@@ -300,7 +321,8 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
                 ingredient,
                 unit,
                 errors,
-                warnings));
+                warnings,
+                existingVersion));
         }
 
         return result;
@@ -560,4 +582,8 @@ internal sealed record BomImportRow(
     Ingredient? Ingredient,
     Unit? Unit,
     IReadOnlyList<string> Errors,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    BomImportExistingVersion? ExistingVersion);
+
+internal sealed record BomImportExistingVersion(string BomId, decimal Quantity, decimal WasteRate, string Status,
+    DateOnly EffectiveFrom, DateOnly? EffectiveTo);

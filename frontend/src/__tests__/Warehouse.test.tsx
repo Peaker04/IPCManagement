@@ -11,6 +11,7 @@ import { AuthProvider } from '../store/authContext';
 import { isRouteEligible } from '../routes/navigationEligibility';
 import { CANONICAL_ROUTES } from '../routes/routeRegistry';
 import { warehouseApi } from '../api/warehouseApi';
+import { fixturePage } from '../test/fixtures';
 import { systemApi } from '../api/systemApi';
 import { ApiError } from '../api/client';
 import { serverStateCache } from '../store/serverStateCache';
@@ -62,8 +63,8 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       hasNext: false,
     });
     vi.spyOn(warehouseApi, 'getWarehouses').mockResolvedValue(MOCK_WAREHOUSES);
-    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValue(MOCK_ISSUES);
-    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValue(MOCK_RECEIPTS);
+    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValue(fixturePage(MOCK_ISSUES));
+    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValue(fixturePage(MOCK_RECEIPTS));
   });
 
   it('finds unaccented names within a document without dropping hidden quantity and note drafts', async () => {
@@ -114,6 +115,13 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.getByText(/Đang xem: Phiếu xuất kho/i)).toBeInTheDocument();
   });
 
+  it('sends the deep-linked warehouse and page to the issue query', async () => {
+    const issues = vi.spyOn(warehouseApi, 'getIssues');
+    renderWarehouse('/warehouse?view=issues&warehouseId=wh-1&page=2');
+    await screen.findByText('ISS-20260921-0730');
+    expect(issues).toHaveBeenCalledWith(expect.any(AbortSignal), { warehouseId: 'wh-1', pageNumber: 2 });
+  });
+
   it('Tab 1 (Phiếu xuất kho): renders issues table and zero <details> tags', async () => {
     const { container } = renderWarehouse();
 
@@ -152,6 +160,26 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.queryByRole('columnheader', { name: 'Tồn cuối ngày' })).not.toBeInTheDocument();
   });
 
+  it('opens receipt details by ID instead of treating omitted list lines as empty', async () => {
+    const receipt = MOCK_RECEIPTS[0];
+    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValue(fixturePage([
+      { ...receipt, status: 'REJECTED', itemsCount: 0, lines: [] },
+    ]));
+    vi.spyOn(apiTransport, 'apiClient').mockImplementation(async endpoint => {
+      if (endpoint !== `/inventory-receipts/${receipt.receiptId}`) throw new Error(`Unexpected request ${endpoint}`);
+      return { ...receipt, status: 'REJECTED', lines: [{
+        receiptLineId: 'receipt-line', ingredientId: 'ingredient', ingredientName: 'Thịt đùi heo tươi',
+        unitId: 'unit', unitName: 'kg', quantity: 120, unitPrice: 95000,
+      }] };
+    });
+    renderWarehouse('/warehouse?view=receipts');
+    expect(await screen.findByText('Bị từ chối')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Chi tiết' }));
+    expect(await within(screen.getByRole('dialog')).findByText('Thịt đùi heo tươi')).toBeVisible();
+    expect(apiTransport.apiClient).toHaveBeenCalledWith(`/inventory-receipts/${receipt.receiptId}`,
+      { signal: expect.any(AbortSignal) });
+  });
+
   it('does not expose the unsupported source-less issue modal', async () => {
     renderWarehouse();
 
@@ -171,8 +199,8 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.getByText('Lỗi máy chủ kho')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValueOnce(MOCK_ISSUES);
-    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValueOnce(MOCK_RECEIPTS);
+    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValueOnce(fixturePage(MOCK_ISSUES));
+    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValueOnce(fixturePage(MOCK_RECEIPTS));
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 
@@ -180,7 +208,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
   });
 
   it('renders clean empty state when no issues exist', async () => {
-    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValue([]);
+    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValue(fixturePage([]));
 
     renderWarehouse('/warehouse?view=issues');
 
@@ -215,7 +243,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
   ] as const)('never offers stale lô A lines and fences $kind/$failure across a newer daily read', async ({ kind, failure }) => {
     const line = { dailyLineId: 'dl-a', batchLineId: 'bl-a', ingredientId: 'i-a', ingredientName: 'Gạo A', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false };
     const dailyA: MrxWarehouseDaily = { batchId: 'batch-a', batchStatus: 'TRANSFERRED', sourceVersion: 3, weeklyStatus: 'IN_PROGRESS', compatibility: { canRead: true, canIssueByDate: true }, dates: [{ serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true, requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, lines: [line] }] };
-    const dailyB: MrxWarehouseDaily = { ...dailyA, batchId: 'batch-b', sourceVersion: 7, dates: [{ ...dailyA.dates[0], lines: [{ ...line, dailyLineId: 'dl-b', batchLineId: 'bl-b', ingredientName: 'Gạo B', issuedQuantity: kind === 'supplemental' ? 1 : 0 }] }] };
+    const dailyB: MrxWarehouseDaily = { ...dailyA, batchId: 'batch-b', batchStatus: kind === 'supplemental' ? 'IN_PROGRESS' : 'TRANSFERRED', sourceVersion: 7, dates: [{ ...dailyA.dates[0], lines: [{ ...line, dailyLineId: 'dl-b', batchLineId: 'bl-b', ingredientName: 'Gạo B', issuedQuantity: kind === 'supplemental' ? 1 : 0 }] }] };
     serverStateCache.set('snapshot:mrx_daily', { data: { daily: dailyA, history: null } });
     let resolveB!: (value: MrxWarehouseDaily) => void;
     const firstRead = new Promise<MrxWarehouseDaily>(resolve => { resolveB = resolve; });
@@ -229,11 +257,12 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       if (endpoint.startsWith('/reconciliation/batches?')) return { items: ['a', 'b'].map(id => ({ batchId: `batch-${id}`, customerId: `c-${id}`, customerCode: id, customerName: id, weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'TRANSFERRED', version: 1, createdAt: '2026-10-19T00:00:00Z' })), totalCount: 2, totalPages: 1, hasNext: false, hasPrev: false, pageNumber: 1, pageSize: 50 };
       if (endpoint.startsWith('/inventory-issues?')) return { items: [], totalCount: 0, totalPages: 0, hasNext: false, hasPrev: false, pageNumber: 1, pageSize: 25 };
       if (endpoint === '/reconciliation/batches/batch-b/dishes') return [];
-      if (endpoint === '/inventory-issues') return write;
+      if (endpoint === '/inventory-issues') return writes().length === 1
+        ? write : { issueId: 'replayed-issue', issueCode: 'PX-REPLAY', concurrencyVersion: 1, provisions: [] };
       throw new Error(`Unexpected daily issue request ${endpoint}`);
     });
     const writes = () => transport.mock.calls.filter(([path]) => path === '/inventory-issues');
-    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-b&date=2026-10-19');
+    const view = renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-b&date=2026-10-19');
     expect(screen.queryByRole('textbox', { name: 'Số lượng thực xuất Gạo A' })).not.toBeInTheDocument();
     await act(async () => resolveB(dailyB));
     await screen.findByText('Gạo B');
@@ -288,6 +317,18 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     }
     await userEvent.click(retry);
     expect(writes()).toHaveLength(1);
+    if (failure === 'network' || kind === 'initial') {
+      const originalBody = writes()[0][1]?.body;
+      if (failure === 'network') {
+        view.unmount();
+        renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-b&date=2026-10-19');
+      }
+      await userEvent.click(await screen.findByRole('button', { name: 'Gửi lại cùng mã lệnh' }));
+      await waitFor(() => expect(writes()).toHaveLength(2));
+      expect(writes()[1][1]?.body).toBe(originalBody);
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Xuất kho bổ sung trong ca' })).not.toBeInTheDocument());
+      if (kind === 'initial') expect(await screen.findByText('Xuất kho thành công.')).toBeVisible();
+    }
   });
 
   it('shows catalog failure with a real retry and keeps an explicitly selected batch outside the first list page', async () => {
@@ -302,10 +343,10 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     await userEvent.click(screen.getByRole('button', { name: 'Tải lại danh sách lô' }));
     await waitFor(() => expect(catalog).toHaveBeenCalledTimes(2));
     expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát xuất kho' })).toHaveValue('older');
-    expect(mrxApi.getWarehouseDaily).not.toHaveBeenCalledWith('recent');
+    expect(mrxApi.getWarehouseDaily).not.toHaveBeenCalledWith('recent', expect.any(AbortSignal));
     await userEvent.click(within(screen.getByRole('navigation', { name: 'Phân trang danh sách lô xuất kho' })).getByRole('button', { name: 'Trang sau' }));
     expect(await screen.findByRole('option', { name: /OLD - Cũ/ })).toBeInTheDocument();
-    expect(catalog).toHaveBeenLastCalledWith({ pageSize: 50, pageNumber: 2 });
+    expect(catalog).toHaveBeenLastCalledWith({ pageSize: 50, pageNumber: 2 }, expect.any(AbortSignal));
     expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát xuất kho' })).toHaveValue('older');
   });
 
@@ -356,7 +397,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
   });
 
   it('pages the full daily issue history and uses the server total rather than the visible row count', async () => {
-    vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValue({ batchId: 'batch-1', batchStatus: 'IN_PROGRESS', sourceVersion: 2, weeklyStatus: 'IN_PROGRESS', compatibility: { canRead: true, canIssueByDate: true }, dates: [] });
+    const daily = vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValue({ batchId: 'batch-1', batchStatus: 'IN_PROGRESS', sourceVersion: 2, weeklyStatus: 'IN_PROGRESS', compatibility: { canRead: true, canIssueByDate: true }, dates: [] });
     const issue = { issueId: 'issue-1', issueCode: 'PX-NEW', issueDate: '2026-10-19', issuedBy: 'user-1', issuedByName: 'Thủ kho', sourceFamily: 'MATERIAL_RECONCILIATION', warehouseId: 'warehouse-1', createdAt: '2026-10-19T05:00:00Z', provisions: [], lines: [] };
     const history = vi.spyOn(mrxApi, 'getIssues').mockImplementation(async (_batch, page = 1) => ({ items: [{ ...issue, issueId: `issue-${page}`, issueCode: page === 1 ? 'PX-NEW' : 'PX-OLD' }], totalCount: 26, totalPages: 2, hasNext: page === 1, hasPrev: page === 2, pageNumber: page, pageSize: 25 }));
     renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-1&date=2026-10-19');
@@ -365,7 +406,8 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     await userEvent.click(within(screen.getByRole('navigation', { name: 'Phân trang phiếu xuất MRX' })).getByRole('button', { name: 'Trang sau' }));
     expect(await screen.findByText('PX-OLD')).toBeInTheDocument();
     expect(screen.queryByText('PX-NEW')).not.toBeInTheDocument();
-    expect(history).toHaveBeenLastCalledWith('batch-1', 2, 25);
+    expect(daily).toHaveBeenCalledTimes(1);
+    expect(history).toHaveBeenLastCalledWith('batch-1', 2, 25, expect.any(AbortSignal));
   });
 
   it('MRX daily workbench confirms one exact-date initial issue through the canonical issue command', async () => {
@@ -422,7 +464,8 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
   });
 
   it.each([
-    { kind: 'concurrency conflict', failure: new ApiError(409, 'Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.'), uncertain: false },
+    { kind: 'concurrency conflict', failure: new ApiError(409, 'Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.', undefined, 'MRX_ISSUE_STALE'), uncertain: false },
+    { kind: 'warehouse handoff conflict', failure: new ApiError(409, 'Điều phối cần chọn “Chuyển sang Kho” trước khi xuất.'), uncertain: false },
     { kind: 'lost response', failure: new TypeError('Failed to fetch'), uncertain: true },
   ])('MRX daily workbench recovers safely after $kind', async ({ failure, uncertain }) => {
     const staleDaily = {
@@ -448,19 +491,48 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     const alert = await screen.findByRole('alert');
     if (uncertain) {
       expect(within(alert).getByText('Chưa xác nhận được kết quả xuất kho')).toBeVisible();
-      expect(within(alert).getByRole('button', { name: 'Tải lại để kiểm tra kết quả' })).toBeEnabled();
+      expect(within(alert).getByRole('button', { name: 'Gửi lại cùng mã lệnh' })).toBeEnabled();
       expect(within(alert).queryByRole('button', { name: 'Đóng thông báo' })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Xác nhận xuất kho' })).toBeDisabled();
       expect(screen.getByRole('textbox', { name: 'Số lượng thực xuất Gạo' })).toHaveValue('2');
       expect(screen.queryByText('Failed to fetch')).not.toBeInTheDocument();
       return;
     }
-    expect(within(alert).getByText('Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.')).toBeInTheDocument();
+    expect(within(alert).getByText(failure.message)).toBeInTheDocument();
+    expect(within(alert).getByText(failure instanceof ApiError && failure.code === 'MRX_ISSUE_STALE'
+      ? 'Dữ liệu xuất kho đã thay đổi' : 'Không thể ghi phiếu xuất')).toBeVisible();
     expect(within(alert).getByRole('button', { name: 'Tải lại dữ liệu mới nhất' })).toBeInTheDocument();
     expect(screen.getAllByRole('alert')).toHaveLength(1);
     await userEvent.click(within(alert).getByRole('button', { name: 'Tải lại dữ liệu mới nhất' }));
     await waitFor(() => expect(getDaily).toHaveBeenCalledTimes(2));
     expect(await screen.findByText('v4')).toBeInTheDocument();
+  });
+
+  it('keeps a frozen batch read-only until a refresh confirms warehouse handoff', async () => {
+    const ready: MrxWarehouseDaily = {
+      batchId: 'batch-1', batchStatus: 'READY', sourceVersion: 2, weeklyStatus: 'PENDING',
+      compatibility: { canRead: true, canIssueByDate: true },
+      dates: [{ serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true, requiredQuantity: 2,
+        issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2,
+        lines: [{ dailyLineId: 'dl-1', batchLineId: 'bl-1', ingredientId: 'i-1', ingredientName: 'Gạo',
+          canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0,
+          returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }] }],
+    };
+    vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValueOnce(ready)
+      .mockResolvedValue({ ...ready, batchStatus: 'TRANSFERRED', sourceVersion: 3 });
+    vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
+    const issue = vi.spyOn(mrxApi, 'createIssue').mockRejectedValue(new ApiError(409, 'Nguồn đã đổi'));
+    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-1&date=2026-10-19');
+    expect(await screen.findByText('Lô chưa chuyển sang Kho')).toBeVisible();
+    expect(screen.getByText('Gạo')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Xác nhận xuất kho' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Điền đủ toàn bộ' })).not.toBeInTheDocument();
+    expect(issue).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: /^Làm mới$/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Điền đủ toàn bộ' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận xuất kho' }));
+    expect(issue).toHaveBeenCalledOnce();
+    expect(issue).toHaveBeenCalledWith(expect.objectContaining({ expectedVersion: 3 }));
   });
 
   it('lists source-change events once, opens their material detail, and offers no stock command', async () => {
@@ -503,7 +575,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(await screen.findByText('Ảnh hưởng dự kiến · Chưa ghi nhận cập nhật nguồn')).toBeInTheDocument();
     expect(screen.getAllByText('Đã thực hiện yêu cầu')).toHaveLength(2);
     expect(screen.getAllByText('Đã duyệt')).toHaveLength(2);
-    expect(read).toHaveBeenLastCalledWith(2, 25, { customerCode: '', batchId: '', serviceDate: '' });
+    expect(read).toHaveBeenLastCalledWith(2, 25, { customerCode: '', batchId: '', serviceDate: '' }, expect.any(AbortSignal));
     expect(issue).not.toHaveBeenCalled();
     expect(createReturn).not.toHaveBeenCalled();
     expect(confirm).not.toHaveBeenCalled();
@@ -519,20 +591,20 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     await userEvent.type(screen.getByRole('textbox', { name: 'Mã lô lịch sử nguồn' }), '3b8905a4-53c6-477a-8ec4-43ac10f9b5eb');
     await userEvent.type(screen.getByLabelText('Ngày phục vụ lịch sử nguồn'), '23/11/2026');
     await userEvent.click(screen.getByRole('button', { name: 'Lọc lịch sử nguồn' }));
-    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, { customerCode: 'ANV', batchId: '3b8905a4-53c6-477a-8ec4-43ac10f9b5eb', serviceDate: '2026-11-23' }));
+    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, { customerCode: 'ANV', batchId: '3b8905a4-53c6-477a-8ec4-43ac10f9b5eb', serviceDate: '2026-11-23' }, expect.any(AbortSignal)));
   });
 
   it('opens source history unfiltered and applies only explicit URL filters', async () => {
     workspaceSessionStore.setScope({ customerId: 'c-1', customerCode: 'ANV', batchId: 'shared-batch', serviceDate: '2024-11-18' });
     const read = vi.spyOn(mrxApi, 'getSourceHistory').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasNext: false, hasPrev: false });
     const view = renderWarehouse('/warehouse?view=mrx-issues');
-    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, { customerCode: '', batchId: '', serviceDate: '' }));
+    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, { customerCode: '', batchId: '', serviceDate: '' }, expect.any(AbortSignal)));
     expect(screen.getByRole('textbox', { name: 'Mã khách hàng lịch sử nguồn' })).toHaveValue('');
     expect(screen.getByRole('textbox', { name: 'Mã lô lịch sử nguồn' })).toHaveValue('');
     expect(screen.queryByRole('button', { name: 'Xem tất cả' })).not.toBeInTheDocument();
     view.unmount();
     renderWarehouse('/warehouse?view=mrx-issues&customerCode=DAV&batchId=url-batch&date=2023-11-20');
-    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, { customerCode: 'DAV', batchId: 'url-batch', serviceDate: '2023-11-20' }));
+    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, { customerCode: 'DAV', batchId: 'url-batch', serviceDate: '2023-11-20' }, expect.any(AbortSignal)));
     expect(screen.getByRole('textbox', { name: 'Mã lô lịch sử nguồn' })).toHaveValue('url-batch');
   });
 
@@ -575,7 +647,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(within(allocationDialog).getByText('Khách B')).toBeVisible();
     expect(within(allocationDialog).getByRole('row', { name: /Khách A/ })).toHaveTextContent('5');
     await userEvent.click(within(allocationDialog).getByRole('button', { name: 'Đóng' }));
-    expect(screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Xuất nhu cầu theo NCC' })).toBeEnabled();
     await userEvent.click(screen.getByRole('button', { name: /Khách hàng:/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /Khách B/ }));
     expect(screen.getByRole('checkbox', { name: /Khách A/ })).toBeEnabled();
@@ -615,20 +687,20 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     const customerSearch = screen.getByRole('searchbox', { name: 'Tìm khách hàng hoặc mã' });
     await userEvent.type(customerSearch, 'không khớp');
     expect(screen.queryByRole('checkbox', { name: /Khách A/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Xuất nhu cầu theo NCC' })).toBeEnabled();
     await userEvent.clear(customerSearch);
     const selection = screen.getByRole('checkbox', { name: /Khách A/ });
     await userEvent.click(selection);
     await userEvent.keyboard('{Escape}');
     expect(customerTrigger).toHaveFocus();
-    expect(screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xuất nhu cầu theo NCC' })).toBeDisabled();
     expect(screen.getByRole('searchbox', { name: 'Tìm nguyên liệu chuẩn bị' })).toBeVisible();
     expect(screen.getByText('Chọn ít nhất một lô để xem nguyên liệu cần chuẩn bị.')).toBeVisible();
     expect(fetch.mock.calls.some(([url]) => String(url).includes('/preparation/export-workbook'))).toBe(false);
     await userEvent.click(customerTrigger);
     await userEvent.click(screen.getByRole('checkbox', { name: /Khách A/ }));
     await userEvent.keyboard('{Escape}');
-    const exportBtn = screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' });
+    const exportBtn = screen.getByRole('button', { name: 'Xuất nhu cầu theo NCC' });
     const wholeWeek = screen.getByRole('button', { name: 'Cả tuần (Tổng hợp)' });
     expect(wholeWeek).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('combobox', { name: 'Phạm vi xuất' })).not.toBeInTheDocument();
@@ -651,7 +723,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       expect.anything()
     );
     const exportRequest = fetch.mock.calls.find(([url]) => String(url).includes('/preparation/export-workbook'))!;
-    expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.get('includeMenus')).toBe('true');
+    expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.get('layout')).toBe('supplier-demand');
     expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.get('isSupplemental')).toBe('false');
     expect(new URL(String(exportRequest[0]), 'http://localhost').searchParams.has('search')).toBe(false);
     await userEvent.click(screen.getByRole('button', { name: 'Xóa tìm kiếm' }));
@@ -660,7 +732,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     await userEvent.click(screen.getByRole('button', { name: /T2.*15\/06/ }));
     await waitFor(() => expect(exportBtn).toBeEnabled());
     await userEvent.click(exportBtn);
-    await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url).includes('export-workbook?serviceDate=2026-06-15') && String(url).includes('includeMenus=true'))).toBe(true));
+    await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url).includes('export-workbook?serviceDate=2026-06-15') && String(url).includes('layout=supplier-demand'))).toBe(true));
     expect(screen.getByRole('button', { name: /T2.*15\/06/ })).toHaveAttribute('aria-pressed', 'true');
     expect(apiTransport.apiClient).toHaveBeenCalledWith('/reconciliation/preparation?serviceDate=2026-06-15', { signal: expect.any(AbortSignal) });
     expect(openSpy).not.toHaveBeenCalled();
@@ -668,7 +740,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
   });
 
   it('renders clean empty state when no receipts exist', async () => {
-    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValue([]);
+    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValue(fixturePage([]));
 
     renderWarehouse('/warehouse?view=receipts');
 
@@ -1067,7 +1139,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
 
     await act(async () => { await router.navigate(-1); });
     expect(screen.getByRole('textbox', { name: 'Tuần chuẩn bị' })).toHaveValue('02/11/2026');
-    expect(screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xuất nhu cầu theo NCC' })).toBeDisabled();
   });
 
   it('same_mounted_history_targets_the_visible_batch', async () => {
@@ -1378,7 +1450,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(document.body.style.overflow).not.toBe('hidden');
   });
 
-  it('renders variance badges (Xuất vượt / Tiết kiệm) in ReconciliationIssueDetailModal', async () => {
+  it('renders actual issue shortages and excess in ReconciliationIssueDetailModal', async () => {
     vi.spyOn(apiTransport, 'apiClient').mockResolvedValue({
       issueId: 'issue-test-1',
       issueCode: 'ISS-20261019-01',
@@ -1410,8 +1482,8 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
           ingredientName: 'Rau cải ngọt',
           unitId: 'u-1',
           unitName: 'kg',
-          requestedQty: 8,
-          issuedQty: 6,
+          requestedQty: 8.77503,
+          issuedQty: 2,
         },
       ],
     });
@@ -1431,7 +1503,8 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.getByRole('cell', { name: '0,002586' })).toBeVisible();
     expect(screen.getByRole('cell', { name: '0,002587' })).toBeVisible();
     expect(screen.getByText('Rau cải ngọt')).toBeInTheDocument();
-    expect(screen.getByText(/Tiết kiệm/)).toBeInTheDocument();
+    expect(screen.getByText(/Xuất thiếu/)).toHaveTextContent('Xuất thiếu (6,77503)');
+    expect(screen.queryByText(/Tiết kiệm/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('Đã tự động bù tồn kho: +2,5 kg')).toBeInTheDocument();
     expect(screen.queryByText(/\+99 kg/)).not.toBeInTheDocument();
 

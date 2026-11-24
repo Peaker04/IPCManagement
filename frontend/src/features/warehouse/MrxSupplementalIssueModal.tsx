@@ -33,6 +33,7 @@ interface MrxSupplementalIssueModalProps {
   suppError: string | null;
   isSubmittingSupp: boolean;
   isOutcomeUnknown?: boolean;
+  onRetryUnknown?: () => void;
   onSubmit: (customLines?: Array<{ dailyLineId: string; quantity: number; reason: string }>) => void;
 }
 
@@ -58,6 +59,7 @@ export function MrxSupplementalIssueModal({
   suppError,
   isSubmittingSupp,
   isOutcomeUnknown = false,
+  onRetryUnknown,
   onSubmit,
 }: MrxSupplementalIssueModalProps) {
   const [mode, setMode] = useState<'direct' | 'by-dish'>('direct');
@@ -119,6 +121,7 @@ export function MrxSupplementalIssueModal({
     <Modal
       isOpen={isOpen}
       onClose={() => { if (!isSubmittingSupp && !isOutcomeUnknown) onClose(); }}
+      closeDisabled={isSubmittingSupp || isOutcomeUnknown}
       title="Xuất kho bổ sung trong ca"
       description={`Lô: ${activeBatchId.slice(0, 8)} · Ngày phục vụ: ${toVietnameseDate(activeDate)}`}
       footer={
@@ -129,10 +132,12 @@ export function MrxSupplementalIssueModal({
           {mode === 'direct' && <Button
             variant="default"
             size="sm"
-            disabled={!canSubmit}
+            disabled={!canSubmit && !isSubmittingSupp}
+            loading={isSubmittingSupp}
+            loadingText="Đang xử lý..."
             onClick={() => { if (canSubmit) onSubmit(); }}
           >
-            {isSubmittingSupp ? 'Đang xử lý...' : 'Xác nhận xuất bổ sung'}
+            Xác nhận xuất bổ sung
           </Button>}
         </>
       }
@@ -142,8 +147,8 @@ export function MrxSupplementalIssueModal({
           <InlineBanner
             variant="error"
             title={isOutcomeUnknown ? 'Chưa xác nhận được kết quả xuất kho' : undefined}
-            actionLabel={isOutcomeUnknown ? 'Tải lại để kiểm tra kết quả' : undefined}
-            onAction={isOutcomeUnknown ? () => { invalidateMrxCaches(); window.location.reload(); } : undefined}
+            actionLabel={isOutcomeUnknown && !isSubmittingSupp ? 'Gửi lại cùng mã lệnh' : undefined}
+            onAction={isOutcomeUnknown && !isSubmittingSupp ? (onRetryUnknown ?? (() => { invalidateMrxCaches(); window.location.reload(); })) : undefined}
           >
             {suppError}
           </InlineBanner>

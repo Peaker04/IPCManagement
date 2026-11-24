@@ -9,7 +9,7 @@ React/Vite/TypeScript browser → feature API modules and shared apiClient → A
 | Boundary | Source owner | Contract |
 |---|---|---|
 | Browser composition | frontend/src/main.tsx, App.tsx, components/workbench/AppShell.tsx, store/authContext.tsx | Router/auth/dirty-navigation providers, eligible navigation, mobile shell and session guards |
-| Routes/guards/loading | frontend/src/App.tsx, routes/routeRegistry.ts, ProtectedRoute.tsx, RoleGuard.tsx, navigationEligibility.ts | Public/protected routes, role/mode eligibility, eager MRX pages and lazy non-MRX modules; shared pending presentation belongs to StateBoundary/WorkbenchSkeleton |
+| Routes/guards/loading | frontend/src/App.tsx, routes/routeRegistry.ts, ProtectedRoute.tsx, RoleGuard.tsx, navigationEligibility.ts | Public/protected routes, role/mode eligibility, lazy workbench modules and shared pending presentation in StateBoundary/WorkbenchSkeleton |
 | HTTP middleware | backend/src/IPCManagement.Api/Program.cs | Correlation, exceptions, Development Swagger, CORS, authentication, rate limits, authorization; rejection Retry-After from lease metadata |
 | DI/persistence | DependencyInjection.cs, Data/IpcManagementContext.cs | MySQL context, feature IEntityTypeConfiguration mappings; models/migrations stay outside feature slice |
 | API use cases | backend/src/IPCManagement.Api/Features/ | Admin, Approvals, Auth, Catalog, Coordination, Inventory, Planning, Purchasing, Reports, SampleData controllers/services/contracts/validators |
@@ -44,7 +44,7 @@ Feature API modules under frontend/src/api use the shared client.ts transport. u
 
 apiClient coalesces eligible unsignaled GETs by token, mode and URL. authenticatedFetch owns bearer/cookie transport and same-token refresh coordination. Do not infer mutation deduplication from the GET map: interaction owners must retain their own pending guards and the backend's transaction/idempotency contracts.
 
-App.tsx and AppShell own routing and the stable shell. MRX pages are eagerly imported; several DEFAULT pages are lazy modules. StateBoundary and WorkbenchSkeleton reserve cold-load geometry and defer decorative paint; warm transitions keep appropriate existing data with busy/inert guards. A canonical route loading fallback covers pending lazy modules. This does not promise bulk API/code warming by a removed MainLayout.
+App.tsx and AppShell own routing and the stable shell. Workbench route code loads on demand, with the MRX dashboard and public session entry screens in the initial module. StateBoundary and WorkbenchSkeleton reserve cold-load geometry and defer decorative paint. Warm transitions retain scoped data and lock stale actions. Route budgets count the application shell and each route's static imports together.
 
 Readiness/error/empty presentation is owned by the actual query/workspace state and shared boundaries. An empty result follows an authoritative resolved scope; stale or foreign-schema data must not be passed off as current. The former lib/queryView.ts is not an available adapter in this checkout.
 

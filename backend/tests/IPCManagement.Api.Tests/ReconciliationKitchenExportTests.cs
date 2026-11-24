@@ -19,6 +19,105 @@ namespace IPCManagement.Api.Tests;
 public sealed class ReconciliationKitchenExportTests
 {
     [Fact]
+    public async Task Scoped_xlsx_groups_only_equal_frozen_recipes_and_adds_quantities_once()
+    {
+        await using var database = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = database.CreateContext();
+        await WorkflowGenerationTests.WorkflowFixture.EnsureReconciliationSchemaAsync(context);
+        await database.SeedMenuWithDemandAsync(includeMissingDish: false);
+        var first = Seed(context);
+        var fixtures = new[] { first, Seed(context, first), Seed(context, first) };
+        for (var index = 0; index < fixtures.Length; index++)
+        {
+            var batch = fixtures[index].Contributors[0].BatchLine.Batch;
+            var customer = new Customer { CustomerId = GuidHelper.NewId(), CustomerCode = $"KH{index + 1}",
+                CustomerName = $"Khách {index + 1}", IsActive = true };
+            context.Add(new MenuVersion { MenuVersionId = batch.MenuVersionId, CustomerId = customer.CustomerId,
+                Customer = customer, WeekStartDate = first.Monday, VersionNo = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
+        }
+        var changed = fixtures[2].Contributors[0];
+        changed.FrozenBomQuantityPerServing = 0.12m;
+        changed.SourceQuantity += 4m;
+        changed.DailyLine!.RequiredQuantity += 4m;
+        changed.BatchLine.RequiredQuantity += 4m;
+        await context.SaveChangesAsync();
+        var ids = fixtures.Select(fixture => GuidHelper.ToGuid(fixture.BatchId)).ToArray();
+        var controller = new ReconciliationKitchenCookingController(new ReconciliationKitchenExportService(context));
+        var file = Assert.IsType<FileContentResult>(await controller.ScopedXlsx(first.Monday, ids, first.Monday, "MORNING"));
+        Assert.Equal("phieu-nau-2026-09-14.xlsx", file.FileDownloadName);
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file.ContentType);
+        var bytes = file.FileContents;
+        PreparationWorkbookSchemaTests.Validate(bytes);
+        using var archive = new ZipArchive(new MemoryStream(bytes));
+        using var sheet = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var xml = XDocument.Load(sheet);
+        var ns = xml.Root!.Name.Namespace;
+        var cells = xml.Descendants(ns + "c").ToDictionary(cell => (string)cell.Attribute("r")!);
+        using var stylesStream = archive.GetEntry("xl/styles.xml")!.Open();
+        var styles = XDocument.Load(stylesStream).Root!;
+        XElement Format(string cell) =>
+            styles.Element(ns + "cellXfs")!.Elements(ns + "xf").ElementAt((int)cells[cell].Attribute("s")!);
+        foreach (var cell in new[] { "A1", "F1", "F2", "I1" })
+        {
+            var header = Format(cell);
+            Assert.Equal("1", (string?)header.Attribute("applyBorder"));
+            var border = styles.Element(ns + "borders")!.Elements(ns + "border").ElementAt((int)header.Attribute("borderId")!);
+            Assert.All(new[] { "left", "right", "top", "bottom" }, edge =>
+                Assert.NotNull(border.Element(ns + edge)?.Attribute("style")));
+        }
+        Assert.Equal("Thứ 2 · 14/09/2026", cells["A3"].Value);
+        Assert.NotEqual((int)Format("A1").Attribute("fillId")!, (int)Format("A3").Attribute("fillId")!);
+        Assert.NotEqual((int)Format("A4").Attribute("fillId")!, (int)Format("A3").Attribute("fillId")!);
+        var dishAlignment = Format("A5").Element(ns + "alignment");
+        Assert.Equal("center", (string?)dishAlignment?.Attribute("horizontal"));
+        Assert.Equal("center", (string?)dishAlignment?.Attribute("vertical"));
+        Assert.Equal("Ghi chú", cells["I1"].Value);
+        Assert.All(new[] { "A5:A6", "B5:B6", "F5:F6", "I5:I6", "A7:A8" }, expected =>
+            Assert.Contains(xml.Descendants(ns + "mergeCell"), cell => (string?)cell.Attribute("ref") == expected));
+        Assert.Equal(new[] { "200", "100", "100", "–" }, new[] { "B5", "F5", "G5", "H5" }.Select(r => cells[r].Value));
+        Assert.Equal(new[] { "100", "–", "–", "100" }, new[] { "B7", "F7", "G7", "H7" }.Select(r => cells[r].Value));
+        Assert.Equal(new[] { "16", "10", "12", "5" }, new[] { "E5", "E6", "E7", "E8" }.Select(r => cells[r].Value));
+        Assert.Equal("–", cells["I5"].Value);
+
+        fixtures[1].Contributors[0].FrozenCanonicalUnitToBaseRate = null;
+        await context.SaveChangesAsync();
+        var incomplete = await new ReconciliationKitchenExportService(context).BuildScopedXlsxAsync(first.Monday, ids, first.Monday, "MORNING");
+        using var incompleteArchive = new ZipArchive(new MemoryStream(incomplete));
+        using var incompleteSheet = incompleteArchive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var incompleteCells = XDocument.Load(incompleteSheet).Descendants(ns + "c").ToDictionary(cell => (string)cell.Attribute("r")!);
+        Assert.Equal(new[] { "100", "100", "100" }, new[] { "B5", "B7", "B9" }.Select(r => incompleteCells[r].Value));
+        Assert.Equal("Chưa đủ dữ liệu", incompleteCells["D7"].Value);
+        Assert.Contains("Cần kiểm tra định lượng", incompleteCells["I7"].Value);
+
+        // A second selected lot for KH1 must not stop two other customers with the same recipe from sharing a block.
+        fixtures[1].Contributors[0].FrozenCanonicalUnitToBaseRate = 1m;
+        changed.FrozenBomQuantityPerServing = 0.08m;
+        changed.SourceQuantity -= 4m;
+        changed.DailyLine.RequiredQuantity -= 4m;
+        changed.BatchLine.RequiredQuantity -= 4m;
+        var duplicate = Seed(context, first);
+        var firstVersion = await context.Menuversions.SingleAsync(version => version.MenuVersionId == first.Contributors[0].BatchLine.Batch.MenuVersionId);
+        context.Menuversions.Add(new MenuVersion { MenuVersionId = duplicate.Contributors[0].BatchLine.Batch.MenuVersionId,
+            CustomerId = firstVersion.CustomerId, WeekStartDate = first.Monday, VersionNo = 2, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
+        await context.SaveChangesAsync();
+        var beforeExport = await context.Reconciliationbatchcontributors.AsNoTracking().CountAsync();
+        await using var reader = database.CreateContext();
+        var reloadedController = new ReconciliationKitchenCookingController(new ReconciliationKitchenExportService(reader));
+        var duplicateFile = Assert.IsType<FileContentResult>(await reloadedController.ScopedXlsx(
+            first.Monday, [.. ids, GuidHelper.ToGuid(duplicate.BatchId)], first.Monday, "MORNING"));
+        using var duplicateArchive = new ZipArchive(new MemoryStream(duplicateFile.FileContents));
+        using var duplicateSheet = duplicateArchive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var duplicateXml = XDocument.Load(duplicateSheet);
+        Assert.Equal(6, duplicateXml.Descendants(ns + "row").Skip(4).Count());
+        var duplicateCells = duplicateXml.Descendants(ns + "c").ToDictionary(cell => (string)cell.Attribute("r")!);
+        Assert.Equal(new[] { "100", "100", "200" }, new[] { "B5", "B7", "B9" }.Select(r => duplicateCells[r].Value));
+        Assert.Equal(new[] { "–", "–", "100", "100" }, new[] { "F9", "G9", "H9", "I9" }.Select(r => duplicateCells[r].Value));
+        Assert.Equal("Cơm rang", duplicateCells["A9"].Value);
+        Assert.Equal("16", duplicateCells["E9"].Value);
+        Assert.Equal(beforeExport, await reader.Reconciliationbatchcontributors.AsNoTracking().CountAsync());
+    }
+
+    [Fact]
     public void Export_controller_is_reconciliation_only_read_authority_with_preview_and_csv_routes()
     {
         var controller = typeof(ReconciliationKitchenCookingController);
@@ -28,6 +127,149 @@ public sealed class ReconciliationKitchenExportTests
         Assert.NotNull(controller.GetMethod(nameof(ReconciliationKitchenCookingController.Get))!.GetCustomAttributes(typeof(HttpGetAttribute), true).Single());
         Assert.Equal("csv", Assert.IsType<HttpGetAttribute>(controller.GetMethod(nameof(ReconciliationKitchenCookingController.Csv))!.GetCustomAttributes(typeof(HttpGetAttribute), true).Single()).Template);
         Assert.Equal("xlsx", Assert.IsType<HttpGetAttribute>(controller.GetMethod(nameof(ReconciliationKitchenCookingController.Xlsx))!.GetCustomAttributes(typeof(HttpGetAttribute), true).Single()).Template);
+        Assert.Equal("/api/reconciliation/kitchen-cooking/xlsx", Assert.IsType<HttpGetAttribute>(controller.GetMethod(nameof(ReconciliationKitchenCookingController.ScopedXlsx))!.GetCustomAttributes(typeof(HttpGetAttribute), true).Single()).Template);
+    }
+
+    [Fact]
+    public async Task Scoped_xlsx_lists_many_customers_vertically_without_repeating_ingredient_quantities()
+    {
+        await using var context = CreateContext();
+        var first = Seed(context);
+        var fixtures = new[] { first }.Concat(Enumerable.Range(0, 6).Select(_ => Seed(context, first))).ToArray();
+        for (var index = 0; index < fixtures.Length; index++)
+        {
+            var customer = new Customer { CustomerId = GuidHelper.NewId(), CustomerCode = $"KH{index + 1}", CustomerName = $"Khách {index + 1}", IsActive = true };
+            context.Add(new MenuVersion { MenuVersionId = fixtures[index].Contributors[0].BatchLine.Batch.MenuVersionId,
+                CustomerId = customer.CustomerId, Customer = customer, WeekStartDate = first.Monday, VersionNo = 1 });
+        }
+        await context.SaveChangesAsync();
+        var ids = fixtures.Select(fixture => GuidHelper.ToGuid(fixture.BatchId)).ToArray();
+        var bytes = await new ReconciliationKitchenExportService(context).BuildScopedXlsxAsync(first.Monday, ids, first.Monday, "MORNING");
+        PreparationWorkbookSchemaTests.Validate(bytes);
+        using var archive = new ZipArchive(new MemoryStream(bytes));
+        using var sheet = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var xml = XDocument.Load(sheet);
+        var ns = xml.Root!.Name.Namespace;
+        var cells = xml.Descendants(ns + "c").ToDictionary(cell => (string)cell.Attribute("r")!);
+        Assert.Equal("Ghi chú", cells["G1"].Value);
+        Assert.Equal("700", cells["B5"].Value);
+        Assert.Equal(Enumerable.Range(1, 7).Select(index => $"KH{index} · 100"), Enumerable.Range(5, 7).Select(row => cells[$"F{row}"].Value));
+        Assert.Equal(new[] { "56", "35" }, Enumerable.Range(5, 7).Select(row => cells[$"E{row}"].Value).Where(value => value.Length > 0));
+    }
+
+    [Fact]
+    public async Task Scoped_xlsx_filters_day_and_shift_keeps_same_customer_batches_separate_and_fails_as_a_unit()
+    {
+        await using var context = CreateContext();
+        var first = Seed(context);
+        var second = Seed(context, first);
+        var customer = new Customer { CustomerId = GuidHelper.NewId(), CustomerCode = "KH1", CustomerName = "Khách A", IsActive = true };
+        foreach (var fixture in new[] { first, second })
+            context.Add(new MenuVersion { MenuVersionId = fixture.Contributors[0].BatchLine.Batch.MenuVersionId,
+                Customer = customer, CustomerId = customer.CustomerId, WeekStartDate = fixture.Monday, VersionNo = fixture == first ? 1 : 2 });
+        await context.SaveChangesAsync();
+        var service = new ReconciliationKitchenExportService(context);
+        var ids = new[] { Guid.Parse(GuidHelper.ToGuidString(first.BatchId)), Guid.Parse(GuidHelper.ToGuidString(second.BatchId)) };
+
+        var bytes = await service.BuildScopedXlsxAsync(first.Monday, ids, first.Monday, "MORNING");
+        PreparationWorkbookSchemaTests.Validate(bytes);
+        using var archive = new ZipArchive(new MemoryStream(bytes));
+        using var sheet = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var xml = XDocument.Load(sheet);
+        var ns = xml.Root!.Name.Namespace;
+        var rows = xml.Descendants(ns + "row").Skip(1).ToArray();
+        Assert.Equal(7, rows.Length);
+        Assert.Equal(new[] { "KH1 · Lô 1", "KH1 · Lô 2" }, rows[0].Elements(ns + "c").Skip(5).Take(2).Select(cell => cell.Value));
+        Assert.Equal("Thứ 2 · 14/09/2026", rows[1].Value);
+        Assert.Equal("Ca sáng · Mặn", rows[2].Value);
+        Assert.Equal(new[] { "100", "", "100", "" }, rows.Skip(3).Select(row => row.Elements(ns + "c").ElementAt(1).Value));
+        Assert.Contains(xml.Descendants(ns + "mergeCell"), cell => (string?)cell.Attribute("ref") == "A5:A6");
+        Assert.Contains("Đối chiếu các lô cùng khách", rows[3].Value);
+        Assert.Equal("landscape", (string?)xml.Root.Element(ns + "pageSetup")?.Attribute("orientation"));
+        var print = xml.Root.Element(ns + "headerFooter");
+        Assert.Contains("PHIẾU NẤU", print?.Element(ns + "oddHeader")?.Value);
+        Assert.Contains("14/09/2026 · Ca sáng", print?.Element(ns + "oddHeader")?.Value);
+        Assert.Contains("&P / &N", print?.Element(ns + "oddFooter")?.Value);
+        Assert.All(rows.SelectMany(row => row.Elements(ns + "c")).Where(cell => (string?)cell.Attribute("t") == "n"),
+            cell => Assert.NotNull(cell.Attribute("s")));
+        Assert.DoesNotContain("Cháo gà", xml.ToString());
+        var afternoon = await service.BuildScopedXlsxAsync(first.Monday, [ids[0], ids[0]], first.Tuesday, "AFTERNOON");
+        using var afternoonArchive = new ZipArchive(new MemoryStream(afternoon));
+        using var afternoonSheet = afternoonArchive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var afternoonRows = XDocument.Load(afternoonSheet).Descendants(ns + "row").ToArray();
+        var afternoonRow = Assert.Single(afternoonRows.Skip(4));
+        Assert.Contains(afternoonRow.Elements(), cell => cell.Value == "Cháo gà");
+        Assert.Equal("Thứ 3 · 15/09/2026", afternoonRows[2].Value);
+        Assert.Equal("Ca chiều · Mặn", afternoonRows[3].Value);
+        Assert.Contains(afternoonRow.Elements(), cell => cell.Value == "4.2");
+        await Assert.ThrowsAsync<ArgumentException>(() => service.BuildScopedXlsxAsync(first.Monday.AddDays(7), ids, null, "ALL"));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.BuildScopedXlsxAsync(first.Monday, ids, first.Monday.AddDays(7), "ALL"));
+
+        second.Contributors[0].FrozenDishName = null;
+        await context.SaveChangesAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.BuildScopedXlsxAsync(first.Monday, ids, first.Monday, "MORNING"));
+    }
+
+    [Fact]
+    public async Task Scoped_print_workbook_keeps_long_labels_and_numeric_quantities_for_three_customers()
+    {
+        await using var context = CreateContext();
+        var fixtures = new[] { Seed(context), Seed(context), Seed(context) };
+        var monday = fixtures[0].Monday;
+        const string longIngredient = "Gạo tẻ hạt dài đã vo sạch để nấu cơm rang phục vụ ca sản xuất";
+        const string longDish = "Cơm rang trứng và rau củ theo thực đơn suất ăn công nhân";
+        const string longCustomer = "Khu sản xuất và lắp ráp linh kiện điện tử phục vụ suất ăn theo ca";
+        const string longCode = "EX20261118T153609ZD82A32";
+        foreach (var (fixture, index) in fixtures.Select((fixture, index) => (fixture, index)))
+        {
+            var source = fixture.Contributors[0];
+            var batch = source.BatchLine.Batch;
+            var customer = new Customer { CustomerId = GuidHelper.NewId(), CustomerCode = index == 2 ? longCode : $"KH{index + 1}",
+                CustomerName = longCustomer, IsActive = true };
+            context.Add(new MenuVersion { MenuVersionId = batch.MenuVersionId, Customer = customer,
+                CustomerId = customer.CustomerId, WeekStartDate = monday, VersionNo = 1 });
+            source.BatchLine.Ingredient.IngredientName = longIngredient;
+            foreach (var dish in Enumerable.Range(1, 20))
+                Contributor(source.BatchLine, source.DailyLine!, fixture.MutableDish, fixture.MutableBom, "MORNING",
+                    30, 0.04m, 0m, 1.2m, $"TEST-{dish:D2}", $"{longDish} {dish:D2}").DishId = GuidHelper.NewId();
+            source.DailyLine!.RequiredQuantity += 24m;
+            source.BatchLine.RequiredQuantity += 24m;
+        }
+        await context.SaveChangesAsync();
+        var ids = fixtures.Select(fixture => GuidHelper.ToGuid(fixture.BatchId)).ToArray();
+        var bytes = await new ReconciliationKitchenExportService(context).BuildScopedXlsxAsync(monday, ids, null, "ALL");
+        PreparationWorkbookSchemaTests.Validate(bytes);
+        using var archive = new ZipArchive(new MemoryStream(bytes));
+        using var workbook = archive.GetEntry("xl/workbook.xml")!.Open();
+        Assert.Contains("'Phiếu nấu'!$1:$2", XDocument.Load(workbook).ToString());
+        using var sheet = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var xml = XDocument.Load(sheet);
+        var ns = xml.Root!.Name.Namespace;
+        var headers = xml.Descendants(ns + "row").Take(2).ToArray();
+        Assert.Equal(new[] { longCode, "KH1", "KH2" }, headers[1].Elements().Skip(5).Take(3).Select(cell => cell.Value));
+        Assert.True((int)headers[1].Attribute("ht")! >= 45, "The 23-character customer code wraps past two lines at the printed column width.");
+        var allRows = xml.Descendants(ns + "row").ToDictionary(row => (int)row.Attribute("r")!);
+        var pageBreaks = xml.Root.Element(ns + "rowBreaks")!.Elements(ns + "brk").ToArray();
+        Assert.NotEmpty(pageBreaks);
+        var labels = allRows.Values.Select(row => row.Elements().ToArray()).Where(cells =>
+            cells[0].Value.Length > 0 && cells.Skip(1).All(cell => cell.Value.Length == 0)).Select(cells => cells[0].Value);
+        Assert.Equal(new[] { "Thứ 2 · 14/09/2026", "Ca sáng · Mặn", "Thứ 3 · 15/09/2026", "Ca chiều · Mặn" }, labels);
+        Assert.DoesNotContain("Công thức ", xml.ToString());
+        Assert.DoesNotContain("(tiếp)", xml.ToString());
+        var rows = xml.Descendants(ns + "row").Skip(2).Select(row => row.Elements().ToArray())
+            .Where(row => row[2].Value.Length > 0).ToArray();
+        Assert.Equal(69, rows.Length);
+        var additions = rows.Where(row => row[0].Value.StartsWith(longDish, StringComparison.Ordinal)).ToArray();
+        Assert.Equal(60, additions.Length);
+        Assert.All(additions, row =>
+        {
+            Assert.Equal($"{longIngredient} (kg)", row[2].Value);
+            Assert.Equal("30", row[1].Value);
+            Assert.Single(row.Skip(5).Take(3), cell => cell.Value == "30");
+            Assert.Equal("n", (string?)row[3].Attribute("t"));
+            Assert.Equal("0.04", row[3].Value);
+            Assert.Equal("1.2", row[4].Value);
+        });
     }
 
     [Fact]
@@ -344,16 +586,16 @@ public sealed class ReconciliationKitchenExportTests
         Assert.Equal(total, row.TotalRequiredQuantity);
     }
 
-    private static Fixture Seed(IpcManagementContext context)
+    private static Fixture Seed(IpcManagementContext context, Fixture? sharedRecipe = null)
     {
         var monday = new DateOnly(2026, 9, 14);
         var tuesday = monday.AddDays(1);
         var batchId = GuidHelper.NewId();
-        var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "kg", BaseUnitCode = "KG", ConvertRateToBase = 1 };
-        var rice = new Ingredient { IngredientId = GuidHelper.NewId(), IngredientCode = "RICE", IngredientName = "Gạo", UnitId = unit.UnitId, Unit = unit, WarehouseId = GuidHelper.NewId(), IsActive = true };
-        var egg = new Ingredient { IngredientId = GuidHelper.NewId(), IngredientCode = "EGG", IngredientName = "Trứng", UnitId = unit.UnitId, Unit = unit, WarehouseId = GuidHelper.NewId(), IsActive = true };
-        var dish = new Dish { DishId = GuidHelper.NewId(), DishCode = "D-01", DishName = "Cơm rang", IsActive = true };
-        var bom = new DishBom { BomId = GuidHelper.NewId(), DishId = dish.DishId, Dish = dish, IngredientId = rice.IngredientId, Ingredient = rice, UnitId = unit.UnitId, Unit = unit, GrossQtyPerServing = 0.08m, WasteRatePercent = 5m, EffectiveFrom = monday };
+        var unit = sharedRecipe?.MutableBom.Unit ?? new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "kg", BaseUnitCode = "KG", ConvertRateToBase = 1 };
+        var rice = sharedRecipe?.MutableBom.Ingredient ?? new Ingredient { IngredientId = GuidHelper.NewId(), IngredientCode = "RICE", IngredientName = "Gạo", UnitId = unit.UnitId, Unit = unit, WarehouseId = GuidHelper.NewId(), IsActive = true };
+        var egg = sharedRecipe?.Contributors[1].BatchLine.Ingredient ?? new Ingredient { IngredientId = GuidHelper.NewId(), IngredientCode = "EGG", IngredientName = "Trứng", UnitId = unit.UnitId, Unit = unit, WarehouseId = GuidHelper.NewId(), IsActive = true };
+        var dish = sharedRecipe?.MutableDish ?? new Dish { DishId = GuidHelper.NewId(), DishCode = "D-01", DishName = "Cơm rang", IsActive = true };
+        var bom = sharedRecipe?.MutableBom ?? new DishBom { BomId = GuidHelper.NewId(), DishId = dish.DishId, Dish = dish, IngredientId = rice.IngredientId, Ingredient = rice, UnitId = unit.UnitId, Unit = unit, GrossQtyPerServing = 0.08m, WasteRatePercent = 5m, EffectiveFrom = monday };
         var batch = new ReconciliationBatch { BatchId = batchId, MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 2, CreatedBy = GuidHelper.NewId(), CreatedAt = DateTime.UtcNow };
         var riceWeekly = Weekly(batch, rice, unit, 12.2m);
         var eggWeekly = Weekly(batch, egg, unit, 5m);
@@ -367,7 +609,8 @@ public sealed class ReconciliationKitchenExportTests
             Contributor(riceWeekly, tuesdayRice, dish, bom, "AFTERNOON", 60, 0.07m, 5m, 4.2m, "D-02", "Cháo gà"),
         };
         batch.Lines.Add(riceWeekly); batch.Lines.Add(eggWeekly);
-        context.AddRange(unit, rice, egg, dish, bom, batch);
+        if (sharedRecipe is null) context.AddRange(unit, rice, egg, dish, bom);
+        context.Add(batch);
         return new(batchId, monday, tuesday, dish, bom, contributors);
     }
 

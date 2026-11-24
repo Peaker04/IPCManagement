@@ -6,21 +6,18 @@ import { respectApiBudget } from '../fixtures/authHelpers';
 import type { MrxWarehouseDaily, MrxBatch, MrxCompletedRegisterReport, MrxTransactionHistoryReport, CreateMrxIssueRequest } from '../../../src/api/mrxApi';
 
 test.describe('@G3-Alt Alternative Business Flows', () => {
-  test('BOM import dialog exposes the two supported template downloads (discovery only)', async ({ adminPage }) => {
+  test('MRX BOM separates full-tier export from the missing-dish import template', async ({ adminPage }) => {
     await adminPage.goto('/admin-data?view=bom');
-    await adminPage.waitForSelector('button:has-text("Nhập BOM Excel")', { timeout: 15000 });
-
-    await adminPage.click('button:has-text("Nhập BOM Excel")');
-    await adminPage.waitForSelector('div[role="dialog"]', { timeout: 5000 });
-
-    // Assert both missing BOM and full catalog template download buttons exist
-    const missingBtn = adminPage.locator('div[role="dialog"] button:has-text("Tải file Excel các món thiếu BOM")');
-    const fullBtn = adminPage.locator('div[role="dialog"] button:has-text("Tải file mẫu toàn bộ")');
-
-    await expect(missingBtn).toBeVisible();
-    await expect(fullBtn).toBeVisible();
-
-    await adminPage.click('div[role="dialog"] button:has-text("Đóng")');
+    const fullExport = adminPage.getByRole('button', { name: /^Xuất toàn bộ BOM/ });
+    await expect(fullExport).toBeDisabled();
+    await adminPage.getByRole('combobox', { name: 'Lọc mốc giá BOM' }).selectOption('34000');
+    await expect(fullExport).toBeEnabled();
+    await adminPage.getByRole('button', { name: 'Nhập BOM Excel', exact: true }).click();
+    const dialog = adminPage.getByRole('dialog');
+    await expect(dialog.getByRole('radio', { name: '34.000 ₫', exact: true })).toBeChecked();
+    await expect(dialog.getByRole('button', { name: 'Tải mẫu BOM còn thiếu', exact: true })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Tải toàn bộ BOM', exact: true })).toBeEnabled();
+    await dialog.getByRole('button', { name: 'Đóng', exact: true }).click();
   });
 
   test.describe('Submitted lifecycle', () => {
@@ -253,7 +250,7 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     expect(accepted.disposition!.reason).toBe(`${scope.reason} overage decision3`);
     await beptruongPage.goto(`/chef?view=mrx-cooking&batchId=${batchId}`);
     await expect(beptruongPage.getByRole('heading',{name:'Phiếu nấu theo lô',exact:true})).toBeVisible();
-    await captureStationUI(beptruongPage, 'chef-cooking', 1920, 1080, beptruongPage.getByRole('button', { name: 'Tải Excel cả lô', exact: true }));
+    await captureStationUI(beptruongPage, 'chef-cooking', 1920, 1080, beptruongPage.getByRole('button', { name: 'Xuất phiếu nấu Excel', exact: true }));
     await managerPage.goto(`/reconciliation?batchId=${batchId}`);
     await expect(managerPage.getByRole('button', { name: 'Chốt đối soát tuần', exact: true })).toBeEnabled();
     await managerPage.getByRole('button',{name:'Chốt đối soát tuần',exact:true}).click();

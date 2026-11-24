@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useUrlWorkbenchState } from '../../hooks/useUrlWorkbenchState';
 import { useOperationalRecovery, executeSafeMutation } from '../../hooks/useOperationalRecovery';
 import { FileCheck } from 'lucide-react';
@@ -17,10 +18,10 @@ import { Input } from '../../components/ui/input';
 import { Modal } from '../../components/ui/modal';
 import { InlineBanner } from '../../components/ui/inline-banner';
 import { ActionGuard } from '../../components/ui/action-guard';
-import { serverStateCache } from '../../store/serverStateCache';
 import {
   approvalsApi,
   type ApprovalInboxItem,
+  type ApprovalInboxPage,
   type ApprovalHistoryItem,
 } from '../../api/approvalsApi';
 
@@ -28,44 +29,46 @@ import { formatVietnameseDateTime } from '../../utils/dates';
 import { ApiError } from '../../api/client';
 
 export function ApprovalPage() {
-  const { filters, setFilter, selectedId, setSelectedId } = useUrlWorkbenchState();
-  const selectedType = filters.type || 'ALL';
+  const { filters, selectedId, setSelectedId } = useUrlWorkbenchState();
+  const [, setSearchParams] = useSearchParams();
+  const selectedType = filters.type === 'purchase-order' ? 'purchase-request'
+    : filters.type === 'warehouse-receipt' ? 'inventory-receipt' : filters.type || 'ALL';
+  const cursor = filters.cursor || '';
   const selectedItemId = selectedId || null;
-  const setSelectedType = (type: string) => setFilter('type', type);
+  const setSelectedType = (type: string) => setSearchParams(previous => {
+    const next = new URLSearchParams(previous);
+    if (type === 'ALL') next.delete('type');
+    else next.set('type', type);
+    next.delete('cursor');
+    next.delete('selectedId');
+    return next;
+  }, { replace: true });
+  const goToCursor = (nextCursor: string) => setSearchParams(previous => {
+    const next = new URLSearchParams(previous);
+    if (nextCursor) next.set('cursor', nextCursor);
+    else next.delete('cursor');
+    next.delete('selectedId');
+    return next;
+  });
   const setSelectedItemId = (id: string | null) => setSelectedId(id);
-
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-
-  const fetcher = useCallback(async (f: { type: string }) => {
-    const resp = await approvalsApi.getInbox(f.type);
-    setHasLoadedOnce(true);
-    serverStateCache.set('snapshot:approvals', {
-      selectedType: f.type,
-      selectedItemId: selectedItemId || resp[0]?.inboxItemId || null,
-      items: resp,
-    });
-    return resp;
-  }, [selectedItemId]);
-
-  const recovery = useOperationalRecovery<ApprovalInboxItem[], { type: string }>({
-    queryKey: `approval_inbox_${selectedType}`,
-    fetcher,
-    initialFilters: { type: selectedType },
-    defaultFilters: { type: 'ALL' },
+  const inboxFilters = useMemo(() => ({ type: selectedType, cursor }), [selectedType, cursor]);
+  const recovery = useOperationalRecovery<ApprovalInboxPage, typeof inboxFilters>({
+    queryKey: `approval_inbox_page_${JSON.stringify(inboxFilters)}`,
+    fetcher: (f, signal) => approvalsApi.getInbox(f.type, signal, f.cursor),
+    initialFilters: inboxFilters,
+    activeFilters: inboxFilters,
+    defaultFilters: { type: 'ALL', cursor: '' },
     onResetFilters: () => setSelectedType('ALL'),
   });
 
-  // Sync external URL filter with recovery filter
-  const { setFilters } = recovery;
-  useEffect(() => {
-    setFilters({ type: selectedType });
-  }, [selectedType, setFilters]);
-
-  const items = useMemo(() => recovery.data || [], [recovery.data]);
-  const [history, setHistory] = useState<ApprovalHistoryItem[]>([]);
-  const [decisionReason, setDecisionReason] = useState('');
+  const hasLoadedOnce = recovery.data !== null;
+  const items = useMemo(() => recovery.data?.items ?? [], [recovery.data]);
+  const [historyRead, setHistoryRead] = useState<{ key: string; items?: ApprovalHistoryItem[]; error?: Error } | null>(null);
+  const [historyRetry, setHistoryRetry] = useState(0);
+  const [decisionDraft, setDecisionDraft] = useState<{ target: string; reason: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<'APPROVE' | 'REJECT' | null>(null);
+  const [confirmation, setConfirmation] = useState<{ action: 'APPROVE' | 'REJECT'; item: ApprovalInboxItem } | null>(null);
+  const confirmAction = confirmation?.action ?? null;
   const [actionBanner, setActionBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [mutationError, setMutationError] = useState<Error | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -77,11 +80,13 @@ export function ApprovalPage() {
   const openConfirmModal = (decision: 'APPROVE' | 'REJECT') => {
     setValidationError(null);
     setMutationError(null);
-    setConfirmAction(decision);
+    if (selectedItem) setConfirmation({ action: decision, item: selectedItem });
   };
 
   const handleExecuteDecision = async () => {
-    if (!selectedItem || !confirmAction) return;
+    if (!confirmation || selectedItem?.inboxItemId !== confirmation.item.inboxItemId
+      || isSubmitting || recovery.isFetching || recovery.error) return;
+    const { item: target, action } = confirmation;
     if (confirmAction === 'REJECT' && !decisionReason.trim()) {
       setValidationError('Vui lòng nhập lý do từ chối hồ sơ (bắt buộc theo BR-GLOBAL-03)');
       return;
@@ -95,17 +100,17 @@ export function ApprovalPage() {
         return approvalsApi.decide(payload.targetType, payload.targetId, payload.decision, payload.reason);
       },
       payload: {
-        targetType: selectedItem.targetType,
-        targetId: selectedItem.targetId,
-        decision: confirmAction,
+        targetType: target.targetType,
+        targetId: target.targetId,
+        decision: action,
         reason: finalReason,
       },
       onSuccess: async () => {
-        const actionName = confirmAction === 'APPROVE' ? 'phê duyệt' : 'từ chối';
-        const targetCode = selectedItem.targetCode;
-        setDecisionReason('');
+        const actionName = action === 'APPROVE' ? 'phê duyệt' : 'từ chối';
+        const targetCode = target.targetCode;
+        setDecisionDraft(null);
         setMutationError(null);
-        setConfirmAction(null);
+        setConfirmation(null);
         await recovery.refetch();
         setActionBanner({
           type: 'success',
@@ -113,10 +118,7 @@ export function ApprovalPage() {
         });
         setTimeout(() => setActionBanner(null), 5000);
       },
-      onConflict: (err) => {
-        setMutationError(err);
-        setConfirmAction(null);
-      },
+      onConflict: setMutationError,
       onError: (err) => {
         setMutationError(err);
       },
@@ -126,38 +128,50 @@ export function ApprovalPage() {
   };
 
   const filteredItems = useMemo(() => {
-    if (selectedType === 'ALL') return items;
+    if (selectedType === 'ALL' || recovery.isPreviousData) return items;
     return items.filter((i) => i.targetType === selectedType);
-  }, [items, selectedType]);
+  }, [items, recovery.isPreviousData, selectedType]);
 
-  const selectedItem = items.find((i) => i.inboxItemId === selectedItemId) || filteredItems[0] || null;
+  const selectedItem = filteredItems.find((i) => i.inboxItemId === selectedItemId) || filteredItems[0] || null;
+  const draftTarget = confirmation?.item.inboxItemId ?? selectedItem?.inboxItemId;
+  const decisionReason = decisionDraft && decisionDraft.target === draftTarget ? decisionDraft.reason : '';
+  const setDecisionReason = (reason: string) => { if (draftTarget) setDecisionDraft({ target: draftTarget, reason }); };
+  const discardConfirmation = () => {
+    setConfirmation(null);
+    setDecisionDraft(null);
+    setValidationError(null);
+    setMutationError(null);
+  };
+  const historyKey = selectedItem ? JSON.stringify([selectedItem.targetType, selectedItem.targetId]) : '';
+  const currentHistory = historyRead?.key === historyKey ? historyRead : null;
+  const history = currentHistory?.items ?? [];
+  const nextCursor = recovery.data?.hasNext ? recovery.data.nextCursor : null;
 
   useEffect(() => {
-    if (!selectedItem?.targetId || !selectedItem?.targetType) return;
-    let ignore = false;
-    approvalsApi.getHistory(selectedItem.targetType, selectedItem.targetId)
+    if (recovery.isPreviousData || !selectedItem?.targetId || !selectedItem?.targetType) return;
+    const controller = new AbortController();
+    approvalsApi.getHistory(selectedItem.targetType, selectedItem.targetId, controller.signal)
       .then((res) => {
-        if (!ignore) setHistory(res || []);
+        if (!controller.signal.aborted) setHistoryRead({ key: historyKey, items: res ?? [] });
       })
-      .catch(() => {
-        if (!ignore) setHistory([]);
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) setHistoryRead({
+          key: historyKey, error: error instanceof Error ? error : new Error('Không thể tải lịch sử phê duyệt.'),
+        });
       });
-    return () => { ignore = true; };
-  }, [selectedItem?.targetId, selectedItem?.targetType]);
+    return () => controller.abort();
+  }, [historyKey, recovery.isPreviousData, selectedItem?.targetId, selectedItem?.targetType, historyRetry]);
 
   const TYPE_OPTIONS = [
-    { value: 'ALL', label: 'Tất cả loại yêu cầu' },
+    { value: 'ALL', label: 'Tất cả yêu cầu' },
     { value: 'material-demand', label: 'Nhu cầu nguyên liệu' },
-    { value: 'purchase-order', label: 'Đơn mua hàng PO' },
-    { value: 'warehouse-receipt', label: 'Phiếu nhập kho' },
+    { value: 'purchase-request', label: 'Đề xuất mua hàng' },
+    { value: 'purchase-price-exception', label: 'Ngoại lệ giá mua' },
+    { value: 'inventory-receipt', label: 'Phiếu nhập kho' },
+    { value: 'inventory-issue', label: 'Phiếu xuất kho' },
   ];
 
-  const TAB_ITEMS = [
-    { id: 'ALL', label: 'Tất cả yêu cầu', count: items.length },
-    { id: 'material-demand', label: 'Nhu cầu nguyên liệu', count: items.filter((i) => i.targetType === 'material-demand').length },
-    { id: 'purchase-order', label: 'Đơn mua hàng PO', count: items.filter((i) => i.targetType === 'purchase-order').length },
-    { id: 'warehouse-receipt', label: 'Phiếu nhập kho', count: items.filter((i) => i.targetType === 'warehouse-receipt').length },
-  ];
+  const TAB_ITEMS = TYPE_OPTIONS.map(({ value, label }) => ({ id: value, label }));
 
   const columns: ColumnDef<ApprovalInboxItem>[] = [
     {
@@ -272,25 +286,12 @@ export function ApprovalPage() {
         telemetryPills={
           <>
             <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Chờ duyệt:</span>
+              <span className="text-slate-500">Chờ duyệt trên trang:</span>
               <strong className="text-slate-900 font-mono font-bold">{filteredItems.length} hồ sơ</strong>
             </span>
           </>
         }
       />
-
-      {mutationError && confirmAction === null && (
-        <InlineBanner
-          variant={mutationError instanceof ApiError && mutationError.status === 409 ? 'conflict' : 'error'}
-          title={mutationError instanceof ApiError && mutationError.status === 409 ? 'Xung đột dữ liệu đồng thời' : 'Không có quyền thực hiện thao tác'}
-          actionLabel={mutationError instanceof ApiError && mutationError.status === 409 ? 'Tải lại dữ liệu mới nhất' : undefined}
-          onAction={mutationError instanceof ApiError && mutationError.status === 409 ? () => { setMutationError(null); void loadData(); } : undefined}
-          onClose={() => setMutationError(null)}
-          className="shrink-0"
-        >
-          {mutationError.message}
-        </InlineBanner>
-      )}
 
       {actionBanner && (
         <InlineBanner
@@ -306,6 +307,7 @@ export function ApprovalPage() {
       <StateBoundary
         isLoading={recovery.isLoading && !hasLoadedOnce}
         isFetching={recovery.isFetching && hasLoadedOnce}
+        isPreviousData={recovery.isPreviousData}
         hasExistingData={hasLoadedOnce}
         error={recovery.error}
         onRetry={recovery.handleRetry}
@@ -393,6 +395,12 @@ export function ApprovalPage() {
                     </div>
                   )}
 
+                  {currentHistory?.error && (
+                    <InlineBanner variant="error" title="Không thể tải lịch sử phê duyệt"
+                      actionLabel="Thử lại lịch sử" onAction={() => setHistoryRetry(count => count + 1)}>
+                      {currentHistory.error.message}
+                    </InlineBanner>
+                  )}
                   {history.length > 0 && (
                     <div className="space-y-1.5 pt-2">
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-600">
@@ -437,7 +445,7 @@ export function ApprovalPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || recovery.isFetching || Boolean(recovery.error)}
                       onClick={() => openConfirmModal('REJECT')}
                       className="text-red-600 hover:bg-red-50 border-red-200"
                     >
@@ -448,11 +456,11 @@ export function ApprovalPage() {
                     <Button
                       variant="default"
                       size="sm"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || recovery.isFetching || Boolean(recovery.error)}
                       onClick={() => openConfirmModal('APPROVE')}
                       className="font-semibold text-xs shadow-2xs"
                     >
-                      {isSubmitting ? 'Đang duyệt...' : 'Phê duyệt hồ sơ'}
+                      Phê duyệt hồ sơ
                     </Button>
                   </ActionGuard>
                 </div>
@@ -472,40 +480,44 @@ export function ApprovalPage() {
         />
       </StateBoundary>
 
+      {(cursor || nextCursor) && (
+        <nav aria-label="Phân trang hàng đợi phê duyệt" aria-busy={recovery.isFetching || undefined}
+          className="flex shrink-0 justify-end gap-2 border-t border-slate-200 px-4 py-2">
+          <Button variant="outline" size="sm" aria-disabled={!cursor || recovery.isFetching}
+            onClick={() => { if (cursor && !recovery.isFetching) goToCursor(''); }}>Về trang đầu</Button>
+          <Button variant="outline" size="sm" aria-disabled={!nextCursor || recovery.isFetching || Boolean(recovery.error)}
+            onClick={() => { if (nextCursor && !recovery.isFetching && !recovery.error) goToCursor(nextCursor); }}>Trang sau</Button>
+        </nav>
+      )}
+
       <Modal
         isOpen={confirmAction !== null}
-        onClose={() => {
-          if (!isSubmitting) {
-            setConfirmAction(null);
-            setValidationError(null);
-          }
-        }}
+        onClose={() => { if (!isSubmitting) discardConfirmation(); }}
         isDirty={decisionReason.trim().length > 0}
         title={confirmAction === 'APPROVE' ? 'Xác nhận phê duyệt yêu cầu' : 'Xác nhận từ chối yêu cầu'}
-        description={selectedItem ? `${selectedItem.targetCode} · ${selectedItem.title}` : undefined}
+        description={confirmation ? `${confirmation.item.targetCode} · ${confirmation.item.title}` : undefined}
         footer={
           <>
             <Button
               variant="outline"
               size="sm"
               disabled={isSubmitting}
-              onClick={() => {
-                setConfirmAction(null);
-                setValidationError(null);
-              }}
+              onClick={discardConfirmation}
             >
               Hủy bỏ
             </Button>
             <Button
               variant="default"
               size="sm"
-              disabled={isSubmitting}
+              disabled={!isSubmitting && (recovery.isFetching || Boolean(recovery.error)
+                || (mutationError instanceof ApiError && mutationError.status === 409)
+                || selectedItem?.inboxItemId !== confirmation?.item.inboxItemId)}
+              loading={isSubmitting}
+              loadingText="Đang xử lý..."
               onClick={handleExecuteDecision}
               className={confirmAction === 'REJECT' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}
             >
-              {isSubmitting
-                ? 'Đang xử lý...'
-                : confirmAction === 'APPROVE'
+              {confirmAction === 'APPROVE'
                 ? 'Xác nhận phê duyệt'
                 : 'Xác nhận từ chối'}
             </Button>
@@ -514,14 +526,19 @@ export function ApprovalPage() {
       >
         <div className="space-y-3 text-sm text-slate-700">
           {mutationError && (
-            <InlineBanner variant="error" onClose={() => setMutationError(null)}>
+            <InlineBanner
+              variant={mutationError instanceof ApiError && mutationError.status === 409 ? 'conflict' : 'error'}
+              title={mutationError instanceof ApiError && mutationError.status === 409 ? 'Xung đột dữ liệu đồng thời' : undefined}
+              actionLabel={mutationError instanceof ApiError && mutationError.status === 409 ? 'Tải lại dữ liệu mới nhất' : undefined}
+              onAction={() => { void recovery.refetch().then(() => setMutationError(null)); }}
+            >
               {mutationError.message}
             </InlineBanner>
           )}
           {confirmAction === 'APPROVE' ? (
             <p>
               Bạn có chắc chắn muốn phê duyệt hồ sơ{' '}
-              <strong className="text-slate-900 font-mono">{selectedItem?.targetCode}</strong> không? Hành động này sẽ
+              <strong className="text-slate-900 font-mono">{confirmation?.item.targetCode}</strong> không? Hành động này sẽ
               cập nhật trạng thái hồ sơ sang <strong className="text-emerald-700">Đã duyệt (APPROVED)</strong> và cho phép
               các bước tiếp theo trong quy trình vận hành.
             </p>

@@ -64,7 +64,7 @@ function rational(value: string): [bigint, bigint] {
   const [whole, fraction = ''] = value.split('.');
   return [BigInt(whole + fraction), 10n ** BigInt(fraction.length)];
 }
-function micros(rate: string, count: number, sourceRate: string, targetRate: string): bigint {
+export function materialQuantityMicros(rate: string, count: number, sourceRate: string, targetRate: string): bigint {
   if (!Number.isSafeInteger(count) || count < 0) throw new Error('Invalid servings in independent oracle.');
   const [r, rd] = rational(rate), [s, sd] = rational(sourceRate), [t, td] = rational(targetRate);
   if (s === 0n || t === 0n) throw new Error('Missing positive unit conversion.');
@@ -87,7 +87,7 @@ export function materialTotals(source: CoverageSource[], dishes: CoverageDish[],
     if (counts.length !== 1) throw new Error(`Missing/ambiguous servings for ${row.date}/${row.shift}.`);
     const count = counts[0][row.variant];
     for (const item of matches[0].materials) {
-      const quantity = micros(item.grossQtyPerServing, count, item.sourceRate, item.targetRate);
+      const quantity = materialQuantityMicros(item.grossQtyPerServing, count, item.sourceRate, item.targetRate);
       if (count > 0 && rational(item.grossQtyPerServing)[0] > 0n && quantity === 0n) throw new Error('Submicro material cannot be persisted.');
       if (quantity === 0n) continue;
       const materialKey = `${row.date}/${item.ingredientCode}/${item.canonicalUnitCode}`;
@@ -101,7 +101,7 @@ export function materialTotals(source: CoverageSource[], dishes: CoverageDish[],
   }));
 }
 
-export function writeMenuCoverage(scope: MrxScenarioScope, dishes: CoverageDish[]): MenuCoverageManifest {
+export function writeMenuCoverage(scope: MrxScenarioScope, dishes: CoverageDish[], customerIndex?: number): MenuCoverageManifest {
   const monday = new Date(`${scope.weekStartDate}T00:00:00Z`);
   if (Number.isNaN(monday.valueOf()) || monday.getUTCDay() !== 1 || monday.toISOString().slice(0, 10) !== scope.weekStartDate) throw new Error('Coverage requires a valid Monday.');
   if (!/^[0-9]{8}t[0-9]{6}z_[a-z0-9]{6}$/.test(scope.runId) || !scope.caseId.startsWith(`${scope.attemptId}_`)) throw new Error('Coverage requires owned run/case identity.');
@@ -134,20 +134,29 @@ export function writeMenuCoverage(scope: MrxScenarioScope, dishes: CoverageDish[
   const slots = ['main', 'sub1', 'rau', 'canh', 'dessert'];
   for (let day = 0; day < 6; day++) {
     cells[`${String.fromCharCode(68 + day)}7`] = date(day).split('-').reverse().join('/');
-    servings.push({ date: date(day), shift: 'MORNING', savory: 1000 + day, vegetarian: 51 + day });
-    servings.push({ date: date(day), shift: 'AFTERNOON', savory: 803 + day, vegetarian: 37 + day });
+    const customerOffset = (customerIndex ?? 0) * 13;
+    servings.push({ date: date(day), shift: 'MORNING', savory: 1000 + day + customerOffset, vegetarian: 51 + day + customerOffset });
+    servings.push({ date: date(day), shift: 'AFTERNOON', savory: 803 + day + customerOffset, vegetarian: 37 + day + customerOffset });
   }
   for (const section of sections) {
     const group = dishes.filter((dish) => dish.variant === section.variant);
     merges.push(`D${section.row}:E${section.row}`, `F${section.row}:F${section.row + 1}`);
     for (let slot = 0; slot < 5; slot++) for (let day = 0; day < 6; day++) {
+      const mergedSlot = day === 2 && slot === 1;
+      const rectangle = customerIndex === 2 && section.row === 9 && (day === 3 || day === 4) && (slot === 2 || slot === 3);
       const index = (slot === 0 && day < 2 ? section.rotate
-        : day === 2 && slot < 2 ? section.rotate + 1 : day + slot + section.rotate) % group.length;
+        : day === 2 && slot < 2 ? section.rotate + 1
+        : rectangle ? 5
+        : customerIndex === undefined ? day + slot + section.rotate
+        : day < 2 && section.row === 9 ? (customerIndex === 2 ? slot + 1 : slot)
+        : day + slot + section.rotate + customerIndex * 2) % group.length;
       const dish = group[index];
       source.push({ date: date(day), shift: section.shift, variant: section.variant, slot: slots[slot], dishCode: dish.code });
-      cells[`${String.fromCharCode(68 + day)}${section.row + slot}`] = (slot === 0 && day === 1) || (day === 2 && slot === 1) ? '' : dish.name;
+      cells[`${String.fromCharCode(68 + day)}${section.row + slot}`] = (slot === 0 && day === 1) || mergedSlot
+        || (rectangle && (slot !== 2 || day !== 3)) ? '' : dish.name;
     }
   }
+  if (customerIndex === 2) merges.push('G11:H12');
   const payload = Buffer.from(JSON.stringify({ cells, merges, outputs: { workbook, rectangularWorkbook, changedWorkbook },
     changedName: dishes.filter((d) => d.variant === 'savory').at(-1)!.name }), 'utf8').toString('base64');
   const quote = (s: string) => `'${s.replace(/'/g, "''")}'`;
@@ -167,7 +176,7 @@ foreach($kind in @('workbook','rectangularWorkbook','changedWorkbook')) {
   }
   $mc=$x.SelectSingleNode('//s:mergeCells',$ns);foreach($m in @($mc.ChildNodes)){if($m.ref -match '^[D-I]'){[void]$mc.RemoveChild($m)}};
   foreach($range in $p.merges){$m=$x.CreateElement('mergeCell',$ns.LookupNamespace('s'));$m.SetAttribute('ref',[string]$range);[void]$mc.AppendChild($m)};
-  if($kind -eq 'rectangularWorkbook'){
+  if($kind -eq 'rectangularWorkbook' -and 'G11:H12' -notin $p.merges){
    $m=$x.CreateElement('mergeCell',$ns.LookupNamespace('s'));$m.SetAttribute('ref','G11:H12');[void]$mc.AppendChild($m);
    foreach($ref in @('H11','G12','H12')){$x.SelectSingleNode('//s:c[@r="'+$ref+'"]//s:t',$ns).InnerText=''}
   }

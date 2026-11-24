@@ -31,7 +31,7 @@ export function MrxPrepHeaderBranch({ activeDate, scopeLocked, customerSelector,
         {customerSelector}
       </>}
       actions={<WorkspaceHeader.Actions>
-        <Button variant="default" size="sm" disabled={!canExport} onClick={onDownload}>{downloading ? 'Đang tải Excel…' : 'Xuất Excel chuẩn bị'}</Button>
+        <Button variant="default" size="sm" disabled={!canExport} onClick={onDownload}>{downloading ? 'Đang tải Excel…' : 'Xuất nhu cầu theo NCC'}</Button>
       </WorkspaceHeader.Actions>} />
     <div role="group" aria-label="Phạm vi chuẩn bị" className="shrink-0 border-b border-slate-200 bg-white px-4 sm:px-5">
       <MrxDailyDateTabsBranch dates={dates} activeDate={isServiceDate(activeDate) ? activeDate : weekStart} isWeeklyAll={wholeWeek} disabled={scopeLocked}

@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Page, Response } from '@playwright/test';
 import { test, expect } from '../fixtures/mrxTest';
 import { loginRole, respectApiBudget } from '../fixtures/authHelpers';
-import { createTransferredBatch, scenarioScope, parseCookingFile } from '../fixtures/mrxWorkflow';
+import { downloadRetainedMrxWorkbook, createTransferredBatch, scenarioScope, parseCookingFile } from '../fixtures/mrxWorkflow';
 
 function binaryId(value: string): string {
   expect(value).toMatch(/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i);
@@ -167,7 +167,7 @@ test('@G6-Customer-Concurrency two NEW customers keep independent same-week sour
       await respectApiBudget(exportPage);
       await exportPage.goto(`/chef?view=mrx-cooking&batchId=${batches[index].batchId}`);
       const download = exportPage.waitForEvent('download');
-      await exportPage.getByRole('button', { name: 'Tải Excel cả lô', exact: true }).click();
+      await downloadRetainedMrxWorkbook(exportPage, `/api/reconciliation/batches/${batches[index].batchId}/kitchen-cooking/xlsx`);
       const file = path.join(evidence, `new-customer-${index}-cooking.xlsx`);
       await (await download).saveAs(file);
       const rows = parseCookingFile(file, 'xlsx');

@@ -106,7 +106,10 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
       || (hasCompatibilityFlag(rawCached) && rawCached.isCompatibilityBlocked)
   );
 
-  const [stateData, setDataState] = useState<TData | null>(() => initialData);
+  const [payloadState, setPayloadState] = useState(() => ({
+    key: !hasWarmCache && !initialBlocked && rawSnapshot != null ? '' : cacheKey,
+    data: initialData,
+  }));
   const [error, setError] = useState<Error | null>(() =>
     initialBlocked ? new Error('LEGACY_DAILY_LINEAGE_MISSING') : null
   );
@@ -119,18 +122,18 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
   const isScopeProvided = scopeId !== undefined ? Boolean(scopeId) : true;
   const effectiveResolvedKey = hasWarmCache ? cacheKey : resolvedCacheKey;
   if (hasWarmCache && (resolvedCacheKey !== cacheKey || !hasLoadedOnce) && isScopeProvided && enabled) {
-    setDataState(warmPayload);
+    setPayloadState({ key: cacheKey, data: warmPayload });
     setResolvedCacheKey(cacheKey);
     setHasLoadedOnce(true);
     setError(warmBlocked ? new Error('LEGACY_DAILY_LINEAGE_MISSING') : null);
   }
-  const data = effectiveResolvedKey === cacheKey && hasWarmCache && resolvedCacheKey !== cacheKey
-    ? warmPayload
-    : stateData;
+  const { data, key: dataCacheKey } = hasWarmCache && resolvedCacheKey !== cacheKey
+    ? { key: cacheKey, data: warmPayload }
+    : payloadState;
 
   const queryFnRef = useRef(queryFn);
   const requestGeneration = useRef(0);
-  const activeController = useRef<AbortController | null>(null);
+  const refreshController = useRef<AbortController | null>(null);
   const isCompatibilityBlockedRef = useRef(isCompatibilityBlocked);
   const pendingCleanupAbortRef = useRef<{ cacheKey: string; abort: () => void } | null>(null);
   useEffect(() => {
@@ -153,15 +156,14 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
   const refetch = useCallback(async (force = false) => {
     if (!isScopeProvided || !enabled) return;
     const generation = ++requestGeneration.current;
-    activeController.current?.abort();
-    const controller = new AbortController();
-    activeController.current = controller;
+    refreshController.current?.abort();
+    refreshController.current = null;
 
     const cachedEntry = !force ? serverStateCache.get<unknown>(cacheKey) : null;
     if (cachedEntry && !cachedEntry.isStale) {
       const currentCached = cachedEntry.data;
       const payload = resolveCachePayload<TData>(currentCached);
-      setDataState(payload);
+      setPayloadState({ key: cacheKey, data: payload });
       if (hasCompatibilityFlag(currentCached) && currentCached.isCompatibilityBlocked) {
         setError(new Error('LEGACY_DAILY_LINEAGE_MISSING'));
       } else {
@@ -181,13 +183,15 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
       return;
     }
 
+    const controller = new AbortController();
+    refreshController.current = controller;
     setIsFetching(true);
 
     try {
       const result = await queryFnRef.current(undefined, controller.signal);
       if (generation !== requestGeneration.current) return;
       setError(null);
-      setDataState(result);
+      setPayloadState({ key: cacheKey, data: result });
       setHasLoadedOnce(true);
       setResolvedCacheKey(cacheKey);
       serverStateCache.set(cacheKey, result);
@@ -211,8 +215,18 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
         setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu trạm vận hành.'));
       }
     } finally {
+      if (refreshController.current === controller) refreshController.current = null;
       if (generation === requestGeneration.current) setIsFetching(false);
     }
+  }, [cacheKey, enabled, isScopeProvided, snapshotKey]);
+
+  useEffect(() => () => {
+    const controller = refreshController.current;
+    if (!controller) return;
+    requestGeneration.current += 1;
+    refreshController.current = null;
+    controller.abort();
+    setIsFetching(false);
   }, [cacheKey, enabled, isScopeProvided, snapshotKey]);
 
   useEffect(() => {
@@ -238,7 +252,6 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
     let inFlight = inFlightWorkbenchQueries.get(cacheKey);
     if (!inFlight || inFlight.controller.signal.aborted) {
       const controller = new AbortController();
-      activeController.current = controller;
       const promise = queryFnRef.current(undefined, controller.signal).finally(() => {
         const current = inFlightWorkbenchQueries.get(cacheKey);
         if (current?.promise === promise) {
@@ -249,13 +262,12 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
       inFlightWorkbenchQueries.set(cacheKey, inFlight);
     } else {
       inFlight.subscribers += 1;
-      activeController.current = inFlight.controller;
     }
     const sharedPromise = inFlight.promise as Promise<TData>;
     sharedPromise
       .then((result) => {
         if (ignore || generation !== requestGeneration.current) return;
-        setDataState(result);
+        setPayloadState({ key: cacheKey, data: result });
         setIsFetching(false);
         setHasLoadedOnce(true);
         setResolvedCacheKey(cacheKey);
@@ -320,14 +332,14 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
   }, [cacheKey, refetch]);
 
   const setData = useCallback((updater: TData | null | ((prev: TData | null) => TData | null)) => {
-    setDataState((prev) => {
-      const next = typeof updater === 'function' ? (updater as (p: TData | null) => TData | null)(prev) : updater;
+    setPayloadState((prev) => {
+      const next = typeof updater === 'function' ? (updater as (p: TData | null) => TData | null)(prev.key === cacheKey ? prev.data : null) : updater;
       serverStateCache.set(cacheKey, next);
       if (snapshotKey) {
         const entry: CacheWrapper<TData> = { data: next, isCompatibilityBlocked: false };
         serverStateCache.set(snapshotKey, entry);
       }
-      return next;
+      return { key: cacheKey, data: next };
     });
   }, [cacheKey, snapshotKey]);
 
@@ -357,7 +369,7 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
   const stateProps = useMemo(() => ({
     isLoading,
     isFetching: effectiveIsFetching,
-    isPreviousData: data !== null && effectiveResolvedKey !== cacheKey,
+    isPreviousData: data !== null && dataCacheKey !== cacheKey,
     hasExistingData: hasHydratedData,
     error: currentError,
     isEmpty,
@@ -365,7 +377,7 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
     emptyDescription,
     emptyScenario,
     isPartial: initialBlocked,
-  }), [cacheKey, data, effectiveResolvedKey, emptyDescription, emptyScenario, emptyTitle, currentError, hasHydratedData, initialBlocked, isEmpty, effectiveIsFetching, isLoading, isScopeProvided]);
+  }), [cacheKey, data, dataCacheKey, emptyDescription, emptyScenario, emptyTitle, currentError, hasHydratedData, initialBlocked, isEmpty, effectiveIsFetching, isLoading, isScopeProvided]);
 
   return {
     data,

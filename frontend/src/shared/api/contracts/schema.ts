@@ -4024,6 +4024,7 @@ export interface paths {
         readonly get: {
             readonly parameters: {
                 readonly query?: {
+                    readonly effectiveDate?: string;
                     readonly priceTier?: number;
                 };
                 readonly header?: never;
@@ -4077,9 +4078,14 @@ export interface paths {
                         readonly EffectiveFrom?: string;
                         /** Format: binary */
                         readonly File: string;
+                        readonly MenuVersionId?: string;
                         readonly Mode?: string;
+                        readonly PreviewFingerprint?: string;
                         /** Format: double */
                         readonly PriceTier?: number;
+                        readonly ScopeCustomerId?: string;
+                        /** Format: date */
+                        readonly WeekStartDate?: string;
                     };
                 };
             };
@@ -4149,9 +4155,13 @@ export interface paths {
                         readonly EffectiveFrom?: string;
                         /** Format: binary */
                         readonly File: string;
+                        readonly MenuVersionId?: string;
                         readonly Mode?: string;
                         /** Format: double */
                         readonly PriceTier?: number;
+                        readonly ScopeCustomerId?: string;
+                        /** Format: date */
+                        readonly WeekStartDate?: string;
                     };
                 };
             };
@@ -4250,6 +4260,7 @@ export interface paths {
                     readonly IncludeCurrent?: boolean;
                     readonly MenuVersionId?: string;
                     readonly PriceTier?: number;
+                    readonly ScopeCustomerId?: string;
                     readonly TemplateType?: string;
                     readonly WeekStartDate?: string;
                 };
@@ -4381,6 +4392,162 @@ export interface paths {
                         readonly "application/json": components["schemas"]["MenuImportHistoryDtoApiResponse"];
                         readonly "text/json": components["schemas"]["MenuImportHistoryDtoApiResponse"];
                         readonly "text/plain": components["schemas"]["MenuImportHistoryDtoApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/Dishes/mrx/bom-import/commit": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "multipart/form-data": {
+                        readonly CustomerId?: string;
+                        /** Format: date */
+                        readonly EffectiveFrom?: string;
+                        /** Format: binary */
+                        readonly File: string;
+                        readonly MenuVersionId?: string;
+                        readonly Mode?: string;
+                        readonly PreviewFingerprint?: string;
+                        /** Format: double */
+                        readonly PriceTier?: number;
+                        readonly ScopeCustomerId?: string;
+                        /** Format: date */
+                        readonly WeekStartDate?: string;
+                    };
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["BomImportCommitResultDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["BomImportCommitResultDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["BomImportCommitResultDtoApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/Dishes/mrx/bom-import/preview": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "multipart/form-data": {
+                        readonly CustomerId?: string;
+                        /** Format: date */
+                        readonly EffectiveFrom?: string;
+                        /** Format: binary */
+                        readonly File: string;
+                        readonly MenuVersionId?: string;
+                        readonly Mode?: string;
+                        /** Format: double */
+                        readonly PriceTier?: number;
+                        readonly ScopeCustomerId?: string;
+                        /** Format: date */
+                        readonly WeekStartDate?: string;
+                    };
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["BomImportPreviewDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["BomImportPreviewDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["BomImportPreviewDtoApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/Dishes/mrx/bom-template": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly CustomerId?: string;
+                    readonly DishId?: string;
+                    readonly EffectiveDate?: string;
+                    readonly IncludeCurrent?: boolean;
+                    readonly MenuVersionId?: string;
+                    readonly PriceTier?: number;
+                    readonly ScopeCustomerId?: string;
+                    readonly TemplateType?: string;
+                    readonly WeekStartDate?: string;
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": string;
+                        readonly "text/json": string;
+                        readonly "text/plain": string;
                     };
                 };
             };
@@ -4810,6 +4977,7 @@ export interface paths {
                     readonly SearchKeyword?: string;
                     readonly SortBy?: string;
                     readonly SortDesc?: boolean;
+                    readonly WarehouseId?: string;
                 };
                 readonly header?: never;
                 readonly path?: never;
@@ -5993,6 +6161,7 @@ export interface paths {
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
                     readonly Status?: string;
+                    readonly SupplierId?: string;
                 };
                 readonly header?: never;
                 readonly path?: never;
@@ -7255,6 +7424,44 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/reconciliation/kitchen-cooking/xlsx": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly batchIds?: readonly string[];
+                    readonly serviceDate?: string;
+                    readonly shift?: string;
+                    readonly weekStartDate?: string;
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/reconciliation/lines/{lineId}/disposition": {
         readonly parameters: {
             readonly query?: never;
@@ -7470,6 +7677,7 @@ export interface paths {
                     readonly CustomerIds?: readonly string[];
                     readonly IncludeMenus?: boolean;
                     readonly IsSupplemental?: boolean;
+                    readonly layout?: string;
                     readonly ServiceDate?: string;
                     readonly SupplierName?: string;
                     readonly WeekStartDate?: string;
@@ -8412,6 +8620,58 @@ export interface paths {
                         readonly "application/json": components["schemas"]["WeeklyMenuImportResultDtoApiResponse"];
                         readonly "text/json": components["schemas"]["WeeklyMenuImportResultDtoApiResponse"];
                         readonly "text/plain": components["schemas"]["WeeklyMenuImportResultDtoApiResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiResponse"];
+                        readonly "text/json": components["schemas"]["ApiResponse"];
+                        readonly "text/plain": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/weekly-menu/bom-coverage": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly customerId?: string;
+                    readonly menuVersionId?: string;
+                    readonly weekStartDate?: string;
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["MrxWeeklyBomCoverageApiResponse"];
+                        readonly "text/json": components["schemas"]["MrxWeeklyBomCoverageApiResponse"];
+                        readonly "text/plain": components["schemas"]["MrxWeeklyBomCoverageApiResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -13522,6 +13782,7 @@ export interface components {
             readonly errorRows: number;
             /** Format: date-time */
             readonly generatedAt: string;
+            readonly previewFingerprint?: string | null;
             /** Format: double */
             readonly priceTier: number;
             readonly rows: readonly components["schemas"]["BomImportPreviewRowDto"][];
@@ -13549,6 +13810,7 @@ export interface components {
             readonly errorRows: number;
             /** Format: date-time */
             readonly generatedAt: string;
+            readonly previewFingerprint?: string | null;
             /** Format: double */
             readonly priceTier: number;
             readonly rows: readonly components["schemas"]["BomImportPreviewRowDto"][];
@@ -13812,6 +14074,7 @@ export interface components {
             readonly effectiveTo?: string | null;
             readonly isActive?: boolean | null;
             readonly note?: string | null;
+            readonly serviceShiftNames?: readonly string[] | null;
             readonly shiftNames?: readonly string[] | null;
         };
         readonly CreateDataQualityDispositionRequest: {
@@ -14154,6 +14417,7 @@ export interface components {
             readonly note?: string | null;
             readonly portionrules: readonly components["schemas"]["PortionRule"][];
             readonly productionplanlines: readonly components["schemas"]["ProductionPlanLine"][];
+            readonly serviceShiftNames?: string | null;
         };
         readonly CustomerContract: {
             readonly activeWeekDays: string;
@@ -14195,6 +14459,7 @@ export interface components {
             /** Format: int32 */
             readonly menuScheduleCount: number;
             readonly note?: string | null;
+            readonly serviceShiftNames?: readonly string[] | null;
             readonly shiftNames: readonly string[];
         };
         readonly CustomerContractDtoApiResponse: {
@@ -16162,6 +16427,17 @@ export interface components {
             readonly oldValue?: string | null;
             readonly reason?: string | null;
         };
+        readonly MrxBomMissingInterval: {
+            /** Format: date */
+            readonly effectiveFrom: string;
+            /** Format: date */
+            readonly effectiveTo?: string | null;
+        };
+        readonly MrxBomOccurrence: {
+            /** Format: date */
+            readonly serviceDate: string;
+            readonly shiftName: string;
+        };
         readonly MrxCompletedRegisterReportDto: {
             readonly rows: readonly components["schemas"]["MrxCompletedRegisterRowDto"][];
             /** Format: int32 */
@@ -16247,6 +16523,13 @@ export interface components {
             /** Format: date */
             readonly serviceDate: string;
             readonly unitName: string;
+        };
+        readonly MrxMissingBomDish: {
+            readonly dishCode: string;
+            readonly dishId: string;
+            readonly dishName: string;
+            readonly intervals: readonly components["schemas"]["MrxBomMissingInterval"][];
+            readonly occurrences: readonly components["schemas"]["MrxBomOccurrence"][];
         };
         readonly MrxOperationalQueueItemDto: {
             readonly actionKind: string;
@@ -16372,6 +16655,21 @@ export interface components {
             readonly serviceDate: string;
             readonly shiftName: string;
             readonly varianceType: string;
+        };
+        readonly MrxWeeklyBomCoverage: {
+            readonly customerId: string;
+            readonly menuVersionId: string;
+            readonly missingDishes: readonly components["schemas"]["MrxMissingBomDish"][];
+            /** Format: double */
+            readonly priceTierAmount: number;
+            /** Format: date */
+            readonly weekStartDate: string;
+        };
+        readonly MrxWeeklyBomCoverageApiResponse: {
+            readonly data?: components["schemas"]["MrxWeeklyBomCoverage"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly OpenServiceRunRequest: {
             readonly customerId?: string | null;
@@ -19534,6 +19832,7 @@ export interface components {
             readonly effectiveTo?: string | null;
             readonly isActive?: boolean | null;
             readonly note?: string | null;
+            readonly serviceShiftNames?: readonly string[] | null;
             readonly shiftNames?: readonly string[] | null;
         };
         readonly UpdateDishBomLineRequest: {

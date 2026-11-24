@@ -186,6 +186,63 @@ public partial class WorkflowGenerationTests
         (await context.Auditlogs.CountAsync()).Should().Be(1);
     }
 
+    [Fact]
+    public async Task CustomerServiceShifts_AreSavedAndReadBackWithoutAPricedContract()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var service = new CustomerContractService(context);
+        var create = JsonSerializer.Deserialize<CreateCustomerContractRequest>("""
+            {"CustomerCode":"WL","CustomerName":"WENDLER","ServiceShiftNames":["MORNING","AFTERNOON"]}
+            """)!;
+        var created = await service.CreateCustomerContractAsync(create, fixture.UserIdString);
+        created.ContractId.Should().BeNull();
+        created.DefaultMenuPrice.Should().BeNull();
+        created.ServiceShiftNames.Should().BeEquivalentTo(new[] { "MORNING", "AFTERNOON" });
+
+        var edit = JsonSerializer.Deserialize<UpdateCustomerContractRequest>("""
+            {"ServiceShiftNames":["AFTERNOON","Ca chiều"]}
+            """)!;
+        await service.UpdateCustomerContractAsync(created.CustomerId, edit, fixture.UserIdString);
+        await using var readContext = fixture.CreateContext();
+        var persisted = (await new CustomerContractService(readContext).GetCustomerContractsAsync()).Should().ContainSingle().Subject;
+        persisted.ServiceShiftNames.Should().Equal("AFTERNOON");
+        (await readContext.Customercontracts.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CustomerServiceShifts_LeavesExistingContractAndSchedulesIntact()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var schedule = await context.Menuschedules.SingleAsync();
+        var originalPrice = schedule.MenuPrice;
+        context.Customercontracts.Add(new CustomerContract
+        {
+            ContractId = GuidHelper.NewId(), CustomerId = schedule.CustomerId,
+            EffectiveFrom = schedule.WeekStartDate, ActiveWeekDays = "t2,t3,t4,t5,t6,t7",
+            ShiftNames = "MORNING", DefaultMenuPrice = 25000,
+            DefaultBomRatePercent = 100, Status = "ACTIVE", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        var service = new CustomerContractService(context);
+        var customerId = GuidHelper.ToGuidString(schedule.CustomerId);
+
+        var updated = await service.UpdateCustomerContractAsync(customerId,
+            new UpdateCustomerContractRequest { ServiceShiftNames = ["AFTERNOON"] }, fixture.UserIdString);
+        updated!.ServiceShiftNames.Should().Equal("AFTERNOON");
+        updated.ShiftNames.Should().Equal("MORNING");
+        var cleared = await service.UpdateCustomerContractAsync(customerId,
+            new UpdateCustomerContractRequest { ServiceShiftNames = [] }, fixture.UserIdString);
+        cleared!.ServiceShiftNames.Should().NotBeNull().And.BeEmpty();
+        await using var readContext = fixture.CreateContext();
+        (await readContext.Menuschedules.SingleAsync()).MenuPrice.Should().Be(originalPrice);
+        var contract = await readContext.Customercontracts.SingleAsync();
+        contract.ShiftNames.Should().Be("MORNING");
+        contract.DefaultMenuPrice.Should().Be(25000);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -151,8 +151,8 @@ function ReconciliationIssueDetailDialog({
                                 </Badge>
                               )}
                               {isUnder && (
-                                <Badge variant="neutral" size="sm">
-                                  Tiết kiệm (<Num value={diff} format="plain" decimals={6} />)
+                                <Badge variant="danger" size="sm">
+                                  Xuất thiếu (<Num value={-diff} format="plain" decimals={6} />)
                                 </Badge>
                               )}
                               {provisions.map((provision) => (

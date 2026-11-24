@@ -23,22 +23,41 @@ export function AdvancedSettingsPage() {
   } = useAuth();
   const [selectedModeOverride, setSelectedModeOverride] = useState<OperationalMode | null>(null);
   const selectedMode = selectedModeOverride ?? operationalMode;
-  const [isSaving, setIsSaving] = useState(false);
+  const [pending, setPending] = useState<'save' | 'reload' | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string; status?: number } | null>(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [confirmationError, setConfirmationError] = useState<{ message: string; needsReload: boolean } | null>(null);
   const [modeReason, setModeReason] = useState('');
+  const canConfirm = !pending && !confirmationError?.needsReload && selectedMode !== operationalMode
+    && (!operationalModeReasonRequired || Boolean(modeReason.trim()));
 
   const handleSaveMode = async () => {
-    setIsSaving(true);
+    if (!canConfirm) return;
+    setPending('save');
+    setConfirmationError(null);
+    setSuccessMessage('');
     try {
       await setOperationalMode(selectedMode, modeReason.trim() || undefined);
-      setFeedback({ type: 'success', message: `Đã chuyển chế độ vận hành sang ${selectedMode === 'DEFAULT' ? 'Mặc định' : 'Đối soát nguyên liệu'}.` });
+      setSuccessMessage(`Đã chuyển chế độ vận hành sang ${selectedMode === 'DEFAULT' ? 'Mặc định' : 'Đối soát nguyên liệu'}.`);
       setSelectedModeOverride(null);
+      setModeReason('');
       setIsConfirmOpen(false);
     } catch (err) {
-      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Chuyển đổi chế độ thất bại.', status: err instanceof ApiError ? err.status : undefined });
+      setConfirmationError({ message: err instanceof Error ? err.message : 'Chuyển đổi chế độ thất bại.', needsReload: err instanceof ApiError && err.status === 409 });
     } finally {
-      setIsSaving(false);
+      setPending(null);
+    }
+  };
+
+  const handleReloadMode = async () => {
+    setPending('reload');
+    try {
+      await reloadOperationalMode();
+      setConfirmationError(null);
+    } catch (err) {
+      setConfirmationError({ message: err instanceof Error ? err.message : 'Không thể tải chế độ vận hành.', needsReload: true });
+    } finally {
+      setPending(null);
     }
   };
 
@@ -68,11 +87,11 @@ export function AdvancedSettingsPage() {
               <Button
                 variant="default"
                 size="default"
-                disabled={isSaving || selectedMode === operationalMode}
+                disabled={Boolean(pending) || selectedMode === operationalMode}
                 onClick={() => setIsConfirmOpen(true)}
                 className="h-9 text-sm font-medium"
               >
-                {isSaving ? 'Đang lưu...' : 'Lưu cấu hình hệ thống'}
+                Lưu cấu hình hệ thống
               </Button>
             </ActionGuard>
           </WorkspaceHeader.Actions>
@@ -85,15 +104,9 @@ export function AdvancedSettingsPage() {
       />
 
       <WorkspaceFrame.Body className="flex flex-col flex-1 min-h-0">
-        {feedback && (
-          <InlineBanner
-            variant={feedback.type === 'error' ? (feedback.status === 409 ? 'conflict' : 'error') : 'success'}
-            actionLabel={feedback.status === 409 ? 'Tải lại dữ liệu mới nhất' : undefined}
-            onAction={feedback.status === 409 ? () => { setFeedback(null); void reloadOperationalMode(); } : undefined}
-            onClose={() => setFeedback(null)}
-            className="shrink-0"
-          >
-            {feedback.message}
+        {successMessage && (
+          <InlineBanner variant="success" onClose={() => setSuccessMessage('')} className="shrink-0">
+            {successMessage}
           </InlineBanner>
         )}
 
@@ -143,18 +156,26 @@ export function AdvancedSettingsPage() {
 
       <Modal
         isOpen={isConfirmOpen}
-        onClose={() => { if (!isSaving) setIsConfirmOpen(false); }}
+        onClose={() => { if (!pending) setIsConfirmOpen(false); }}
         title="Xác nhận chuyển chế độ vận hành"
         description="Thao tác ảnh hưởng phạm vi chức năng được phép trên toàn hệ thống."
         footer={
           <>
-            <Button variant="outline" size="sm" disabled={isSaving} onClick={() => setIsConfirmOpen(false)}>Tiếp tục kiểm tra</Button>
-            <Button variant="default" size="sm" disabled={isSaving || (operationalModeReasonRequired && !modeReason.trim())} onClick={handleSaveMode}>
-              {isSaving ? 'Đang xử lý...' : 'Xác nhận chuyển chế độ'}
+            <Button variant="outline" size="sm" disabled={Boolean(pending)} onClick={() => setIsConfirmOpen(false)}>Tiếp tục kiểm tra</Button>
+            <Button variant="default" size="sm" disabled={!canConfirm} onClick={handleSaveMode}>
+              {pending === 'save' ? 'Đang xử lý...' : 'Xác nhận chuyển chế độ'}
             </Button>
           </>
         }
       >
+        {confirmationError && <InlineBanner variant={confirmationError.needsReload ? 'conflict' : 'error'}
+          actionLabel={confirmationError.needsReload && !pending ? 'Tải lại dữ liệu mới nhất' : undefined}
+          onAction={handleReloadMode}>
+          {pending === 'reload' ? 'Đang tải phiên bản mới nhất…' : confirmationError.message}
+        </InlineBanner>}
+        {!confirmationError && selectedMode === operationalMode && <InlineBanner variant="info">
+          Chế độ đã chọn đang được áp dụng trên máy chủ.
+        </InlineBanner>}
         {operationalModeReasonRequired ? (
           <div className="space-y-2">
             <label htmlFor="mode-change-reason" className="text-sm font-medium text-slate-700">Lý do chuyển chế độ</label>

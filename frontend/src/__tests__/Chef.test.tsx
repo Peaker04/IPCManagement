@@ -98,7 +98,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Trang sau' }));
 
-    expect(chefApi.getChefDashboardData).toHaveBeenLastCalledWith(expect.any(String), 'MORNING', 'customer-1', 2, 25);
+    expect(chefApi.getChefDashboardData).toHaveBeenLastCalledWith(expect.any(String), 'MORNING', 'customer-1', 2, 25, expect.any(AbortSignal));
   });
 
   it('handles API errors and retries the current customer/date/shift scope', async () => {
@@ -181,7 +181,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     const header = screen.getByRole('banner');
     expect(within(header).getByRole('button', { name: 'In phiếu nấu' })).toBeEnabled();
     expect(within(header).getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
-    expect(within(header).getByRole('button', { name: 'Tải Excel cả lô' })).toBeEnabled();
+    expect(within(header).getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeEnabled();
 
     // Forbidden fields & mutations MUST NOT exist
     expect(screen.queryByText(/Đơn giá/i)).not.toBeInTheDocument();
@@ -199,6 +199,30 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Tải file thất bại (HTTP 403)');
     expect(openSpy).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
+
+    const catalog = await mrxApi.getBatchPage();
+    vi.mocked(mrxApi.getBatchPage).mockResolvedValue({ ...catalog, totalCount: 2, items: [
+      ...catalog.items,
+      { ...catalog.items[0], batchId: 'batch-2', customerId: 'customer-2', customerCode: 'KH2', customerName: 'Khách thứ hai' },
+    ] });
+    const download = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json({
+      success: false, message: 'Lô của KH2 thiếu dữ liệu phiếu nấu.',
+    }, { status: 409 }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' }));
+    const dialog = screen.getByRole('dialog', { name: 'Xuất phiếu nấu Excel' });
+    expect(await within(dialog).findByRole('checkbox', { name: /lô đang xem/ })).toBeChecked();
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /Khách thứ hai/ }));
+    await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Ngày phục vụ' }), '2026-06-16');
+    await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Ca phục vụ' }), 'AFTERNOON');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Tải Excel · 2 lô' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Lô của KH2 thiếu dữ liệu phiếu nấu.');
+    const request = download.mock.calls.find(([url]) => String(url).includes('/kitchen-cooking/xlsx'))!;
+    const params = new URL(String(request[0]), 'http://localhost').searchParams;
+    expect(params.getAll('batchIds')).toEqual(['batch-1', 'batch-2']);
+    expect(params.get('weekStartDate')).toBe('2026-06-15');
+    expect(params.get('serviceDate')).toBe('2026-06-16');
+    expect(params.get('shift')).toBe('AFTERNOON');
+    await userEvent.click(within(dialog).getByRole('button', { name: /^Đóng$/ }));
 
     const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
     const printBtn = screen.getByRole('button', { name: 'In phiếu nấu' });
@@ -270,7 +294,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: 'Xem tất cả ca' }));
     expect(screen.getByRole('combobox', { name: 'Lọc theo ca nấu' })).toHaveValue('ALL');
@@ -349,7 +373,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(screen.queryByText(/được tạo từ phiên bản trước/)).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' })).toHaveValue('batch-incomplete');
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
     expect(screen.getByRole('searchbox', { name: 'Tìm món, nguyên liệu trong phiếu nấu' })).toBeDisabled();
     expect(screen.queryByRole('region', { name: /Món/ })).not.toBeInTheDocument();
@@ -379,7 +403,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(screen.queryByText('Gạo lô cũ')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeDisabled();
     await act(async () => { resolveCooking({ ...foreign, batchId: 'batch-target', sourceVersion: 3,
       rows: [{ ...foreign.rows[0], dishCode: 'MON-B', dishName: 'Món lô đang chọn', ingredientName: 'Gạo lô đang chọn' }] }); });
     expect(await screen.findByText('Món lô đang chọn')).toBeVisible();
@@ -394,12 +418,12 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' }), 'batch-foreign');
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeDisabled();
     await act(async () => { resolveNext(foreign); });
     expect(await screen.findByText('Món lô cũ')).toBeVisible();
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeEnabled();
   });
 
   it('keeps cooking URL scope through navigation and catalogue paging beyond the first fifty batches', async () => {

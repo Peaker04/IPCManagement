@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ArrowRight } from 'lucide-react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
@@ -25,44 +25,56 @@ interface DashboardSnapshot {
 
 export function DashboardPage() {
   const snapshot = serverStateCache.get<DashboardSnapshot>('snapshot:dashboard')?.data;
-  const cachedDashboard = snapshot?.data ?? serverStateCache.get<DashboardData>('dashboard_today')?.data;
+  const cachedDashboard = serverStateCache.get<DashboardData>('dashboard_today')?.data ?? snapshot?.data;
   const [data, setData] = useState<DashboardData | null>(() => cachedDashboard || null);
-  const [isLoading, setIsLoading] = useState(!cachedDashboard);
+  const [isFetching, setIsFetching] = useState(true);
+  const isLoading = isFetching && !data;
   const [error, setError] = useState<Error | null>(null);
   const [selectedMetricId, setSelectedMetricId] = useState<string | null>(() => snapshot?.selectedMetricId || null);
+  const activeRead = useRef<AbortController | null>(null);
   const navigate = useNavigate();
 
-  const handleRefresh = async () => {
-    if (!data) setIsLoading(true);
-    setError(null);
+  const load = useCallback(async (selection?: string | null) => {
+    activeRead.current?.abort();
+    const controller = new AbortController();
+    activeRead.current = controller;
     try {
-      const resp = await dashboardApi.getDashboardData();
+      const resp = await dashboardApi.getDashboardData({ signal: controller.signal });
+      if (controller.signal.aborted) return;
       setData(resp);
       serverStateCache.set('dashboard_today', resp);
-      serverStateCache.set('snapshot:dashboard', { data: resp, selectedMetricId });
+      if (selection !== undefined) {
+        serverStateCache.set('snapshot:dashboard', { data: resp, selectedMetricId: selection });
+      }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err : new Error('Không thể tải dữ liệu điều hành hôm nay.'));
+      if (!controller.signal.aborted) {
+        setError(err instanceof Error ? err : new Error('Không thể tải dữ liệu điều hành hôm nay.'));
+      }
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        activeRead.current = null;
+        setIsFetching(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
-    let ignore = false;
-    dashboardApi.getDashboardData()
-      .then((resp) => {
-        if (ignore) return;
-        setData(resp);
-        serverStateCache.set('dashboard_today', resp);
-      })
-      .catch((cause: unknown) => {
-        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu điều hành hôm nay.'));
-      })
-      .finally(() => {
-        if (!ignore) setIsLoading(false);
-      });
-    return () => { ignore = true; };
-  }, []);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled && !activeRead.current) void load();
+    });
+    return () => {
+      cancelled = true;
+      activeRead.current?.abort();
+      activeRead.current = null;
+    };
+  }, [load]);
+
+  const handleRefresh = () => {
+    setIsFetching(true);
+    setError(null);
+    return load(selectedMetricId);
+  };
 
   const filteredTasks = useMemo(() => {
     if (!data) return [];
@@ -171,7 +183,7 @@ export function DashboardPage() {
       {/* Zone 3: SplitView (Left: Tasks Table 8 cols | Right: 4-Stage Stepper 4 cols) */}
       <StateBoundary
         isLoading={isLoading}
-        isFetching={isLoading}
+        isFetching={isFetching}
         hasExistingData={Boolean(data && data.metrics.length > 0)}
         error={error}
         onRetry={handleRefresh}

@@ -77,8 +77,8 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
     try {
       await downloadAuthenticatedFile(mrxApi.getPreparationWorkbookExportUrl({
         ...(wholeWeek ? { weekStartDate: scopeDate } : { serviceDate: scopeDate }),
-        batchIds: activeSelectedBatchIds, includeMenus: true, isSupplemental: false,
-      }), `chuan-bi-${wholeWeek ? 'tuan' : 'ngay'}-${scopeDate}.xlsx`);
+        batchIds: activeSelectedBatchIds, layout: 'supplier-demand', isSupplemental: false,
+      }), `nhu-cau-theo-ncc-${wholeWeek ? 'tuan' : 'ngay'}-${scopeDate}.xlsx`);
     } catch (cause) {
       setDownloadError(cause instanceof Error ? cause.message : 'Không thể tải Excel chuẩn bị. Vui lòng thử lại.');
     } finally { setDownloading(false); }

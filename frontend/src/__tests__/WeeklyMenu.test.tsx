@@ -62,6 +62,8 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
       items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0, hasPrev: false, hasNext: false,
     });
     vi.spyOn(bomApi, 'getSupportedPriceTiers').mockResolvedValue([]);
+    vi.spyOn(bomApi, 'getMrxWeeklyCoverage').mockImplementation(async (customerId, weekStartDate, menuVersionId) =>
+      ({ customerId, weekStartDate, menuVersionId, priceTierAmount: 25000, missingDishes: [] }));
     vi.spyOn(mrxApi, 'getSourceChangeInbox').mockResolvedValue([]);
   });
   it('keeps the cold matrix skeleton until edit scope is ready and retries a scope read failure', async () => {
@@ -506,9 +508,11 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     const getBatch = vi.spyOn(mrxApi, 'getBatch').mockImplementation(() => new Promise(resolve => { resolveOld = resolve; }));
     const router = createMemoryRouter([{ path: '/weekly-menu', element: <WeeklyMenuPage /> }], { initialEntries: ['/weekly-menu?view=mrx-batch&customerId=customer-1&weekStartDate=2026-10-19'] });
     render(<AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}><RouterProvider router={router} /></AuthProvider>);
-    await waitFor(() => expect(getBatch).toHaveBeenCalledWith('old-batch'));
+    await waitFor(() => expect(getBatch).toHaveBeenCalledWith('old-batch', expect.any(AbortSignal)));
+    const oldRequest = getBatch.mock.calls[0][1];
     await act(async () => { await router.navigate('/weekly-menu?view=mrx-batch&customerId=customer-1&weekStartDate=2026-10-26'); });
-    await waitFor(() => expect(getSource).toHaveBeenCalledWith('customer-1', '2026-10-26'));
+    await waitFor(() => expect(getSource).toHaveBeenCalledWith('customer-1', '2026-10-26', expect.any(AbortSignal)));
+    expect(oldRequest?.aborted).toBe(true);
     await act(async () => resolveOld(oldBatch));
     expect(screen.getByRole('textbox', { name: 'Tuần MRX bắt đầu' })).toHaveValue('26/10/2026');
     expect(workspaceSessionStore.getScope()).toMatchObject({ customerId: 'customer-1', weekStartDate: '2026-10-26', batchId: '' });
@@ -548,10 +552,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     await userEvent.click(await screen.findByRole('button', { name: 'Lưu & kiểm tra định lượng' }));
 
     expect(await screen.findByText('Món Canh bí đỏ chưa có định mức nguyên liệu.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Mở món thiếu BOM →' })).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Nhập BOM Excel cho các món thiếu' }));
-    expect(await screen.findByText(/Với nguyên liệu mới, để trống mã nguyên liệu/)).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Đóng' }));
+    expect(screen.queryByRole('button', { name: 'Bổ sung BOM' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
     expect(screen.getAllByText('Canh bí đỏ').length).toBeGreaterThan(0);
     expect(screen.queryByText('Tóm tắt định lượng và nguyên liệu')).not.toBeInTheDocument();
@@ -905,6 +906,31 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     const result = await weeklyMenuApi.getWeeklyMenuData('DAV', '2026-10-12');
     expect(result.matrixRows).toEqual([]);
     expect(result.scheduleDays).toEqual([]);
+  });
+
+  it('keeps a dish on its service date when another day is absent from that slot', async () => {
+    vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue({
+      ...MOCK_WEEKLY_MENU_DATA,
+      scheduleDays: MOCK_WEEKLY_MENU_DATA.scheduleDays.slice(0, 2),
+      matrixRows: [{
+        ...MOCK_WEEKLY_MENU_DATA.matrixRows[0],
+        days: { '2026-09-22': 'Thịt kho trứng cút' },
+      }],
+    });
+    renderWeeklyMenu('/weekly-menu');
+    const row = await screen.findByRole('row', { name: /Món chính.*Thịt kho trứng cút/ });
+    const cells = within(row).getAllByRole('cell');
+    expect(cells[1]).not.toHaveTextContent('Thịt kho trứng cút');
+    expect(cells[2]).toHaveTextContent('Thịt kho trứng cút');
+  });
+
+  it('keeps a forbidden material-demand response distinct from an empty result', async () => {
+    vi.spyOn(weeklyMenuApi, 'getWeeklyMenu').mockResolvedValueOnce(null as unknown as RawWeeklyMenuResponse);
+    vi.spyOn(weeklyMenuApi, 'getProductionPlans').mockResolvedValueOnce([]);
+    vi.spyOn(weeklyMenuApi, 'getAllDemand').mockRejectedValueOnce(new ApiError(403, 'Không có quyền đọc nhu cầu'));
+    renderWeeklyMenu('/weekly-menu?view=demand');
+    expect(await screen.findByText('Truy cập bị hạn chế')).toBeVisible();
+    expect(screen.queryByText('Chưa có nhu cầu nguyên liệu cho tuần này')).not.toBeInTheDocument();
   });
 
   it('View 1 (Kế hoạch tuần): renders Mon-Sat matrix without duplicate subbar tabs or repetitive cell text', async () => {

@@ -44,7 +44,7 @@ export function useReconciliationReports({ activeReportTab, batchId, auditSubTab
   const auditTabKey = `${batchId}_${auditSubTab}`;
   const [auditSearchState, setAuditSearchState] = useState({ key: batchId, value: '' });
   const auditSearch = auditSearchState.key === batchId ? auditSearchState.value : '';
-  const settledSearchState = useDebouncedValue(auditSearchState, 250);
+  const settledSearchState = useDebouncedValue(auditSearchState, 300);
   const settledSearch = settledSearchState.key === batchId ? settledSearchState.value : '';
   const auditScope = `${auditTabKey}_${settledSearch}`;
   const [auditPageState, setAuditPageState] = useState({ key: auditScope, page: 1 });
@@ -64,55 +64,55 @@ export function useReconciliationReports({ activeReportTab, batchId, auditSubTab
   if (enabled && warmEntry && !warmEntry.isStale && state?.key !== cacheKey) {
     setState({ key: cacheKey, scope: reportScope, tabScope, page, data: warmEntry.data, error: null, loading: false });
   }
-  const requestId = useRef(0);
+  const readController = useRef<AbortController | null>(null);
 
-  const readReport = useCallback(async (force: boolean): Promise<ReportData> => {
+  const readReport = useCallback(async (force: boolean, signal: AbortSignal): Promise<ReportData> => {
     const cached = !force ? serverStateCache.get<ReportData>(cacheKey) : null;
     if (cached && !cached.isStale) return cached.data;
     if (activeReportTab === 'completed') {
       if (completedScope.error) throw new Error(completedScope.error);
       const scope = JSON.parse(completedFilterKey) as { customerId?: string; weekFrom?: string; weekTo?: string };
-      return { completedReport: await (Object.keys(scope).length ? mrxApi.getCompletedRegister(completedPage, 50, scope) : mrxApi.getCompletedRegister(completedPage, 50)) };
+      return { completedReport: await mrxApi.getCompletedRegister(completedPage, 50, scope, signal) };
     }
-    if (activeReportTab === 'variances') return { variancesReport: await mrxApi.getVarianceRegister(batchId) };
-    if (activeReportTab === 'transactions') return { transactionsReport: await mrxApi.getTransactionsHistory({ batchId, pageNumber: transactionPage, pageSize: 25 }) };
-    if (auditSubTab === 'source') return { sourceReport: await mrxApi.getSourceChangesPage(batchId, auditPage, 50, settledSearch) };
-    return { auditReport: await (settledSearch ? mrxApi.getAuditTrail(batchId, auditPage, 50, settledSearch) : mrxApi.getAuditTrail(batchId, auditPage, 50)) };
+    if (activeReportTab === 'variances') return { variancesReport: await mrxApi.getVarianceRegister(batchId, undefined, signal) };
+    if (activeReportTab === 'transactions') return { transactionsReport: await mrxApi.getTransactionsHistory({ batchId, pageNumber: transactionPage, pageSize: 25 }, signal) };
+    if (auditSubTab === 'source') return { sourceReport: await mrxApi.getSourceChangesPage(batchId, auditPage, 50, settledSearch, signal) };
+    return { auditReport: await mrxApi.getAuditTrail(batchId, auditPage, 50, settledSearch, signal) };
   }, [cacheKey, activeReportTab, batchId, transactionPage, completedPage, auditPage, auditSubTab, completedFilterKey, completedScope.error, settledSearch]);
 
   const fetchReport = useCallback(async (force = false) => {
     if (!enabled) return;
-    const id = ++requestId.current;
-    const cached = (state?.key === cacheKey ? state.data : null) ?? serverStateCache.get<ReportData>(cacheKey)?.data ?? null;
+    readController.current?.abort();
+    const controller = new AbortController();
+    readController.current = controller;
     try {
-      const data = await readReport(force);
-      if (id !== requestId.current) return;
+      const data = await readReport(force, controller.signal);
+      if (controller.signal.aborted) return;
       if (serverStateCache.get<ReportData>(cacheKey)?.data !== data) serverStateCache.set(cacheKey, data);
       setState({ key: cacheKey, scope: reportScope, tabScope, page, data, error: null, loading: false });
     } catch (cause) {
-      if (id !== requestId.current) return;
+      if (controller.signal.aborted) return;
       const blocking = cause instanceof ApiError && cause.status < 500;
       if (blocking) serverStateCache.delete(cacheKey);
-      setState({ key: cacheKey, scope: reportScope, tabScope, page, data: blocking ? null : cached, error: cause instanceof Error ? cause : new Error('Không thể tải báo cáo đối soát.'), loading: false });
+      const cached = blocking ? null : serverStateCache.get<ReportData>(cacheKey)?.data ?? null;
+      setState(previous => ({
+        key: cacheKey, scope: reportScope, tabScope, page,
+        data: blocking ? null : (previous?.key === cacheKey ? previous.data : null) ?? cached,
+        error: cause instanceof Error ? cause : new Error('Không thể tải báo cáo đối soát.'), loading: false,
+      }));
+    } finally {
+      if (readController.current === controller) readController.current = null;
     }
-  }, [enabled, cacheKey, readReport, reportScope, tabScope, page, state]);
+  }, [enabled, cacheKey, readReport, reportScope, tabScope, page]);
 
   useEffect(() => {
-    if (!enabled) return;
-    const id = ++requestId.current;
-    readReport(false).then((data) => {
-      if (id !== requestId.current) return;
-      if (serverStateCache.get<ReportData>(cacheKey)?.data !== data) serverStateCache.set(cacheKey, data);
-      setState({ key: cacheKey, scope: reportScope, tabScope, page, data, error: null, loading: false });
-    }).catch((cause: unknown) => {
-      if (id !== requestId.current) return;
-      const blocking = cause instanceof ApiError && cause.status < 500;
-      if (blocking) serverStateCache.delete(cacheKey);
-      setState({ key: cacheKey, scope: reportScope, tabScope, page, data: blocking ? null : serverStateCache.get<ReportData>(cacheKey)?.data ?? null,
-        error: cause instanceof Error ? cause : new Error('Không thể tải báo cáo đối soát.'), loading: false });
-    });
-    return () => { requestId.current += 1; };
-  }, [enabled, cacheKey, readReport, reportScope, tabScope, page]);
+    let active = true;
+    queueMicrotask(() => { if (active) void fetchReport(); });
+    return () => {
+      active = false;
+      readController.current?.abort();
+    };
+  }, [fetchReport]);
 
   const current = state?.key === cacheKey ? state : null;
   const currentData = current?.data ?? serverStateCache.get<ReportData>(cacheKey)?.data;

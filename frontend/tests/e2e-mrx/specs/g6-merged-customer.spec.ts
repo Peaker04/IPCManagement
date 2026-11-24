@@ -1,10 +1,25 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/mrxTest';
 import { respectApiBudget } from '../fixtures/authHelpers';
-import { createTransferredBatch, scenarioScope, parseCookingFile, writeBomImportWorkbook } from '../fixtures/mrxWorkflow';
+import { downloadRetainedMrxWorkbook, createTransferredBatch, scenarioScope, parseCookingFile, writeBomImportWorkbook } from '../fixtures/mrxWorkflow';
 import type { StockSnapshot } from '../core/mysqlVerifier';
 import type { MrxEditScope, MrxKitchenCooking, MrxWarehouseDaily } from '../../../src/api/mrxApi';
+
+async function importLegacyCustomerBom(page: Page, file: string, customerId: string) {
+  const token = await page.evaluate(() => localStorage.getItem('ipc_v3_token'));
+  const post = (action: 'preview' | 'commit') => page.request.post(`/api/Dishes/bom-import/${action}`, {
+    headers: { Authorization: `Bearer ${token}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION' },
+    multipart: { File: fs.createReadStream(file), PriceTier: '25000', CustomerId: customerId },
+  });
+  const preview = await post('preview');
+  expect(preview.status(), await preview.text()).toBe(200);
+  expect((await preview.json()).data.canCommit).toBe(true);
+  const commit = await post('commit');
+  expect(commit.status(), await commit.text()).toBe(200);
+  return { status: commit.status(), ...(await commit.json()).data };
+}
 
 test.setTimeout(360_000);
 test.use({ actionTimeout: 15_000 });
@@ -192,25 +207,9 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   }
   async function importCustomerBom(file: string, createdRows: number) {
     await respectApiBudget(adminPage);
-    const page = await adminPage.context().newPage();
-    try {
-      await page.goto('/admin-data?view=bom');
-      await page.getByRole('button', { name: 'Nhập BOM Excel', exact: true }).click();
-      await page.getByLabel('Phạm vi áp dụng BOM', { exact: true }).selectOption(customerId);
-      await page.getByLabel('Chọn file Excel định mức BOM', { exact: true }).setInputFiles(file);
-      const preview = page.waitForResponse((r) => r.url().endsWith('/bom-import/preview') && r.request().method() === 'POST');
-      await page.getByRole('button', { name: 'Xem trước', exact: true }).click();
-      const previewResponse = await preview;
-      expect(previewResponse.status()).toBe(200);
-      expect((await previewResponse.json()).data.canCommit).toBe(true);
-      const commit = page.waitForResponse((r) => r.url().endsWith('/bom-import/commit') && r.request().method() === 'POST');
-      await page.getByRole('button', { name: 'Xác nhận nhập BOM hàng loạt', exact: true }).click();
-      const committed = await commit;
-      expect(committed.status()).toBe(200);
-      const result = (await committed.json()).data;
-      expect(result.createdRows).toBe(createdRows);
-      expect(result.updatedRows).toBe(0);
-    } finally { await page.close(); }
+    const result = await importLegacyCustomerBom(adminPage, file, customerId);
+    expect(result.createdRows).toBe(createdRows);
+    expect(result.updatedRows).toBe(0);
   }
   const dishCode = `UP${scope.caseId.replace(/[^a-z0-9]/gi, '')}`.toUpperCase();
   const dishName = `MÓN MỚI ĐẬU ${dishCode}`;
@@ -287,29 +286,13 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   const conversion = dbVerifier.query<{ingredient:string;canonical:string;compatible:string;incompatible:string;gross:string;convertedGross:string}>(`SELECT i.ingredientCode AS ingredient, cu.unitCode AS canonical, good.unitCode AS compatible, bad.unitCode AS incompatible, CAST(b.grossQtyPerServing AS CHAR) AS gross, CAST(CAST(b.grossQtyPerServing*cu.convertRateToBase/good.convertRateToBase AS DECIMAL(18,6)) AS CHAR) AS convertedGross FROM dishbom b JOIN ingredients i ON i.ingredientId=b.ingredientId JOIN units cu ON cu.unitId=i.unitId JOIN units good ON UPPER(good.baseUnitCode)=UPPER(cu.baseUnitCode) AND good.unitId<>cu.unitId AND good.convertRateToBase>0 AND good.convertRateToBase<>cu.convertRateToBase JOIN units bad ON UPPER(bad.baseUnitCode)<>UPPER(cu.baseUnitCode) AND bad.convertRateToBase>0 WHERE b.dishId=UNHEX('${binaryId(dishes[3].dishId!)}') AND b.unitId=cu.unitId AND b.bomStatus='PUBLISHED' AND b.priceTierAmount=25000 AND (b.customerId IS NULL OR b.customerId=UNHEX('${binaryId(customerId)}')) AND b.effectiveFrom<='${scope.weekStartDate}' AND (b.effectiveTo IS NULL OR b.effectiveTo>='${scope.weekStartDate}') ORDER BY cu.unitCode,good.unitCode,bad.unitCode LIMIT 1;`);
   expect(conversion, 'Prerequisite uses the declared alternate-unit fixture plus existing canonical/incompatible units.').toHaveLength(1);
   const units = conversion[0];
-  const bomPage = await adminPage.context().newPage();
-  await bomPage.goto('/admin-data?view=bom');
-  await bomPage.getByRole('button', {name:'Nhập BOM Excel',exact:true}).click();
-  await bomPage.getByLabel('Phạm vi áp dụng BOM',{exact:true}).selectOption(customerId);
   async function importConversionBom(rows: {unit:string;quantity:string;status:string}[], label:string) {
     await respectApiBudget(adminPage);
     const file=path.join(evidence,`approved-conversion-${label}.xlsx`);
     writeBomImportWorkbook(file, rows.map(row => ({ dishCode: dishes[3].dishCode!, ingredientCode: units.ingredient, unitCode: row.unit, quantity: row.quantity, status: row.status, date: scope.weekStartDate, note: `${scope.reason} điều kiện định mức đã duyệt ${label}` })));
-    await bomPage.getByLabel('Chọn file Excel định mức BOM',{exact:true}).setInputFiles(file);
-    const preview=bomPage.waitForResponse((r)=>r.url().endsWith('/bom-import/preview') && r.request().method()==='POST');
-    await bomPage.getByRole('button',{name:'Xem trước',exact:true}).click();
-    const previewResponse=await preview;
-    expect(previewResponse.status(),await previewResponse.text()).toBe(200);
-    expect((await previewResponse.json()).data.canCommit).toBe(true);
-    const commit=bomPage.waitForResponse((r)=>r.url().endsWith('/bom-import/commit') && r.request().method()==='POST');
-    await bomPage.getByRole('button',{name:'Xác nhận nhập BOM hàng loạt',exact:true}).click();
-    const response=await commit;
-    expect(response.status(),await response.text()).toBe(200);
-    const committed=(await response.json()).data;
+    const committed = await importLegacyCustomerBom(adminPage, file, customerId);
     expect(committed.createdRows+committed.updatedRows).toBe(rows.length);
-    await expect(bomPage.getByText(`Đã nhập thành công ${committed.createdRows + committed.updatedRows} dòng BOM (${committed.createdRows} tạo mới, ${committed.updatedRows} cập nhật) cho catalog.`, { exact: true })).toBeVisible();
-    await bomPage.screenshot({ path: path.join(evidence, `bom-count-${label}.png`) });
-    return {file,status:response.status(),createdRows:committed.createdRows,updatedRows:committed.updatedRows,archivedRows:committed.archivedRows};
+    return {file,status:committed.status,createdRows:committed.createdRows,updatedRows:committed.updatedRows,archivedRows:committed.archivedRows};
   }
   const badFixture=await importConversionBom([{unit:units.incompatible,quantity:units.gross,status:'PUBLISHED'}],'incompatible');
   const noWriteSql='CHECKSUM TABLE menuversions,menuschedules,menuitems,mealquantityplanlines,reconciliationbatches,reconciliationbatchdailylines,reconciliationbatchcontributors,reconciliationsourcerevisions,inventoryissues,inventoryissuelines,currentstock,currentstocklots,stockmovements,dishbom,auditlogs;';
@@ -324,7 +307,6 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   await expect(adminPage.getByText('Đơn vị nguyên liệu chưa có quy đổi chuẩn hợp lệ.',{exact:true})).toBeVisible();
   await expect(adminPage.getByRole('button',{name:'Áp dụng ngay',exact:true})).toHaveCount(0);
   const goodFixture=await importConversionBom([{unit:units.incompatible,quantity:units.gross,status:'ARCHIVED'},{unit:units.compatible,quantity:units.convertedGross,status:'PUBLISHED'}],'compatible');
-  await bomPage.close();
   await applyAndCheck('valid-conversion', [dishes[1],dishes[1],dishes[0],dishes[3]].map((d)=>d.dishId!),1251);
   fs.writeFileSync(path.join(evidence,'approved-conversion-prerequisites.json'),JSON.stringify({scope:'clone-only declared alternate-unit fixture plus customer/day BOM; no stock seeds; existing units unchanged',customerId,date:scope.weekStartDate,dishId:dishes[3].dishId,units,badFixture,goodFixture,invalidStatus:400,noOperationalWritesAfterBadFixture:true,validSourceApplied:true},null,2));
   const acceptedSource = await readScope();
@@ -388,7 +370,8 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   for (const format of ['csv','xlsx'] as const) {
     const downloaded = beptruongPage.waitForEvent('download', { timeout: 15_000 }).catch(() => null);
     const responsePromise = beptruongPage.context().waitForEvent('response', { predicate: (r) => r.url().endsWith(`/batches/${batchId}/kitchen-cooking/${format}`), timeout: 15_000 });
-    await beptruongPage.getByRole('button', { name: format === 'csv' ? 'Tải CSV cả lô' : 'Tải Excel cả lô', exact: true }).click();
+    if (format === 'csv') await beptruongPage.getByRole('button', { name: 'Tải CSV cả lô', exact: true }).click();
+    else await downloadRetainedMrxWorkbook(beptruongPage, `/api/reconciliation/batches/${batchId}/kitchen-cooking/xlsx`);
     const response = await responsePromise;
     expect(response.status(), 'Chef export must authenticate the real download, not open a login/error page').toBe(200);
     const download = await downloaded;
@@ -573,8 +556,11 @@ test('@G6-Menu-Reimport-BOM bulk missing BOM preview, correction, commit and cas
   writeBomImportWorkbook(invalidFile, rows.map((row, index) => index === 2 ? { ...row, unitCode: 'INVALID_UNIT' } : row));
   writeBomImportWorkbook(validFile, rows);
   const beforeBom = dbVerifier.query('CHECKSUM TABLE dishbom,ingredients;');
-  await adminPage.goto('/admin-data?view=bom');
+  await adminPage.goto('/admin-data?view=bom&bomPriceTier=25000');
   await adminPage.getByRole('button', { name: 'Nhập BOM Excel', exact: true }).click();
+  const start = adminPage.getByRole('textbox', { name: 'Ngày áp dụng bản chỉnh sửa' });
+  await start.fill(scope.weekStartDate.split('-').reverse().join('/'));
+  await start.press('Tab');
   const input = adminPage.getByLabel('Chọn file Excel định mức BOM', { exact: true });
   await input.setInputFiles(invalidFile);
   const invalidPreview = adminPage.waitForResponse(response => response.url().endsWith('/bom-import/preview') && response.request().method() === 'POST');
@@ -591,7 +577,7 @@ test('@G6-Menu-Reimport-BOM bulk missing BOM preview, correction, commit and cas
   const validResponse = await validPreview;
   expect(validResponse.status()).toBe(200);
   expect((await validResponse.json()).data.canCommit).toBe(true);
-  const codeCell = adminPage.getByTestId('bom-preview-viewport').locator('tbody tr').first().locator('td').nth(3);
+  const codeCell = adminPage.getByTestId('bom-preview-viewport').getByRole('button', { name: /^Sao chép ING-/ }).first().locator('xpath=ancestor::td');
   const codeGeometry = async () => codeCell.evaluate(cell => ({ cellRight: cell.getBoundingClientRect().right, codeRight: cell.querySelector('button')!.getBoundingClientRect().right }));
   expect((await codeGeometry()).codeRight).toBeLessThanOrEqual((await codeGeometry()).cellRight + 1);
   await adminPage.screenshot({ path: path.join(evidence, 'missing-bom-corrected-preview.png') });
@@ -617,8 +603,10 @@ test('@G6-Menu-Reimport-BOM bulk missing BOM preview, correction, commit and cas
   const beforeRepeat = dbVerifier.query('CHECKSUM TABLE dishbom,ingredients;');
   const repeatFile = path.join(evidence, 'missing-bom-case-variant-repeat.xlsx');
   writeBomImportWorkbook(repeatFile, rows.map(row => ({ ...row, ingredientName: ingredientName.toUpperCase() })));
-  await adminPage.goto('/admin-data?view=bom');
+  await adminPage.goto('/admin-data?view=bom&bomPriceTier=25000');
   await adminPage.getByRole('button', { name: 'Nhập BOM Excel', exact: true }).click();
+  await start.fill(scope.weekStartDate.split('-').reverse().join('/'));
+  await start.press('Tab');
   await adminPage.getByLabel('Chọn file Excel định mức BOM', { exact: true }).setInputFiles(repeatFile);
   const repeatPreview = adminPage.waitForResponse(response => response.url().endsWith('/bom-import/preview') && response.request().method() === 'POST');
   await adminPage.getByRole('button', { name: 'Xem trước', exact: true }).click();

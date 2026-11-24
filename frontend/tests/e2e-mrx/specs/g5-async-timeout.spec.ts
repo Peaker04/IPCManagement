@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, expect } from '../fixtures/mrxTest';
-import { createTransferredBatch, scenarioScope, parseCookingFile, captureStationUI } from '../fixtures/mrxWorkflow';
+import { downloadRetainedMrxWorkbook, createTransferredBatch, scenarioScope, parseCookingFile, captureStationUI } from '../fixtures/mrxWorkflow';
 import type { StockSnapshot } from '../core/mysqlVerifier';
 import { readQualificationCredentials, respectApiBudget, respectLoginBudget } from '../fixtures/authHelpers';
 import type { CreateMrxIssueRequest, MrxIssueCreated, MrxWarehouseDaily, CreateCoordinatedPreparationIssueRequest, CoordinatedPreparationIssueResult, MrxPreparation, MrxKitchenCooking } from '../../../src/api/mrxApi';
@@ -77,7 +77,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       await thukhoPage.getByRole('button', { name: submitName, exact: true }).click();
       const alert = thukhoPage.getByRole('alert');
       await expect(alert).toContainText('Chưa xác nhận được kết quả xuất kho');
-      await expect(alert.getByRole('button', { name: 'Tải lại để kiểm tra kết quả' })).toBeEnabled();
+      await expect(alert.getByRole('button', { name: 'Gửi lại cùng mã lệnh' })).toBeEnabled();
       await expect(thukhoPage.getByRole('button', { name: submitName, exact: true })).toBeDisabled();
       if (supplemental) {
         await expect(thukhoPage.getByLabel('Số lượng xuất thêm', { exact: true })).toHaveValue('1');
@@ -105,20 +105,18 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     const versionSql = `SELECT version FROM reconciliationbatches WHERE batchId=UNHEX('${batchHex}');`;
     const versionBeforeReplay = dbVerifier.query(versionSql);
     expect(Number(versionBeforeReplay[0].version)).toBe(command.expectedVersion + 1);
-    const replay = await thukhoPage.evaluate(async (body) => {
-      const token = localStorage.getItem('ipc_v3_token');
-      const response = await fetch('/api/inventory-issues', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-Operational-Mode': 'MATERIAL_RECONCILIATION' }, body: JSON.stringify(body) });
-      return { status: response.status, body: await response.json() };
-    }, command);
-    expect(replay.status).toBe(201);
-    expect(replay.body.data).toEqual(committed);
+    const replayResponse = thukhoPage.waitForResponse(response => response.url().endsWith('/api/inventory-issues') && response.request().method() === 'POST');
+    await thukhoPage.getByRole('button', { name: 'Gửi lại cùng mã lệnh', exact: true }).click();
+    const replay = await replayResponse;
+    expect(replay.request().postDataJSON()).toEqual(command);
+    expect(replay.status()).toBe(201);
+    expect((await replay.json()).data).toEqual(committed);
     expect(dbVerifier.query(receiptSql)).toEqual(receiptsBeforeReplay);
     expect(dbVerifier.query(versionSql)).toEqual(versionBeforeReplay);
     const expectedIds = [committed.issueId, ...(predecessorIssueId ? [predecessorIssueId] : [])].map((id) => ({ id: binaryId(id) })).sort((a, b) => a.id.localeCompare(b.id));
     expect(dbVerifier.query(`SELECT HEX(issueId) AS id FROM inventoryissues WHERE reconciliationBatchId=UNHEX('${batchHex}') ORDER BY id;`)).toEqual(expectedIds);
     if (predecessorIssueId) expect(dbVerifier.query(`SELECT HEX(issueLineId) AS id, CAST(issuedQty AS CHAR) AS quantity FROM inventoryissuelines WHERE issueId=UNHEX('${binaryId(predecessorIssueId)}') ORDER BY id;`)).toEqual(predecessorRows);
     for (const [id, snapshot] of stocksAfterCommit) expect(dbVerifier.captureStockSnapshot(id)).toEqual(snapshot);
-    await thukhoPage.getByRole('button', { name: 'Tải lại để kiểm tra kết quả', exact: true }).click();
     await expect(thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true })).toBeVisible();
     await expect(thukhoPage.getByRole('button', { name: new RegExp(`^Lịch sử phiếu \\(\\s*${issueCount}\\s*\\)$`) })).toBeVisible();
     await expect(thukhoPage.getByRole('alert')).toHaveCount(0);
@@ -134,12 +132,12 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       expect(actual?.remainingQuantity).toBe(0);
     }
     await thukhoPage.screenshot({ path: path.join(evidence, `15-response-lost-recovered${artifactSuffix}.png`) });
-    fs.writeFileSync(path.join(evidence, `response-loss-result${artifactSuffix}.json`), JSON.stringify({ batchId, commandId: command.commandId, issueId: committed.issueId, commitStatus: 201, replayStatus: replay.status, issueCount, supplemental, predecessorRetained: supplemental ? true : undefined, unchangedReceipt: true, unchangedVersionAfterReplay: true, unchangedStocksAndMovementsAfterReplay: true, verifiedIngredientCount: stocksAfterCommit.size }, null, 2));
+    fs.writeFileSync(path.join(evidence, `response-loss-result${artifactSuffix}.json`), JSON.stringify({ batchId, commandId: command.commandId, issueId: committed.issueId, commitStatus: 201, replayStatus: replay.status(), issueCount, supplemental, predecessorRetained: supplemental ? true : undefined, unchangedReceipt: true, unchangedVersionAfterReplay: true, unchangedStocksAndMovementsAfterReplay: true, verifiedIngredientCount: stocksAfterCommit.size }, null, 2));
     console.log(`[G5] ${supplemental ? 'Supplemental' : 'Initial'} real201 committed response dropped; exact command replay returns same issue/receipt, no new stock/lot/movement/version effect; real recovery action reloads history${issueCount}.`);
   });
   }
 
-  test('@G5-Session Same actor recovers the original draft after 401; foreign/stale drafts stay unavailable, one issue and unchanged physical stock', async ({ dieuphoiPage, adminPage, thukhoPage, dbVerifier }) => {
+  test('@G5-Session Same actor retries the original command after 401; foreign or invalid commands stay unavailable, one issue and unchanged physical stock', async ({ dieuphoiPage, adminPage, thukhoPage, dbVerifier }) => {
     test.setTimeout(240_000);
     const scope = scenarioScope(dbVerifier, 4);
     const evidence = process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
@@ -184,23 +182,21 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       const key = Object.keys(localStorage).find(item => item.endsWith(`mrx_initial_${id}_${date}`));
       const raw = key ? localStorage.getItem(key) : null;
       const draft = raw ? JSON.parse(raw) : null;
-      return { present: Boolean(raw), version: draft?.version, outcomeUnknown: draft?.outcomeUnknown, selectedQuantity: draft?.quantities?.[lineId] };
+      return { present: Boolean(raw), version: draft?.request?.expectedVersion, commandId: draft?.request?.commandId, selectedQuantity: draft?.request?.lines.find((line: { reconciliationBatchDailyLineId: string }) => line.reconciliationBatchDailyLineId === lineId)?.issuedQty };
     }, { id: batchId, date: scope.weekStartDate, lineId: selected.dailyLineId });
     fs.writeFileSync(path.join(evidence, 'precommit-transport-no-write.json'), JSON.stringify({ batchId, commandId: precommit!.commandId,
       fault: 'Playwright abort before route forwarding; not a natural network incident', serverCommandNotForwarded: true,
       noIssue: true, noReceipt: true, unchangedVersionAndStocks: true, draftBeforeReload: quarantinedDraft, recovery: 'NOT_REACHED' }, null, 2));
-    await thukhoPage.getByRole('button', { name: 'Tải lại để kiểm tra kết quả', exact: true }).click();
-    await expect(thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true })).toBeVisible();
-    await thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true }).click();
-    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2,75');
+    expect(quarantinedDraft.selectedQuantity).toBe(2.75);
+    await thukhoPage.reload();
+    await expect(thukhoPage.getByRole('button', { name: 'Gửi lại cùng mã lệnh', exact: true })).toBeEnabled();
     await expect(thukhoPage.getByRole('button', { name: /^Lịch sử phiếu \(\s*0\s*\)$/ })).toBeVisible();
-    fs.writeFileSync(path.join(evidence, 'precommit-transport-no-write.json'), JSON.stringify({batchId,commandId:precommit!.commandId,fault:'Playwright abort before route forwarding; not a natural network incident',serverCommandNotForwarded:true,noIssue:true,noReceipt:true,unchangedVersionAndStocks:true,draftQuantityAfterExplicitRecovery:'2.75'},null,2));
     const saved = await thukhoPage.evaluate(({ id, date }) => {
       const key = Object.keys(localStorage).find((item) => item.endsWith(`mrx_initial_${id}_${date}`));
       if (!key) throw new Error('Actual pre-submit draft snapshot missing.');
       return { key, json: localStorage.getItem(key)! };
     }, { id: batchId, date: scope.weekStartDate });
-    expect(JSON.parse(saved.json).commandId).toBe(precommit!.commandId);
+    expect(JSON.parse(saved.json).request).toEqual(precommit);
     await respectApiBudget(adminPage);
     await adminPage.goto(url);
     await adminPage.evaluate(({ key, json }) => localStorage.setItem(key, json), saved);
@@ -208,35 +204,29 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     await expect(adminPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toBeVisible();
     expect(new URL(adminPage.url()).searchParams.get('batchId')).toBe(batchId);
     expect(new URL(adminPage.url()).searchParams.get('date')).toBe(scope.weekStartDate);
-    await expect(adminPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true })).toHaveCount(0);
-    for (const invalid of ['stale-version', 'missing-command', 'invalid-command']) {
+    await expect(adminPage.getByRole('button', { name: 'Gửi lại cùng mã lệnh', exact: true })).toHaveCount(0);
+    for (const invalid of ['wrong-batch', 'missing-command', 'invalid-command']) {
       await respectApiBudget(thukhoPage, 32);
       await thukhoPage.evaluate(({ key, json, invalid }) => {
         const draft = JSON.parse(json);
-        if (invalid === 'stale-version') draft.version += 1;
-        else draft.commandId = invalid === 'missing-command' ? undefined : 'not-a-command-uuid';
+        if (invalid === 'wrong-batch') draft.request.reconciliationBatchId = 'another-batch';
+        else draft.request.commandId = invalid === 'missing-command' ? undefined : 'not-a-command-uuid';
         localStorage.setItem(key, JSON.stringify(draft));
       }, { ...saved, invalid });
       await thukhoPage.reload();
       await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toBeVisible();
       expect(new URL(thukhoPage.url()).searchParams.get('batchId')).toBe(batchId);
       expect(new URL(thukhoPage.url()).searchParams.get('date')).toBe(scope.weekStartDate);
-      await expect(thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true })).toHaveCount(0);
+      await expect(thukhoPage.getByRole('button', { name: 'Gửi lại cùng mã lệnh', exact: true })).toHaveCount(0);
     }
     await thukhoPage.evaluate(({ key, json }) => localStorage.setItem(key, json), saved);
     await thukhoPage.reload();
-    await thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true }).click();
-    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2,75');
-    await expect(thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true })).toBeEnabled();
-    await respectApiBudget(thukhoPage);
-    await thukhoPage.reload();
-    await thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true }).click();
-    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2,75');
+    await expect(thukhoPage.getByRole('button', { name: 'Gửi lại cùng mã lệnh', exact: true })).toBeEnabled();
     await respectApiBudget(thukhoPage);
     // Model a genuinely missing browser session; the unmodified server must deny the actual POST.
     await thukhoPage.evaluate(() => localStorage.removeItem('ipc_v3_token'));
     const deniedResponse = thukhoPage.waitForResponse((response) => response.url().endsWith('/api/inventory-issues') && response.request().method() === 'POST');
-    await thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }).click();
+    await thukhoPage.getByRole('button', { name: 'Gửi lại cùng mã lệnh', exact: true }).click();
     const denied = await deniedResponse;
     expect(denied.status()).toBe(401);
     const commandId = denied.request().postDataJSON().commandId as string;
@@ -244,7 +234,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     const reauthDialog = thukhoPage.getByRole('dialog', { name: 'Phiên làm việc ca đã hết hạn (401)', exact: true });
     await expect(reauthDialog).toBeVisible();
     expect(new URL(thukhoPage.url()).pathname).toBe('/warehouse');
-    expect(JSON.parse((await thukhoPage.evaluate((key) => localStorage.getItem(key), saved.key))!).quantities[selected.dailyLineId]).toBe('2.75');
+    expect(JSON.parse((await thukhoPage.evaluate((key) => localStorage.getItem(key), saved.key))!).request).toEqual(precommit);
     expect(issueSubmits).toBe(2);
     expect(dbVerifier.query(versionSql)).toEqual(beforeVersion);
     expect(dbVerifier.query(`SELECT HEX(issueId) AS id FROM inventoryissues WHERE reconciliationBatchId=UNHEX('${binaryId(batchId)}');`)).toHaveLength(0);
@@ -265,9 +255,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     await respectApiBudget(thukhoPage);
     await thukhoPage.goto(url);
     await thukhoPage.reload();
-    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toBeVisible();
-    await thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true }).click();
-    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2,75');
+    await expect(thukhoPage.getByRole('button', { name: 'Gửi lại cùng mã lệnh', exact: true })).toBeEnabled();
     expect(issueSubmits).toBe(2);
     expect(dbVerifier.query(versionSql)).toEqual(beforeVersion);
     expect(dbVerifier.query(`SELECT HEX(issueId) AS id FROM inventoryissues WHERE reconciliationBatchId=UNHEX('${binaryId(batchId)}');`)).toHaveLength(0);
@@ -277,14 +265,13 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     // Submit recovered values unchanged; no replacement entry after login.
     await thukhoPage.screenshot({ path: path.join(evidence, '16-session-original-draft-restored.png') });
     const submitted = thukhoPage.waitForResponse((response) => response.url().endsWith('/api/inventory-issues') && response.request().method() === 'POST');
-    await thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }).click();
+    await thukhoPage.getByRole('button', { name: 'Gửi lại cùng mã lệnh', exact: true }).click();
     const accepted = await submitted;
     expect(accepted.status()).toBe(201);
     const fresh = accepted.request().postDataJSON() as CreateMrxIssueRequest;
     const created: MrxIssueCreated = (await accepted.json()).data;
     expect(fresh.commandId).toMatch(/^[a-f0-9-]{36}$/i);
-    expect(fresh.commandId).not.toBe(commandId);
-    expect(fresh.commandId).not.toBe(precommit!.commandId);
+    expect(fresh).toEqual(precommit);
     expect(fresh.expectedVersion).toBe(Number(beforeVersion[0].version));
     expect(fresh.lines).toHaveLength(lines.length);
     for (const line of lines) {
@@ -299,7 +286,6 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     const receipt = dbVerifier.query(receiptSql);
     expect(receipt).toHaveLength(1);
     expect(JSON.parse(receipt[0].responseJson).IssueId).toBe(created.issueId);
-    expect(dbVerifier.query(`SELECT commandId FROM lifecyclecommandreceipts WHERE commandId IN ('${commandId}','${precommit!.commandId}');`)).toHaveLength(0);
     const afterVersion = dbVerifier.query(versionSql);
     expect(Number(afterVersion[0].version)).toBe(Number(beforeVersion[0].version) + 1);
     const persisted = dbVerifier.query(`SELECT HEX(reconciliationBatchDailyLineId) AS id, HEX(ingredientId) AS ingredientId, HEX(unitId) AS unitId, CAST(issuedQty AS CHAR) AS quantity FROM inventoryissuelines WHERE issueId=UNHEX('${binaryId(created.issueId)}') ORDER BY id;`);
@@ -323,7 +309,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     expect(dbVerifier.query(receiptSql)).toEqual(receipt);
     expect(dbVerifier.query(versionSql)).toEqual(afterVersion);
     for (const [id, stock] of closing) expect(dbVerifier.captureStockSnapshot(binaryId(id))).toEqual(stock);
-    fs.writeFileSync(path.join(evidence, 'session-recovery-result.json'), JSON.stringify({ batchId, deniedStatus: 401, precommitCommandId: precommit!.commandId, deniedCommandId: commandId, freshCommandId: fresh.commandId, issueId: created.issueId, noIssueOnDenial: true, noReceiptOnDenial: true, unchangedStocksOnDenial: true, draftRestoredBefore401: true, draftPurgedOn401: false, restoredAfter401: true, recoveredQuantity: '2.75', crossUserDraftNotOffered: true, staleVersionDraftNotOffered: true, reauthenticatedSameActor: true, issueCount: 1, verifiedIngredientCount: closing.size, unchangedAfterReload: true }, null, 2));
+    fs.writeFileSync(path.join(evidence, 'session-recovery-result.json'), JSON.stringify({ batchId, deniedStatus: 401, precommitCommandId: precommit!.commandId, deniedCommandId: commandId, replayedCommandId: fresh.commandId, issueId: created.issueId, noIssueOnDenial: true, noReceiptOnDenial: true, unchangedStocksOnDenial: true, restoredAfter401: true, recoveredQuantity: '2.75', crossUserCommandNotOffered: true, wrongBatchCommandNotOffered: true, reauthenticatedSameActor: true, issueCount: 1, verifiedIngredientCount: closing.size, unchangedAfterReload: true }, null, 2));
   });
 
   test.describe('Coordinated member lifecycle', () => {
@@ -367,18 +353,25 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     const preparationResponse = thukhoPage.waitForResponse((r) => r.url().includes('/api/reconciliation/preparation?') && r.request().method() === 'GET');
     await thukhoPage.goto(`/warehouse?view=mrx-preparation&date=${scope.weekStartDate}&range=day`);
     const prepared = (await (await preparationResponse).json()).data as MrxPreparation;
-    await expect(thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true })).toBeEnabled();
+    await expect(thukhoPage.getByRole('button', { name: 'Xuất nhu cầu theo NCC', exact: true })).toBeEnabled();
     await expect(thukhoPage.getByRole('button', { name: /^Xác nhận xuất phối hợp/ })).toHaveCount(0);
     const preparedMembers = prepared.batches.filter((b) => batchIds.includes(b.batchId));
     expect(preparedMembers).toHaveLength(2);
-    await captureStationUI(thukhoPage, 'preparation', 1280, 720, thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true }));
+    await captureStationUI(thukhoPage, 'preparation', 1280, 720, thukhoPage.getByRole('button', { name: 'Xuất nhu cầu theo NCC', exact: true }));
     const workbookDownload = thukhoPage.waitForEvent('download');
-    await thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true }).click();
+    await thukhoPage.getByRole('button', { name: 'Xuất nhu cầu theo NCC', exact: true }).click();
     const preparationFile = path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'coordinated-preparation.xlsx');
     await (await workbookDownload).saveAs(preparationFile);
     const summaryRows = parseCookingFile(preparationFile, 'xlsx', 1);
-    const menuRows = parseCookingFile(preparationFile, 'xlsx', 2);
     expect(summaryRows[3]).toEqual(['Nguyên liệu', 'ĐVT', 'Tổng nhu cầu']);
+    expect(() => parseCookingFile(preparationFile, 'xlsx', 2)).toThrow('Missing worksheet');
+    const legacyQuery = new URLSearchParams({ serviceDate: scope.weekStartDate, includeMenus: 'true', isSupplemental: 'false' });
+    batchIds.forEach(id => legacyQuery.append('batchIds', id));
+    const legacyDownload = thukhoPage.waitForEvent('download');
+    await downloadRetainedMrxWorkbook(thukhoPage, `/api/reconciliation/preparation/export-workbook?${legacyQuery}`);
+    const legacyFile = path.join(evidence, 'coordinated-preparation-legacy.xlsx');
+    await (await legacyDownload).saveAs(legacyFile);
+    const menuRows = parseCookingFile(legacyFile, 'xlsx', 2);
     expect(menuRows[2]).toEqual(['Khách hàng', 'Ngày', 'Ca', 'Loại thực đơn', 'Món', 'Số suất']);
     const scopedBatches = batchIds.map(id => `UNHEX('${binaryId(id)}')`).join(',');
     const expectedMenus = dbVerifier.query<{ customer: string; date: string; shift: string; variant: string; name: string; servings: string }>(`SELECT DISTINCT CONCAT(c.customerCode,' · ',c.customerName) AS customer, DATE_FORMAT(d.ServiceDate,'%d/%m/%Y') AS date, rc.FrozenShiftName AS shift, rc.FrozenMenuVariant AS variant, rc.FrozenDishName AS name, CAST(rc.FrozenServings AS CHAR) AS servings FROM reconciliationbatchcontributors rc JOIN reconciliationbatchdailylines d ON d.DailyLineId=rc.DailyLineId JOIN reconciliationbatches b ON b.BatchId=d.BatchId JOIN menuversions v ON v.menuVersionId=b.MenuVersionId JOIN customers c ON c.customerId=v.customerId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate = '${scope.weekStartDate}' AND d.RequiredQuantity>0 AND rc.InvalidatedAt IS NULL;`);
@@ -451,7 +444,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     expect(conflict.body.message).toMatch(/phiên bản|thay đổi|cập nhật/i);
     expect(rejectedBaseline()).toEqual(afterCompetingWrite);
     await thukhoPage.reload();
-    await expect(thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true })).toBeEnabled();
+    await expect(thukhoPage.getByRole('button', { name: 'Xuất nhu cầu theo NCC', exact: true })).toBeEnabled();
     fs.writeFileSync(path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'coordinated-stale-member-rollback.json'), JSON.stringify({batchIds, staleLastMember:staleMember.batchId,preparedVersion:staleMember.batchVersion,actualVersion,status:409,baselineAfterCompetingWrite:true,noDurableEffects:true,members:afterCompetingWrite.members},null,2));
     let command: CreateCoordinatedPreparationIssueRequest | undefined;
     let committed: CoordinatedPreparationIssueResult | undefined;
@@ -511,7 +504,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     }
     await thukhoPage.reload();
     await expect(thukhoPage.getByRole('button', { name: /^Xác nhận xuất phối hợp/ })).toHaveCount(0);
-    await expect(thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true })).toBeEnabled();
+    await expect(thukhoPage.getByRole('button', { name: 'Xuất nhu cầu theo NCC', exact: true })).toBeEnabled();
     for (const id of batchIds) {
       await thukhoPage.goto(`/warehouse?view=mrx-daily&batchId=${id}&date=${scope.weekStartDate}`);
       await expect(thukhoPage.getByRole('button', { name: /^Lịch sử phiếu \(\s*1\s*\)$/ })).toBeVisible();
@@ -572,7 +565,8 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       const end = new Date(`${identity.week}T00:00:00Z`); end.setUTCDate(end.getUTCDate()+6);
       for (const format of ['csv','xlsx'] as const) {
         const downloaded = beptruongPage.waitForEvent('download');
-        await beptruongPage.getByRole('button', { name: format === 'csv' ? 'Tải CSV cả lô' : 'Tải Excel cả lô', exact: true }).click();
+        if (format === 'csv') await beptruongPage.getByRole('button', { name: 'Tải CSV cả lô', exact: true }).click();
+        else await downloadRetainedMrxWorkbook(beptruongPage, `/api/reconciliation/batches/${id}/kitchen-cooking/xlsx`);
         const file = path.join(evidence, `coordinated-menu-${id}.${format}`);
         await (await downloaded).saveAs(file);
         exports[format] = parseCookingFile(file, format);

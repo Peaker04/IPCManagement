@@ -84,6 +84,7 @@ export interface BomImportPreviewRow {
 }
 
 export interface BomImportPreviewResult {
+  previewFingerprint?: string | null;
   generatedAt: string;
   priceTier: number;
   customerId?: string | null;
@@ -104,38 +105,59 @@ export interface BomImportCommitResult extends BomImportPreviewResult {
   auditBatchCode: string;
 }
 
+export interface MrxWeeklyBomCoverage {
+  customerId: string;
+  weekStartDate: string;
+  menuVersionId: string;
+  priceTierAmount: number;
+  missingDishes: {
+    dishId: string;
+    dishCode: string;
+    dishName: string;
+    occurrences: { serviceDate: string; shiftName: string }[];
+  }[];
+}
+
 export const bomApi = {
   getSupportedPriceTiers(): Promise<number[]> {
     return apiClient<number[]>('/Dishes/bom-price-tiers');
   },
-  getBomTemplateUrl(priceTier: number, customerId?: string, templateType = 'by-dish', scope?: { effectiveDate?: string; weekStartDate?: string; menuVersionId?: string }): string {
+  getBomTemplateUrl(priceTier: number, customerId?: string, templateType = 'by-dish', scope?: { effectiveDate?: string; weekStartDate?: string; menuVersionId?: string; mrxShared?: boolean }): string {
     const query = new URLSearchParams({
       TemplateType: templateType,
       PriceTier: String(priceTier),
     });
-    if (customerId) query.set('CustomerId', customerId);
+    if (customerId) query.set(scope?.mrxShared ? 'ScopeCustomerId' : 'CustomerId', customerId);
     if (scope?.effectiveDate) query.set('EffectiveDate', scope.effectiveDate);
     if (scope?.weekStartDate) query.set('WeekStartDate', scope.weekStartDate);
     if (scope?.menuVersionId) query.set('MenuVersionId', scope.menuVersionId);
-    return `/api/Dishes/bom-template?${query.toString()}`;
+    return `/api/Dishes/${scope?.mrxShared ? 'mrx/' : ''}bom-template?${query.toString()}`;
   },
 
-  previewBomImport(formData: FormData): Promise<BomImportPreviewResult> {
-    return apiClient<BomImportPreviewResult>('/Dishes/bom-import/preview', {
+  getMrxWeeklyCoverage(customerId: string, weekStartDate: string, menuVersionId: string, signal?: AbortSignal) {
+    const query = new URLSearchParams({ customerId, weekStartDate, menuVersionId });
+    return apiClient<MrxWeeklyBomCoverage>(`/reconciliation/weekly-menu/bom-coverage?${query}`, { signal });
+  },
+
+  previewBomImport(formData: FormData, mrxShared = false): Promise<BomImportPreviewResult> {
+    return apiClient<BomImportPreviewResult>(`/Dishes/${mrxShared ? 'mrx/' : ''}bom-import/preview`, {
       method: 'POST',
       body: formData,
     });
   },
 
-  commitBomImport(formData: FormData): Promise<BomImportCommitResult> {
-    return apiClient<BomImportCommitResult>('/Dishes/bom-import/commit', {
+  commitBomImport(formData: FormData, mrxShared = false): Promise<BomImportCommitResult> {
+    return apiClient<BomImportCommitResult>(`/Dishes/${mrxShared ? 'mrx/' : ''}bom-import/commit`, {
       method: 'POST',
       body: formData,
     });
   },
 
-  async getBomCoverage(priceTier?: number, signal?: AbortSignal): Promise<BomCoverageReport> {
-    const report = await apiClient<BomCoverageReport>(`/Dishes/bom-coverage${priceTier ? `?priceTier=${priceTier}` : ''}`, { signal });
+  async getBomCoverage(priceTier?: number, signal?: AbortSignal, effectiveDate?: string): Promise<BomCoverageReport> {
+    const query = new URLSearchParams();
+    if (priceTier !== undefined) query.set('priceTier', String(priceTier));
+    if (effectiveDate) query.set('effectiveDate', effectiveDate);
+    const report = await apiClient<BomCoverageReport>(`/Dishes/bom-coverage${query.size ? `?${query}` : ''}`, { signal });
     if (priceTier !== undefined && report.priceTier !== priceTier) throw new Error('Báo cáo BOM không khớp mốc giá đã chọn. Vui lòng cập nhật máy chủ và tải lại.');
     return report;
   },

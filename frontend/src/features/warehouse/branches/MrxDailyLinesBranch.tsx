@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { MrxQuantityInput } from '../MrxQuantityInput';
 import { LocalFindBar } from '../../../components/workbench/LocalFindBar';
 import { DataGrid, type ColumnDef } from '../../../components/workbench/DataGrid';
@@ -46,6 +46,37 @@ export interface MrxDailyLinesBranchProps {
   lastRevisionByRole?: string | null;
 }
 
+type IssueDraftCellProps = {
+  lineId: string;
+  ingredient: string;
+  value: string;
+  disabled: boolean;
+  onEdit: MrxDailyLinesBranchProps['setQuantities'];
+};
+
+const IssueQuantityCell = memo(function IssueQuantityCell({ lineId, ingredient, value, disabled, onEdit }: IssueDraftCellProps) {
+  return <MrxQuantityInput
+    label={`Số lượng thực xuất ${ingredient}`}
+    value={value}
+    disabled={disabled}
+    onChange={canonical => onEdit(current => ({ ...current, [lineId]: canonical }))}
+  />;
+});
+
+const IssueReasonCell = memo(function IssueReasonCell({ lineId, ingredient, value, disabled, onEdit, isOver }: IssueDraftCellProps & { isOver: boolean }) {
+  return <Input
+    aria-label={`Lý do chênh lệch ${ingredient}`}
+    placeholder={isOver ? 'Bắt buộc nhập lý do xuất vượt...' : 'Ghi chú (nếu có)...'}
+    value={value}
+    disabled={disabled}
+    onChange={event => {
+      const next = event.target.value;
+      onEdit(current => ({ ...current, [lineId]: next }));
+    }}
+    className={`h-8 text-xs ${isOver && !value.trim() ? 'border-amber-400 bg-amber-50/40' : ''}`}
+  />;
+});
+
 export function MrxDailyLinesBranch({
   isWeeklyAll,
   weeklyAggregateLines,
@@ -81,73 +112,74 @@ export function MrxDailyLinesBranch({
     {
       id: 'ingredient',
       header: 'Nguyên liệu thực phẩm',
-      width: '34%',
+      width: '26%',
       minWidth: '220px',
       cell: (line) => (
-        <div className="flex items-center gap-2 truncate">
-          <span className="font-semibold text-slate-900 text-sm truncate">{line.ingredientName}</span>
+        <div className="flex min-w-0 flex-col items-start">
+          <span className="max-w-full whitespace-normal wrap-anywhere font-semibold text-slate-900 text-sm">{line.ingredientName}</span>
           {line.ingredientCode && <IdentifierText value={line.ingredientCode} />}
         </div>
       ),
     },
-    { id: 'unit', header: 'ĐVT', width: '10%', minWidth: '70px', align: 'center', cell: (line) => <span className="font-mono text-xs text-slate-700">{line.unitName}</span> },
-    { id: 'required', header: 'Tổng nhu cầu tuần', width: '18%', minWidth: '120px', align: 'right', cell: (line) => <Num value={line.requiredQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className="font-bold text-slate-900 text-sm" /> },
-    { id: 'issued', header: 'Tổng đã xuất thực tế', width: '18%', minWidth: '120px', align: 'right', cell: (line) => <Num value={line.issuedQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className="font-mono text-sm" /> },
-    { id: 'remaining', header: 'Còn lại phải xuất', width: '20%', minWidth: '120px', align: 'right', cell: (line) => <Num value={line.remainingQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className={line.remainingQuantity > 0 ? 'text-amber-700 font-bold font-mono text-sm' : 'text-slate-600 font-mono text-sm'} /> },
+    { id: 'unit', header: 'ĐVT', width: '12%', minWidth: '100px', align: 'center', cell: (line) => <span className="whitespace-normal wrap-anywhere font-mono text-xs text-slate-700">{line.unitName}</span> },
+    { id: 'required', header: 'Tổng nhu cầu tuần', width: '20%', minWidth: '174px', align: 'right', cell: (line) => <Num value={line.requiredQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className="font-bold text-slate-900 text-sm" /> },
+    { id: 'issued', header: 'Tổng đã xuất thực tế', width: '20%', minWidth: '174px', align: 'right', cell: (line) => <Num value={line.issuedQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className="font-mono text-sm" /> },
+    { id: 'remaining', header: 'Còn lại phải xuất', width: '22%', minWidth: '174px', align: 'right', cell: (line) => <Num value={line.remainingQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className={line.remainingQuantity > 0 ? 'text-amber-700 font-bold font-mono text-sm' : 'text-slate-600 font-mono text-sm'} /> },
   ], []);
 
   const columns = useMemo<ColumnDef<typeof lines[number]>[]>(() => [
     {
       id: 'ingredient',
       header: 'Nguyên liệu thực phẩm',
-      width: '30%',
+      width: '26%',
       minWidth: '220px',
       cell: (line) => (
-        <div className="flex items-center gap-2 truncate max-[1100px]:flex-col max-[1100px]:items-start max-[1100px]:gap-0">
-          <span className="font-semibold text-slate-900 text-sm truncate max-[1100px]:leading-4" title={line.ingredientName ?? undefined}>{line.ingredientName}</span>
-          {line.ingredientCode && <IdentifierText value={line.ingredientCode} className="max-[1100px]:py-0 max-[1100px]:leading-4" />}
+        <div className="flex min-w-0 flex-col items-start">
+          <span className="max-w-full whitespace-normal wrap-anywhere font-semibold text-slate-900 text-sm">{line.ingredientName}</span>
+          {line.ingredientCode && <IdentifierText value={line.ingredientCode} className="py-0 leading-4" />}
         </div>
       ),
     },
     {
       id: 'required',
       header: 'Nhu cầu ca',
-      width: '16%',
-      minWidth: '120px',
+      width: '21%',
+      minWidth: '174px',
       align: 'right',
       cell: (line) => <span className="inline-flex max-w-full flex-wrap items-baseline justify-end gap-x-1"><Num value={line.requiredQuantity} format="plain" decimals={6} />{' '}<span className="whitespace-normal break-words text-xs">{line.canonicalUnitName}</span></span>,
     },
     {
       id: 'issued',
       header: 'Thực xuất cửa kho',
-      width: '20%',
+      width: '17%',
       minWidth: '140px',
       align: 'right',
       cell: (line) => (
-        <MrxQuantityInput
-          label={`Số lượng thực xuất ${line.ingredientName ?? line.ingredientCode ?? line.ingredientId}`}
+        <IssueQuantityCell
+          lineId={line.dailyLineId}
+          ingredient={line.ingredientName ?? line.ingredientCode ?? line.ingredientId}
           value={quantities[line.dailyLineId] ?? (line.issuedQuantity != null ? String(line.issuedQuantity) : '')}
           disabled={hasInitialIssue || readOnly}
-          onChange={(canonical) => setQuantities((current) => ({ ...current, [line.dailyLineId]: canonical }))}
+          onEdit={setQuantities}
         />
       ),
     },
     {
       id: 'reason',
       header: 'Lý do chênh lệch (nếu vượt)',
-      width: '20%',
+      width: '18%',
       minWidth: '150px',
       cell: (line) => {
         const issued = normalizeQuantity(Number(quantities[line.dailyLineId]));
         const isOver = issued > line.requiredQuantity;
         return (
-          <Input
-            aria-label={`Lý do chênh lệch ${line.ingredientName ?? line.ingredientCode ?? line.ingredientId}`}
-            placeholder={isOver ? 'Bắt buộc nhập lý do xuất vượt...' : 'Ghi chú (nếu có)...'}
+          <IssueReasonCell
+            lineId={line.dailyLineId}
+            ingredient={line.ingredientName ?? line.ingredientCode ?? line.ingredientId}
             value={reasons[line.dailyLineId] ?? ''}
             disabled={hasInitialIssue || readOnly}
-            onChange={(e) => setReasons((current) => ({ ...current, [line.dailyLineId]: e.target.value }))}
-            className={`h-8 text-xs ${isOver && !reasons[line.dailyLineId]?.trim() ? 'border-amber-400 bg-amber-50/40' : ''}`}
+            onEdit={setReasons}
+            isOver={isOver}
           />
         );
       },
@@ -155,8 +187,8 @@ export function MrxDailyLinesBranch({
     {
       id: 'status',
       header: 'Trạng thái nghiệp vụ',
-      width: '14%',
-      minWidth: '110px',
+      width: '18%',
+      minWidth: '156px',
       align: 'center',
       cell: (line) => {
         if (hasInitialIssue || readOnly) {
@@ -200,6 +232,9 @@ export function MrxDailyLinesBranch({
         <DataGrid
           data={filteredWeeklyLines}
           columns={weeklyColumns}
+          className="mrx-warehouse-quantity-grid"
+          minWidth="min-w-[840px]"
+          scrollLabel="Bảng tổng hợp xuất kho theo tuần"
           keyExtractor={(row) => row.id}
           emptyMessage={searchTerm.trim() ? "Không tìm thấy nguyên liệu nào khớp với từ khóa." : "Tuần đối soát này chưa có nguyên liệu nào được phân bổ."}
         />
@@ -213,6 +248,9 @@ export function MrxDailyLinesBranch({
       <DataGrid
         data={filteredLines}
         columns={columns}
+        className="mrx-warehouse-quantity-grid"
+        minWidth="min-w-[840px]"
+        scrollLabel="Bảng định lượng xuất kho theo ngày"
         keyExtractor={(line) => line.dailyLineId}
         emptyMessage={searchTerm.trim() ? "Không tìm thấy nguyên liệu nào khớp với từ khóa." : "Không có nguyên liệu nào cần xuất kho cho ngày đã chọn."}
       />

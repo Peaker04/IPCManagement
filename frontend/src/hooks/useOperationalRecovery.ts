@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { serverStateCache } from '../store/serverStateCache';
 import { ApiError } from '../api/client';
 import type { EmptyScenario } from '../components/workbench/StateBoundary';
 
 export interface OperationalRecoveryOptions<TData, TFilter> {
   queryKey: string;
-  fetcher: (filters: TFilter) => Promise<TData>;
+  fetcher: (filters: TFilter, signal: AbortSignal) => Promise<TData>;
   initialFilters: TFilter;
+  activeFilters?: TFilter;
   defaultFilters: TFilter;
   isEqualFilters?: (a: TFilter, b: TFilter) => boolean;
   onResetFilters?: () => void;
@@ -21,6 +22,7 @@ export interface OperationalRecoveryResult<TData, TFilter> {
   updateFilter: <K extends keyof TFilter>(key: K, value: TFilter[K]) => void;
   isLoading: boolean;
   isFetching: boolean;
+  isPreviousData: boolean;
   error: Error | null;
   isEmpty: boolean;
   emptyScenario: EmptyScenario;
@@ -109,6 +111,7 @@ export function useOperationalRecovery<TData, TFilter>({
   queryKey,
   fetcher,
   initialFilters,
+  activeFilters,
   defaultFilters,
   isEqualFilters = defaultIsEqualFilters,
   onResetFilters,
@@ -117,7 +120,9 @@ export function useOperationalRecovery<TData, TFilter>({
 }: OperationalRecoveryOptions<TData, TFilter>): OperationalRecoveryResult<TData, TFilter> {
   const cached = serverStateCache.get<TData>(queryKey)?.data;
   const [data, setData] = useState<TData | null>(() => cached ?? null);
-  const [filters, setFilters] = useState<TFilter>(() => initialFilters);
+  const [dataKey, setDataKey] = useState(queryKey);
+  const [localFilters, setFilters] = useState<TFilter>(() => initialFilters);
+  const filters = activeFilters ?? localFilters;
   const [isLoading, setIsLoading] = useState<boolean>(() => !cached);
   const [isFetching, setIsFetching] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
@@ -135,33 +140,48 @@ export function useOperationalRecovery<TData, TFilter>({
     [isEqualFilters]
   );
 
-  const requestSequence = useRef(0);
-  const fetcherRef = useRef(fetcher);
-  const queryKeyRef = useRef(queryKey);
-  useEffect(() => {
-    fetcherRef.current = fetcher;
-    queryKeyRef.current = queryKey;
-  }, [fetcher, queryKey]);
+  const read = useRef<AbortController | null>(null);
+  const mounted = useRef(false);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  const latest = useRef({ fetcher, key: queryKey, filters });
+  useLayoutEffect(() => {
+    latest.current = { fetcher, key: queryKey, filters };
+  }, [fetcher, queryKey, filters]);
 
   const executeFetch = useCallback(
-    async (currentFilters: TFilter) => {
-      const seq = ++requestSequence.current;
+    async () => {
+      if (!mounted.current) return;
+      read.current?.abort();
+      const controller = new AbortController();
+      read.current = controller;
+      const { key, fetcher: fetchCurrent, filters: currentFilters } = latest.current;
+      const isCurrent = () => !controller.signal.aborted && latest.current.key === key
+        && latest.current.filters === currentFilters;
       setIsFetching(true);
       setError(null);
 
       try {
-        const result = await fetcherRef.current(currentFilters);
-        if (seq === requestSequence.current) {
+        const result = await fetchCurrent(currentFilters, controller.signal);
+        if (isCurrent()) {
           setData(result);
-          serverStateCache.set(queryKeyRef.current, result);
-          setIsLoading(false);
-          setIsFetching(false);
+          setDataKey(key);
+          serverStateCache.set(key, result);
         }
       } catch (err: unknown) {
-        if (seq === requestSequence.current) {
+        if (isCurrent()) {
           const formattedErr = err instanceof Error ? err : new Error(String(err));
           setError(formattedErr);
-          setData(null);
+          if (formattedErr instanceof ApiError && (formattedErr.status === 401 || formattedErr.status === 403)) {
+            setData(null);
+            serverStateCache.delete(key);
+          }
+        }
+      } finally {
+        if (read.current === controller) {
+          read.current = null;
           setIsLoading(false);
           setIsFetching(false);
         }
@@ -171,23 +191,14 @@ export function useOperationalRecovery<TData, TFilter>({
   );
 
   useEffect(() => {
-    const seq = ++requestSequence.current;
-    fetcherRef.current(filters)
-      .then((result) => {
-        if (seq !== requestSequence.current) return;
-        setData(result);
-        serverStateCache.set(queryKeyRef.current, result);
-        setIsLoading(false);
-        setIsFetching(false);
-      })
-      .catch((cause: unknown) => {
-        if (seq !== requestSequence.current) return;
-        setError(cause instanceof Error ? cause : new Error(String(cause)));
-        setData(null);
-        setIsLoading(false);
-        setIsFetching(false);
-      });
-  }, [filters]);
+    let active = true;
+    queueMicrotask(() => { if (active) void executeFetch(); });
+    return () => {
+      active = false;
+      read.current?.abort();
+      read.current = null;
+    };
+  }, [executeFetch, filters, queryKey]);
 
   const updateFilter = useCallback(<K extends keyof TFilter>(key: K, value: TFilter[K]) => {
     setIsFetching(true);
@@ -202,9 +213,7 @@ export function useOperationalRecovery<TData, TFilter>({
     onResetFilters?.();
   }, [defaultFilters, onResetFilters]);
 
-  const handleRetry = useCallback(async () => {
-    await executeFetch(filters);
-  }, [executeFetch, filters]);
+  const handleRetry = executeFetch;
 
   // Compute empty state and escape scenario
   const isDataEmpty = !data || (Array.isArray(data) && data.length === 0);
@@ -221,13 +230,15 @@ export function useOperationalRecovery<TData, TFilter>({
     }
   }
 
+  const isPreviousData = data !== null && dataKey !== queryKey;
   return {
     data,
     filters,
     setFilters: setFiltersSafe,
     updateFilter,
     isLoading,
-    isFetching,
+    isFetching: isFetching || (isPreviousData && !error),
+    isPreviousData,
     error,
     isEmpty: isDataEmpty,
     emptyScenario,

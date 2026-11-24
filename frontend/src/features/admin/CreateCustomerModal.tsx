@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { InlineBanner } from '../../components/ui/inline-banner';
 import { customerApi } from '../../api/customerApi';
+import { CustomerServiceShiftField } from './CustomerServiceShiftField';
 
 export interface CreateCustomerModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export function CreateCustomerModal({ isOpen, onClose, onCreated }: CreateCustom
   const [customerCode, setCustomerCode] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [note, setNote] = useState('');
+  const [serviceShifts, setServiceShifts] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,6 +24,7 @@ export function CreateCustomerModal({ isOpen, onClose, onCreated }: CreateCustom
     setCustomerCode('');
     setCustomerName('');
     setNote('');
+    setServiceShifts([]);
     setError(null);
   };
 
@@ -42,6 +45,7 @@ export function CreateCustomerModal({ isOpen, onClose, onCreated }: CreateCustom
         customerName: cleanName,
         note: note.trim() || undefined,
         isActive: true,
+        ...(serviceShifts.length ? { serviceShiftNames: serviceShifts } : {}),
       });
       reset();
       onCreated();
@@ -56,7 +60,7 @@ export function CreateCustomerModal({ isOpen, onClose, onCreated }: CreateCustom
   return (
     <Modal
       isOpen={isOpen}
-      isDirty={Boolean(customerCode || customerName || note)}
+      isDirty={Boolean(customerCode || customerName || note || serviceShifts.length)}
       closeDisabled={isSubmitting}
       onClose={() => { reset(); onClose(); }}
       title="Thêm khách hàng mới"
@@ -91,6 +95,7 @@ export function CreateCustomerModal({ isOpen, onClose, onCreated }: CreateCustom
               className="h-9 text-xs" required disabled={isSubmitting} />
           </div>
         </div>
+        <CustomerServiceShiftField value={serviceShifts} onChange={setServiceShifts} disabled={isSubmitting} />
         <div>
           <label htmlFor="customer-note" className="block font-semibold text-slate-700 mb-1">Ghi chú</label>
           <Input id="customer-note" aria-label="Ghi chú khách hàng" placeholder="Địa điểm giao nhận, yêu cầu phục vụ..."

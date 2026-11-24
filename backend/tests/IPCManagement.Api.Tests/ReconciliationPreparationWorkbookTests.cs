@@ -57,6 +57,20 @@ public sealed class ReconciliationPreparationWorkbookTests
         Assert.Contains(xml.Descendants(), element => element.Name.LocalName == "t" && element.Value == "Rau Muống (ING-SINGLE)");
         var reduced = await exporter.GetWorkbookAsync(new() { WeekStartDate = monday, BatchIds = ids.Take(2).ToList() });
         Assert.DoesNotContain(reduced.SummaryRows, r => r.IngredientCode == "ING-C-ONLY" || r.SupplierCode == "SUP-02");
+
+        var supplierWorkbook = await exporter.ExportWorkbookXlsxAsync(new() { WeekStartDate = monday, BatchIds = ids, Layout = "supplier-demand", IncludeMenus = true });
+        PreparationWorkbookSchemaTests.Validate(supplierWorkbook);
+        using var supplierZip = new ZipArchive(new MemoryStream(supplierWorkbook));
+        Assert.Null(supplierZip.GetEntry("xl/worksheets/sheet2.xml"));
+        using var supplierSheet = supplierZip.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var supplierXml = System.Xml.Linq.XDocument.Load(supplierSheet);
+        var supplierRows = supplierXml.Descendants().Where(element => element.Name.LocalName == "row")
+            .Select(element => element.Elements().Select(cell => cell.Value).ToArray()).ToArray();
+        Assert.Contains(supplierRows, row => row.SequenceEqual(new[] { "Rau Muống (ING-SINGLE)", "kg", "10" }));
+        Assert.Contains(supplierRows, row => row.SequenceEqual(new[] { "Rau Muống (ING-SINGLE)", "kg", "7" }));
+        Assert.Contains(supplierRows, row => row[0].Contains("(SUP-01)"));
+        Assert.Contains(supplierRows, row => row[0].Contains("(SUP-02)"));
+        Assert.Contains(supplierRows, row => row[0].StartsWith("CẦN XÁC MINH NCC"));
     }
 
     [Fact]
@@ -209,7 +223,7 @@ public sealed class ReconciliationPreparationWorkbookTests
 
     private static async Task<(byte[] CustomerAId, byte[] CustomerBId, byte[] BatchAId, byte[] BatchBId, byte[] IngSingleSupplier, byte[] IngNoSupplier, byte[] IngAmbiguousSupplier, DateOnly ServiceDate)> SetupWorkbookFixtureAsync(WorkflowGenerationTests.WorkflowFixture fixture, IpcManagementContext context, bool variedUnits = false)
     {
-        await EnsureSchemaAsync(context);
+        await WorkflowGenerationTests.WorkflowFixture.EnsureReconciliationSchemaAsync(context);
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         var serviceDate = new DateOnly(2026, 6, 15);
@@ -945,7 +959,7 @@ public sealed class ReconciliationPreparationWorkbookTests
     {
         await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
         await using var context = fixture.CreateContext();
-        await EnsureSchemaAsync(context);
+        await WorkflowGenerationTests.WorkflowFixture.EnsureReconciliationSchemaAsync(context);
         var runner = Substitute.For<IEfTransactionRunner>();
         runner.ExecuteAsync(Arg.Any<Func<CancellationToken, Task<InitializationResult>>>(), Arg.Any<Func<CancellationToken, Task<bool>>>(), Arg.Any<System.Data.IsolationLevel>(), Arg.Any<CancellationToken>())
             .Returns(call => call.ArgAt<Func<CancellationToken, Task<InitializationResult>>>(0)(CancellationToken.None));
@@ -983,14 +997,5 @@ public sealed class ReconciliationPreparationWorkbookTests
         dto.DailyReview!.Lines.Should().NotBeEmpty();
     }
 
-    private static Task EnsureSchemaAsync(IpcManagementContext context) => context.Database.ExecuteSqlRawAsync("""
-        CREATE TABLE IF NOT EXISTS systemoperationmodes (Id INTEGER PRIMARY KEY, Mode TEXT NOT NULL, Version INTEGER NOT NULL, UpdatedAt TEXT NOT NULL, UpdatedBy BLOB NOT NULL, Reason TEXT NULL);
-        CREATE TABLE IF NOT EXISTS reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
-        CREATE TABLE IF NOT EXISTS reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
-        CREATE TABLE IF NOT EXISTS reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL);
-        CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, dailyLineId BLOB NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, dishId BLOB NULL, frozenShiftName TEXT NOT NULL, frozenDishCode TEXT NULL, frozenDishName TEXT NULL, frozenServings INTEGER NULL, frozenBomQuantityPerServing TEXT NULL, FrozenBomUnitToBaseRate TEXT NULL, FrozenCanonicalUnitToBaseRate TEXT NULL, frozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL, InvalidatedAt TEXT NULL, InvalidatedBySourceRevisionId BLOB NULL);
-        CREATE TABLE IF NOT EXISTS reconciliationsourcedeltas (SourceDeltaId BLOB PRIMARY KEY, SourceRevisionId BLOB NOT NULL, BatchId BLOB NOT NULL, DailyLineId BLOB NULL, ServiceDate TEXT NOT NULL, IngredientId BLOB NOT NULL, CanonicalUnitId BLOB NOT NULL, PreviousRequiredQuantity TEXT NOT NULL, NewRequiredQuantity TEXT NOT NULL, DeltaQuantity TEXT NOT NULL, WorkKind TEXT NOT NULL, Status TEXT NOT NULL, Version INTEGER NOT NULL, CreatedAt TEXT NOT NULL, ResolvedAt TEXT NULL, ResolvedBy BLOB NULL, ResolutionEntity TEXT NULL, ResolutionId BLOB NULL, ResolutionCommandId TEXT NULL);
-        CREATE TABLE IF NOT EXISTS reconciliationdailydispositions (DispositionId BLOB PRIMARY KEY, DailyLineId BLOB NOT NULL, Category TEXT NOT NULL, Reason TEXT NOT NULL, Version INTEGER NOT NULL, DisposedBy BLOB NOT NULL, DisposedAt TEXT NOT NULL, InvalidatedAt TEXT NULL, InvalidatedBy BLOB NULL, InvalidationReason TEXT NULL, ActiveOwnerKey BLOB NULL);
-        CREATE TABLE IF NOT EXISTS reconciliationsourcerevisions (SourceRevisionId BLOB PRIMARY KEY, MenuAmendmentId BLOB NULL, BatchId BLOB NOT NULL, PreviousMenuVersionId BLOB NOT NULL, AppliedMenuVersionId BLOB NOT NULL, RevisionNumber INTEGER NOT NULL, Status TEXT NOT NULL, Reason TEXT NOT NULL, AppliedBy BLOB NOT NULL, AppliedAt TEXT NOT NULL, AppliedByRole TEXT NULL, ApplyMode TEXT NULL);
-        """);
+
 }

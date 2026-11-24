@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { StateBoundary } from '../../../components/workbench/StateBoundary';
 import { LocalFindBar } from '../../../components/workbench/LocalFindBar';
 import { normalizeSearchText } from '../../../utils/search';
 import { IdentifierText } from '../../../components/ui/identifier-text';
@@ -13,6 +12,7 @@ import type { MrxVarianceRegisterReport } from '../../../api/mrxApi';
 export interface ReconciliationVariancesBranchProps {
   batchId: string;
   report: MrxVarianceRegisterReport | null;
+  pending?: boolean;
 }
 
 function dispositionText(row: MrxVarianceRegisterReport['rows'][number]) {
@@ -21,7 +21,7 @@ function dispositionText(row: MrxVarianceRegisterReport['rows'][number]) {
   return `${category}: ${row.dispositionReason || '—'}`;
 }
 
-export function ReconciliationVariancesBranch({ report }: ReconciliationVariancesBranchProps) {
+export function ReconciliationVariancesBranch({ report, pending }: ReconciliationVariancesBranchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const query = normalizeSearchText(searchTerm);
   const visibleRows = useMemo(() => report?.rows.filter(row =>
@@ -104,18 +104,18 @@ export function ReconciliationVariancesBranch({ report }: ReconciliationVariance
         matched={report ? visibleRows.length : undefined} total={report?.rows.length}
         disabled={!report || (report.rows.length === 0 && !query)}
         scope="Trong sổ tuần đã tải; tệp xuất vẫn cả lô." />
-      <StateBoundary isEmpty={false}>
       <DataGrid
         data={visibleRows}
+        pending={pending}
         hideHeaderWhenEmpty
         minWidth="min-w-[1100px]"
         columns={varianceColumns}
-        keyExtractor={(_, idx) => `variance-${idx}`}
+        keyExtractor={row => JSON.stringify([row.batchId, row.serviceDate, row.ingredientCode, row.canonicalUnitName])}
         emptyState={
           <div className="text-center space-y-1">
-            <p className="text-sm font-semibold text-slate-900">
+            <h3 className="text-sm font-semibold text-slate-900">
               {query ? 'Không có dòng chênh lệch khớp tìm kiếm.' : 'Chưa ghi nhận chênh lệch xuất kho'}
-            </p>
+            </h3>
             {!query && (
               <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
                 Xem tiến độ xuất kho tại Rà soát dòng ngày.
@@ -124,7 +124,6 @@ export function ReconciliationVariancesBranch({ report }: ReconciliationVariance
           </div>
         }
       />
-      </StateBoundary>
     </div>
   );
 }

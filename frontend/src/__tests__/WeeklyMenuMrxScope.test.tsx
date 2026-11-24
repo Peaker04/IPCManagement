@@ -56,7 +56,33 @@ describe('Weekly Menu MRX scope and source', () => {
       items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0, hasPrev: false, hasNext: false,
     });
     vi.spyOn(bomApi, 'getSupportedPriceTiers').mockResolvedValue([]);
+    vi.spyOn(bomApi, 'getMrxWeeklyCoverage').mockImplementation(async (customerId, weekStartDate, menuVersionId) =>
+      ({ customerId, weekStartDate, menuVersionId, priceTierAmount: 34000, missingDishes: [] }));
     vi.spyOn(mrxApi, 'getSourceChangeInbox').mockResolvedValue([]);
+  });
+
+  it('shows one missing dish over two shifts before servings and keeps writing with Catalog roles', async () => {
+    const customerId = 'cust-1';
+    const weekStartDate = '2026-11-02';
+    const menuVersionId = 'mv-1';
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION',
+      label: 'Đối soát', version: 9, updatedAt: '2026-11-01T00:00:00Z',
+      reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    vi.mocked(weeklyMenuApi.getCustomers).mockResolvedValue([{ customerId, customerCode: 'C1', customerName: 'Khách Một' }]);
+    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue({ customerId, customerCode: 'C1', customerName: 'Khách Một',
+      weekStartDate, weekEndDate: '2026-11-08', menuVersionId, menuVersionNo: 1, menuVersionStatus: 'DRAFT', warnings: [],
+      validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] } });
+    vi.mocked(bomApi.getMrxWeeklyCoverage).mockResolvedValue({ customerId, weekStartDate, menuVersionId, priceTierAmount: 34000,
+      missingDishes: [{ dishId: 'dish-1', dishCode: 'M-1', dishName: 'Canh bí',
+        occurrences: [{ serviceDate: weekStartDate, shiftName: 'MORNING' }, { serviceDate: weekStartDate, shiftName: 'AFTERNOON' }] }] });
+
+    renderWeeklyMenu(`/weekly-menu?view=mrx-batch&customerId=${customerId}&weekStartDate=${weekStartDate}`);
+
+    expect(await screen.findByText('1 món thiếu BOM')).toBeVisible();
+    expect(screen.getByText('Gửi danh sách này cho người có quyền quản lý BOM.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Bổ sung BOM' })).not.toBeInTheDocument();
+    expect(bomApi.getMrxWeeklyCoverage).toHaveBeenCalledWith(customerId, weekStartDate, menuVersionId, expect.any(AbortSignal));
   });
   it('Route 2: persists customerId and weekStartDate in URL search params on change and F5 reload', async () => {
     localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
@@ -796,7 +822,7 @@ describe('Weekly Menu MRX scope and source', () => {
 
     // Wait until mv-cust-2 getMaterialInspection has been invoked (meaning getWeeklySource resolved mv-cust-2)
     await waitFor(() => {
-      expect(mrxApi.getMaterialInspection).toHaveBeenCalledWith('mv-cust-2', expect.anything());
+      expect(mrxApi.getMaterialInspection).toHaveBeenCalledWith('mv-cust-2', expect.anything(), expect.any(AbortSignal));
     });
     // Table with Thịt bò C1 must still be mounted (not unmounted to a skeleton) while resolveCust2Materials is pending!
     expect(screen.getByText('Thịt bò C1')).toBeInTheDocument();

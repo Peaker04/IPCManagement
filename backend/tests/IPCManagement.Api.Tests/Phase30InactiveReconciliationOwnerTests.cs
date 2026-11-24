@@ -1016,7 +1016,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         }
 
         // Ingredient.PreparationGroupCode is included in the full persisted snapshot and reconstruction; no cells are excluded.
-        private const string ExpectedScalarSchemaHash = "380AF27D240558719764DD118BE7B0E2267B4618498CFCF40975C66F8626B5D8";
+        private const string ExpectedScalarSchemaHash = "4BF29765770BEA00D5A1AA495ACA575B82401A2FB518F70D200B64C79786B935";
 
         private sealed record EntityMapping(IEntityType Entity, string Table, StoreObjectIdentifier Store);
 

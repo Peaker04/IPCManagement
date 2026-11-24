@@ -36,21 +36,19 @@ export interface ApprovalHistoryItem {
   createdAt: string;
 }
 
-export interface RawApprovalResponse {
+export interface ApprovalInboxPage {
   items: ApprovalInboxItem[];
   limit: number;
   hasNext: boolean;
+  nextCursor: string | null;
 }
 
 export const approvalsApi = {
-  async getInbox(targetType?: string): Promise<ApprovalInboxItem[]> {
-    const resp = await apiClient<RawApprovalResponse | ApprovalInboxItem[]>('/approvals/inbox');
-    const items = Array.isArray(resp) ? resp : resp?.items || [];
-
-    if (targetType && targetType !== 'ALL') {
-      return items.filter((i) => i.targetType === targetType || i.itemType === targetType);
-    }
-    return items;
+  async getInbox(targetType?: string, signal?: AbortSignal, cursor?: string): Promise<ApprovalInboxPage> {
+    const params = new URLSearchParams();
+    if (targetType && targetType !== 'ALL') params.set('targetType', targetType);
+    if (cursor) params.set('cursor', cursor);
+    return apiClient<ApprovalInboxPage>(`/approvals/inbox${params.size ? `?${params}` : ''}`, { signal });
   },
 
   async decide(
@@ -69,9 +67,9 @@ export const approvalsApi = {
     });
   },
 
-  async getHistory(documentType: string, documentId: string): Promise<ApprovalHistoryItem[]> {
+  async getHistory(documentType: string, documentId: string, signal?: AbortSignal): Promise<ApprovalHistoryItem[]> {
     return apiClient<ApprovalHistoryItem[]>(
-      `/approval-history/${encodeURIComponent(documentType)}/${encodeURIComponent(documentId)}`
-    ).catch(() => []);
+      `/approval-history/${encodeURIComponent(documentType)}/${encodeURIComponent(documentId)}`, { signal }
+    );
   },
 };

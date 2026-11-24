@@ -12,19 +12,19 @@ import { isRouteEligible, resolveEligibleNavigation, resolveLandingPath } from '
 import { DirtyNavigationProvider } from './components/workbench/DirtyNavigation';
 import { RoleGuard } from './routes/RoleGuard';
 import { ReconciliationDashboardPage } from './features/dashboard/ReconciliationDashboardPage';
-import { WeeklyMenuPage } from './features/weekly-menu/WeeklyMenuPage';
-import { ChefDashboardPage } from './features/chef/ChefDashboardPage';
-import { WarehousePage } from './features/warehouse/WarehousePage';
-import { ReconciliationPage } from './features/reconciliation/ReconciliationPage';
-import { AdminDataPage } from './features/admin/AdminDataPage';
-import { ApprovalRulesPage } from './features/admin/ApprovalRulesPage';
-import { AdvancedSettingsPage } from './features/admin/AdvancedSettingsPage';
 
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const MealOrdersPage = lazy(() => import('./features/coordination/MealOrdersPage').then((m) => ({ default: m.MealOrdersPage })));
 const PurchasingPage = lazy(() => import('./features/purchasing/PurchasingPage').then((m) => ({ default: m.PurchasingPage })));
 const ApprovalPage = lazy(() => import('./features/approvals/ApprovalPage').then((m) => ({ default: m.ApprovalPage })));
 const ReportsPage = lazy(() => import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
+const WeeklyMenuPage = lazy(() => import('./features/weekly-menu/WeeklyMenuPage').then((m) => ({ default: m.WeeklyMenuPage })));
+const ChefDashboardPage = lazy(() => import('./features/chef/ChefDashboardPage').then((m) => ({ default: m.ChefDashboardPage })));
+const WarehousePage = lazy(() => import('./features/warehouse/WarehousePage').then((m) => ({ default: m.WarehousePage })));
+const ReconciliationPage = lazy(() => import('./features/reconciliation/ReconciliationPage').then((m) => ({ default: m.ReconciliationPage })));
+const AdminDataPage = lazy(() => import('./features/admin/AdminDataPage').then((m) => ({ default: m.AdminDataPage })));
+const ApprovalRulesPage = lazy(() => import('./features/admin/ApprovalRulesPage').then((m) => ({ default: m.ApprovalRulesPage })));
+const AdvancedSettingsPage = lazy(() => import('./features/admin/AdvancedSettingsPage').then((m) => ({ default: m.AdvancedSettingsPage })));
 
 const getRouteRoles = (path: string) => CANONICAL_ROUTES.find((r) => r.path === path)?.allowedRoles;
 

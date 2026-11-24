@@ -25,6 +25,8 @@ export interface DataGridProps<T = unknown> {
   className?: string;
   minWidth?: string;
   hideHeaderWhenEmpty?: boolean;
+  pending?: boolean;
+  scrollLabel?: string;
 }
 
 /**
@@ -46,6 +48,8 @@ export function DataGrid<T>({
   className,
   minWidth,
   hideHeaderWhenEmpty = false,
+  pending,
+  scrollLabel,
 }: DataGridProps<T>) {
   const EmptyIcon = CustomEmptyIcon || Boxes;
   const [focusedRowIndex, setFocusedRowIndex] = useState<number>(0);
@@ -60,7 +64,7 @@ export function DataGrid<T>({
     : data.length > 0 ? Math.min(focusedRowIndex, data.length - 1) : 0;
 
   const handleRowKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, index: number, row: T) => {
-    if (!onRowClick) return;
+    if (!onRowClick || event.defaultPrevented || event.target !== event.currentTarget) return;
 
     switch (event.key) {
       case 'ArrowDown': {
@@ -101,9 +105,14 @@ export function DataGrid<T>({
 
   return (
     <div
+      inert={pending || undefined}
+      aria-busy={pending || undefined}
+      role={scrollLabel ? 'region' : undefined}
+      aria-label={scrollLabel}
+      tabIndex={scrollLabel ? 0 : undefined}
       className={twMerge(
         clsx(
-          'flex-1 min-h-0 w-full overflow-auto bg-white select-text relative overscroll-contain',
+          'workbench-grid-scroll flex-1 min-h-0 w-full overflow-auto bg-white select-text relative overscroll-contain',
           className
         )
       )}

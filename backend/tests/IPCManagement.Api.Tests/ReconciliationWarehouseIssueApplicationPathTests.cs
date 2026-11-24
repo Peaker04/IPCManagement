@@ -182,6 +182,23 @@ public sealed partial class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
+    public async Task Reconciliation_issue_requires_warehouse_handoff_even_with_current_batch_version()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        var batch = Assert.Single(context.Reconciliationbatches.Local);
+        batch.Status = "READY";
+        batch.Version = fixture.Request.ExpectedVersion = 2;
+        await context.SaveChangesAsync();
+        var before = CaptureEffects(context);
+
+        var error = await Assert.ThrowsAsync<ResourceConflictException>(() => fixture.Service.CreateAsync(fixture.Request, fixture.ActorId));
+
+        Assert.Contains("Chuyển sang Kho", error.Message);
+        Assert.Equal(before, CaptureEffects(context));
+    }
+
+    [Fact]
     public async Task Reconciliation_issue_rejects_wrong_operation_mode_with_atomic_zero_effects()
     {
         await using var context = CreateContext();

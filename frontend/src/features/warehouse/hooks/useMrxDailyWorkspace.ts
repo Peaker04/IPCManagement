@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, useRef, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef, type SetStateAction } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { mrxApi, type MrxWarehouseDaily, type MrxIssuePage, type MrxBatchSummary, type MrxBatchPage } from '../../../api/mrxApi';
+import { mrxApi, type CreateMrxIssueRequest, type MrxWarehouseDaily, type MrxIssuePage, type MrxBatchSummary, type MrxBatchPage } from '../../../api/mrxApi';
 import { ApiError } from '../../../api/client';
 import { invalidateMrxCaches } from '../../../api/mrxCacheInvalidation';
 import { getCachedArray, serverStateCache } from '../../../store/serverStateCache';
@@ -24,6 +24,11 @@ interface MrxDailyCachedPayload {
 }
 
 const isUnknownIssueOutcome = (cause: unknown) => !(cause instanceof ApiError) || cause.status >= 500 || cause.code === 'SESSION_CHANGED';
+const isReplayBlocked = (cause: unknown) => cause instanceof ApiError
+  && ([401, 403, 429].includes(cause.status) || cause.code === 'MODE_UNAVAILABLE');
+const isIssueCommandId = (value: unknown): value is string => typeof value === 'string'
+  && /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value);
+const supplementalUnknownMessage = 'Chưa biết máy chủ đã ghi phiếu hay chưa. Gửi lại cùng mã lệnh để nhận phiếu đã ghi hoặc hoàn tất lần gửi trước.';
 
 export function useMrxDailyWorkspace({
   batchId: propBatchId = '',
@@ -67,8 +72,9 @@ export function useMrxDailyWorkspace({
   const historyPage = historyPageState.batchId === activeBatchId ? historyPageState.page : 1;
   const setHistoryPage = (page: number) => setHistoryPageState({ batchId: activeBatchId, page });
 
-  const [issueOutcomeUnknown, setIssueOutcomeUnknown] = useState(false);
-  const attemptedCommand = useRef<{ initial?: string; supplemental?: string }>({});
+  const [pendingInitial, setPendingInitial] = useState<CreateMrxIssueRequest | null>(null);
+  const [clearedInitial, setClearedInitial] = useState<string | null>(null);
+  const sendingInitial = useRef(false);
   const [draft, setDraft] = useState<{ scope: string; quantities: Record<string, string>; reasons: Record<string, string> }>({ scope: '', quantities: {}, reasons: {} });
   const [saving, setSaving] = useState(false);
   const [mutationError, setMutationError] = useState<Error | null>(null);
@@ -82,8 +88,37 @@ export function useMrxDailyWorkspace({
   const [suppError, setSuppError] = useState<string | null>(null);
   const [suppOutcomeUnknown, setSuppOutcomeUnknown] = useState(false);
   const [inspectedIssueId, setInspectedIssueId] = useState<string | null>(null);
+  const initialKey = user?.userId && activeBatchId && isServiceDate(selectedDate)
+    ? getDraftStorageKey(`mrx_initial_${activeBatchId}_${selectedDate}`, user.userId) : null;
+  const savedInitial = useMemo(() => {
+    if (!initialKey) return null;
+    try {
+      const stored = JSON.parse(localStorage.getItem(initialKey) ?? 'null')?.request as CreateMrxIssueRequest | undefined;
+      return stored?.isSupplemental === false && stored.reconciliationBatchId === activeBatchId
+        && stored.issueDate === selectedDate && isIssueCommandId(stored.commandId)
+        && Array.isArray(stored.lines) && stored.lines.length ? stored : null;
+    } catch { return null; }
+  }, [initialKey, activeBatchId, selectedDate]);
+  const unresolvedInitial = pendingInitial ?? (savedInitial?.commandId !== clearedInitial ? savedInitial : null);
+  const issueOutcomeUnknown = Boolean(unresolvedInitial);
+  const supplementalKey = user?.userId && activeBatchId && isServiceDate(selectedDate)
+    ? getDraftStorageKey(`mrx_supplemental_${activeBatchId}_${selectedDate}`, user.userId) : null;
+  const savedSupplemental = useMemo(() => {
+    if (!supplementalKey) return null;
+    try {
+      const stored = JSON.parse(localStorage.getItem(supplementalKey) ?? 'null') as CreateMrxIssueRequest | null;
+      return stored?.isSupplemental && stored.reconciliationBatchId === activeBatchId
+        && stored.issueDate === selectedDate && isIssueCommandId(stored.commandId)
+        && Array.isArray(stored.lines) && stored.lines.length ? stored : null;
+    } catch { return null; }
+  }, [supplementalKey, activeBatchId, selectedDate]);
+  const [clearedSupplemental, setClearedSupplemental] = useState<string | null>(null);
+  const unresolvedSupplemental = savedSupplemental && savedSupplemental.commandId !== clearedSupplemental
+    ? savedSupplemental : null;
+  const supplementalRequest = useRef<CreateMrxIssueRequest | null>(null);
+  const sendingSupplemental = useRef(false);
 
-  const scopeLocked = saving || isSubmittingSupp || issueOutcomeUnknown || suppOutcomeUnknown;
+  const scopeLocked = saving || isSubmittingSupp || issueOutcomeUnknown || suppOutcomeUnknown || Boolean(unresolvedSupplemental);
   const routeBatchMismatch = Boolean(explicitBatchId && explicitBatchId !== activeBatchId);
   const routeDateMismatch = Boolean(explicitDate && explicitDate !== selectedDate);
   const routeMismatch = routeBatchMismatch || routeDateMismatch;
@@ -100,7 +135,6 @@ export function useMrxDailyWorkspace({
     setSuppReason('');
     setSuppError(null);
     setInspectedIssueId(null);
-    attemptedCommand.current = {};
   };
 
   if (routeMismatch && !scopeLocked) {
@@ -139,20 +173,18 @@ export function useMrxDailyWorkspace({
     return source.dates[0].serviceDate;
   };
 
-  const dailyQuery = useWorkbenchQuery<{ daily: MrxWarehouseDaily | null; history: MrxIssuePage | null }>({
+  const dailyQuery = useWorkbenchQuery<{ daily: MrxWarehouseDaily | null }>({
     scopeKey: 'mrx_daily',
-    cacheKey: `mrx_daily_${activeBatchId}${historyPage > 1 ? `_history_${historyPage}` : ''}`,
-    snapshotKey: historyPage === 1 && snapshot?.activeBatchId === activeBatchId
+    cacheKey: `mrx_daily_${activeBatchId}`,
+    snapshotKey: snapshot?.activeBatchId === activeBatchId
       ? 'snapshot:mrx_daily'
-      : `snapshot:mrx_daily_${activeBatchId}_${historyPage}`,
+      : `snapshot:mrx_daily_${activeBatchId}_1`,
     scopeId: activeBatchId,
     isCatalogLoading: catalogLoading,
-    queryFn: async () => {
-      const [nextDaily, nextHistory] = await Promise.all([
-        mrxApi.getWarehouseDaily(activeBatchId),
-        mrxApi.getIssues(activeBatchId, historyPage, 25),
-      ]);
-      return { daily: nextDaily, history: nextHistory };
+    queryFn: async (_, signal) => {
+      const daily = await mrxApi.getWarehouseDaily(activeBatchId, signal);
+      if (!daily || !Array.isArray(daily.dates)) throw new Error('Không nhận được định lượng xuất kho của lô.');
+      return { daily };
     },
     isCompatibilityBlocked: (cause) => {
       const err = cause instanceof Error ? cause : new Error();
@@ -170,7 +202,22 @@ export function useMrxDailyWorkspace({
       ? 'Chưa có lô đối soát nào được chọn hoặc khởi tạo cho tuần này.'
       : 'Kiểm tra lại ngày phục vụ hoặc chuyển sang màn hình Chuẩn bị phối hợp để xem toàn bộ các lô.',
   });
-  const { data: queryPayload, stateProps, refetch: load } = dailyQuery;
+  const historyQuery = useWorkbenchQuery<{ batchId: string; requestedPage: number; page: MrxIssuePage }>({
+    scopeKey: 'mrx_daily_history',
+    cacheKey: `mrx_daily_history_${activeBatchId}_${historyPage}`,
+    snapshotKey: '',
+    scopeId: activeBatchId,
+    queryFn: async (_, signal) => {
+      const page = await mrxApi.getIssues(activeBatchId, historyPage, 25, signal);
+      if (!page || !Array.isArray(page.items)) throw new Error('Không nhận được lịch sử phiếu xuất của lô.');
+      return { batchId: activeBatchId, requestedPage: historyPage, page };
+    },
+  });
+  const { data: queryPayload, stateProps, refetch: refetchDaily } = dailyQuery;
+  const { data: historyPayload, stateProps: historyState, refetch: refetchHistory } = historyQuery;
+  const load = async (force?: boolean) => {
+    await Promise.all([refetchDaily(force), refetchHistory(force)]);
+  };
 
   const isLegacyMissing = Boolean(stateProps.isPartial || stateProps.error?.message.includes('LEGACY_DAILY_LINEAGE_MISSING'));
   const isTransitioningBatch = Boolean(
@@ -189,20 +236,20 @@ export function useMrxDailyWorkspace({
     if (!activeBatchId || !daily || daily.batchId !== activeBatchId) return;
     workspaceSessionStore.setScope({ batchId: activeBatchId, serviceDate: activeDate, weekStartDate: activeDate === 'ALL' ? undefined : weekStartFor(activeDate) });
   }, [activeBatchId, activeDate, daily]);
-  const history = daily ? (queryPayload?.history ?? null) : null;
-  const isTransitioningHistoryPage = Boolean(queryPayload?.history && queryPayload.history.pageNumber !== historyPage);
+  const history = daily?.batchId === historyPayload?.batchId ? historyPayload?.page ?? null : null;
+  const isHistoryPageStale = Boolean(history && historyPayload?.requestedPage !== historyPage);
 
   const draftScope = `${user?.userId}_${activeBatchId}_${activeDate}_${daily?.sourceVersion}`;
   const quantities = draft.scope === draftScope || issueOutcomeUnknown ? draft.quantities : {};
   const reasons = draft.scope === draftScope || issueOutcomeUnknown ? draft.reasons : {};
-  const updateDraft = (field: 'quantities' | 'reasons', action: SetStateAction<Record<string, string>>) => {
+  const updateDraft = useCallback((field: 'quantities' | 'reasons', action: SetStateAction<Record<string, string>>) => {
     setDraft((current) => {
       const scoped = current.scope === draftScope ? current : { scope: draftScope, quantities: {}, reasons: {} };
       return { ...scoped, [field]: typeof action === 'function' ? action(scoped[field]) : action };
     });
-  };
-  const setQuantities = (action: SetStateAction<Record<string, string>>) => updateDraft('quantities', action);
-  const setReasons = (action: SetStateAction<Record<string, string>>) => updateDraft('reasons', action);
+  }, [draftScope]);
+  const setQuantities = useCallback((action: SetStateAction<Record<string, string>>) => updateDraft('quantities', action), [updateDraft]);
+  const setReasons = useCallback((action: SetStateAction<Record<string, string>>) => updateDraft('reasons', action), [updateDraft]);
 
   const activeBatchIdRef = useRef(activeBatchId);
   const explicitBatchIdRef = useRef(explicitBatchId);
@@ -217,12 +264,6 @@ export function useMrxDailyWorkspace({
   }, [activeBatchId, explicitBatchId, sessionScope, setSearchParams]);
 
   useEffect(() => {
-    if (!scopeLocked) {
-      attemptedCommand.current = {};
-    }
-  }, [activeBatchId, activeDate, scopeLocked]);
-
-  useEffect(() => {
     if (!routeMismatch || !scopeLocked) return;
     setSearchParams((curr) => {
       const next = new URLSearchParams(curr);
@@ -233,9 +274,9 @@ export function useMrxDailyWorkspace({
   }, [routeMismatch, scopeLocked, activeBatchId, activeDate, setSearchParams]);
 
   useEffect(() => {
-    let ignore = false;
-    mrxApi.getBatchPage({ pageSize: 50, pageNumber: catalogPage }).then((page) => {
-      if (ignore) return;
+    const controller = new AbortController();
+    mrxApi.getBatchPage({ pageSize: 50, pageNumber: catalogPage }, controller.signal).then((page) => {
+      if (controller.signal.aborted) return;
       const items = [...(page?.items ?? [])].sort(
         (a, b) => new Date(b.weekStartDate || 0).getTime() - new Date(a.weekStartDate || 0).getTime()
       );
@@ -269,11 +310,11 @@ export function useMrxDailyWorkspace({
         }
       }
     }).catch((cause: unknown) => {
-      if (ignore) return;
+      if (controller.signal.aborted) return;
       setCatalogLoading(false);
       setCatalogError(cause instanceof Error ? cause : new Error('Không thể tải danh sách lô.'));
     });
-    return () => { ignore = true; };
+    return () => controller.abort();
   }, [catalogRetry, catalogPage]);
 
   const day = daily?.dates.find((item) => item.serviceDate === activeDate);
@@ -284,14 +325,13 @@ export function useMrxDailyWorkspace({
 
   const [restoredDraftKey, setRestoredDraftKey] = useState('');
   const restorableDraft = useMemo(() => {
-    if (!draftKey || restoredDraftKey === draftKey || daily?.batchId !== activeBatchId || hasInitialIssue || lines.length === 0) return null;
+    if (!draftKey || issueOutcomeUnknown || restoredDraftKey === draftKey || daily?.batchId !== activeBatchId || hasInitialIssue || lines.length === 0) return null;
     try {
       const raw = localStorage.getItem(draftKey);
       if (!raw) return null;
       const saved = JSON.parse(raw);
       if (saved.version !== daily.sourceVersion) return null;
-      if (saved.outcomeUnknown && (typeof saved.commandId !== 'string'
-        || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(saved.commandId))) return null;
+      if (saved.outcomeUnknown && !isIssueCommandId(saved.commandId)) return null;
       const ids = new Set(lines.map((line) => line.dailyLineId));
       const validRecord = (value: unknown): value is Record<string, string> =>
         value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -302,13 +342,15 @@ export function useMrxDailyWorkspace({
     } catch {
       return null;
     }
-  }, [draftKey, restoredDraftKey, daily, activeBatchId, lines, hasInitialIssue]);
+  }, [draftKey, issueOutcomeUnknown, restoredDraftKey, daily, activeBatchId, lines, hasInitialIssue]);
 
   const restoreIssueDraft = () => {
-    if (!draftKey || !restorableDraft) return;
+    if (!draftKey || !restorableDraft || !daily) return;
     setQuantities(restorableDraft.quantities);
     setReasons(restorableDraft.reasons);
-    attemptedCommand.current.initial = restorableDraft.commandId;
+    if (restorableDraft.commandId) {
+      setPendingInitial(buildInitialRequest(restorableDraft.commandId, daily.sourceVersion, restorableDraft.quantities, restorableDraft.reasons));
+    }
     setRestoredDraftKey(draftKey);
   };
 
@@ -331,81 +373,145 @@ export function useMrxDailyWorkspace({
     return Array.from(map.values()).sort((a, b) => b.requiredQuantity - a.requiredQuantity);
   }, [daily]);
 
+  // Check the lifecycle too, so older API responses cannot offer writes before handoff.
+  const canIssueBatch = daily?.batchId === activeBatchId && daily.compatibility.canIssueByDate
+    && (daily.batchStatus === 'TRANSFERRED' || daily.batchStatus === 'IN_PROGRESS');
+
   const handleFillAll = () => {
+    if (!canIssueBatch) return;
     setQuantities(Object.fromEntries(lines.map((l) => [l.dailyLineId, String(l.requiredQuantity)])));
   };
 
-  const canSubmit = Boolean(isServiceDate(activeDate) && !dateValidationError && !routeMismatch && daily?.batchId === activeBatchId && !stateProps.error && !stateProps.isFetching && !scopeLocked && day?.isApplicable && lines.length > 0 && !hasInitialIssue && !isWeeklyAll &&
+  const canSubmit = Boolean(isServiceDate(activeDate) && !dateValidationError && !routeMismatch && canIssueBatch && !stateProps.error && !stateProps.isFetching && !scopeLocked && day?.isApplicable && lines.length > 0 && !hasInitialIssue && !isWeeklyAll &&
     lines.every((l) => {
       const issued = normalizeQuantity(Number(quantities[l.dailyLineId]));
       return Number.isFinite(issued) && issued > 0 && (issued <= l.requiredQuantity || reasons[l.dailyLineId]?.trim());
     }));
 
-  const submit = async () => {
-    if (!daily || !day || !canSubmit || !activeBatchId || routeMismatch || scopeLocked) return;
+  const buildInitialRequest = (commandId: string, expectedVersion: number, amounts: Record<string, string>, notes: Record<string, string>): CreateMrxIssueRequest => ({
+    commandId,
+    expectedVersion,
+    issueDate: activeDate,
+    reconciliationBatchId: activeBatchId,
+    isSupplemental: false,
+    lines: lines.map((line) => ({
+      reconciliationBatchLineId: line.batchLineId,
+      reconciliationBatchDailyLineId: line.dailyLineId,
+      ingredientId: line.ingredientId,
+      unitId: line.canonicalUnitId,
+      requestedQty: line.requiredQuantity,
+      issuedQty: normalizeQuantity(Number(amounts[line.dailyLineId])),
+      varianceReason: notes[line.dailyLineId]?.trim() || undefined,
+    })),
+  });
+
+  const sendInitial = async (request: CreateMrxIssueRequest, replay: boolean) => {
+    if (!draftKey || sendingInitial.current) return;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({ request }));
+    } catch {
+      setMutationError(new Error('Không thể lưu mã lệnh trên trình duyệt. Hãy bật lưu trữ để ghi phiếu xuất kho.'));
+      return;
+    }
+    sendingInitial.current = true;
+    if (selectedDate !== activeDate) setActiveDate(activeDate);
     setSaving(true);
     setMutationError(null);
     setIssueSuccessScope('');
-    const commandId = attemptedCommand.current.initial ??= crypto.randomUUID();
-    if (draftKey) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify({ version: daily.sourceVersion, quantities, reasons, commandId, outcomeUnknown: true }));
-      } catch {
-        // Retain the in-memory draft if browser storage is unavailable.
-      }
-    }
     try {
-      const receipt = await mrxApi.createIssue({
-        commandId,
-        expectedVersion: daily.sourceVersion,
-        issueDate: activeDate,
-        reconciliationBatchId: activeBatchId,
-        isSupplemental: false,
-        lines: lines.map((l) => ({
-          reconciliationBatchLineId: l.batchLineId,
-          reconciliationBatchDailyLineId: l.dailyLineId,
-          ingredientId: l.ingredientId,
-          unitId: l.canonicalUnitId,
-          requestedQty: l.requiredQuantity,
-          issuedQty: normalizeQuantity(Number(quantities[l.dailyLineId])),
-          varianceReason: reasons[l.dailyLineId]?.trim() || undefined,
-        })),
-      });
+      const receipt = await mrxApi.createIssue(request);
       if (!receipt?.issueId?.trim() || !receipt.issueCode?.trim()) throw new Error('Thiếu xác nhận phiếu xuất kho.');
-      attemptedCommand.current.initial = undefined;
-      if (draftKey) {
-        try { localStorage.removeItem(draftKey); } catch { /* Committed issues cannot restore an editable draft. */ }
-      }
+      setClearedInitial(request.commandId ?? null);
+      setPendingInitial(null);
+      try { localStorage.removeItem(draftKey); } catch { /* The same command can still be confirmed after reload. */ }
       setIssueSuccessScope(`${activeBatchId}:${activeDate}`);
       setQuantities({});
+      setReasons({});
       serverStateCache.delete(`mrx_daily_${activeBatchId}`);
       await load(true);
     } catch (cause) {
-      const unknown = isUnknownIssueOutcome(cause);
-      setIssueOutcomeUnknown(unknown);
+      const unknown = isUnknownIssueOutcome(cause) || (replay && isReplayBlocked(cause));
+      setPendingInitial(unknown ? request : null);
       if (!unknown) {
-        attemptedCommand.current.initial = undefined;
-        if (draftKey) {
-          try { localStorage.setItem(draftKey, JSON.stringify({ version: daily.sourceVersion, quantities, reasons })); }
-          catch { /* Keep the in-memory draft. */ }
-        }
+        setClearedInitial(request.commandId ?? null);
+        try {
+          if (replay) localStorage.removeItem(draftKey);
+          else localStorage.setItem(draftKey, JSON.stringify({ version: request.expectedVersion, quantities, reasons }));
+        } catch { /* Keep the in-memory draft. */ }
       }
       setMutationError(cause instanceof Error ? cause : new Error('Không thể xác nhận xuất kho.'));
       if (cause instanceof ApiError && cause.status === 409) invalidateMrxCaches();
     } finally {
+      sendingInitial.current = false;
       setSaving(false);
     }
   };
 
+  const submit = async () => {
+    if (!daily || !canSubmit || scopeLocked) return;
+    await sendInitial(buildInitialRequest(crypto.randomUUID(), daily.sourceVersion, quantities, reasons), false);
+  };
+
+  const retryInitial = () => {
+    if (unresolvedInitial?.reconciliationBatchId === activeBatchId && unresolvedInitial.issueDate === activeDate) {
+      void sendInitial(unresolvedInitial, true);
+    }
+  };
+
+  const sendSupplemental = async (request: CreateMrxIssueRequest) => {
+    if (!supplementalKey || sendingSupplemental.current) return;
+    try {
+      localStorage.setItem(supplementalKey, JSON.stringify(request));
+    } catch {
+      setSuppError('Không thể lưu mã lệnh trên trình duyệt. Hãy bật lưu trữ để gửi phiếu xuất bổ sung.');
+      return;
+    }
+    supplementalRequest.current = request;
+    sendingSupplemental.current = true;
+    setIsSubmittingSupp(true);
+    setSuppError(null);
+    setIssueSuccessScope('');
+    try {
+      const receipt = await mrxApi.createIssue(request);
+      if (!receipt?.issueId?.trim() || !receipt.issueCode?.trim()) throw new Error('Thiếu xác nhận phiếu xuất kho.');
+      setIssueSuccessScope(`${activeBatchId}:${activeDate}`);
+      setIsSupplementalOpen(false);
+      setSuppQuantity('');
+      setSuppReason('');
+      setSuppOutcomeUnknown(false);
+      setClearedSupplemental(request.commandId ?? null);
+      supplementalRequest.current = null;
+      try { localStorage.removeItem(supplementalKey); } catch { /* Same command can be confirmed again. */ }
+      await load(true);
+    } catch (cause) {
+      const unknown = isUnknownIssueOutcome(cause) || isReplayBlocked(cause);
+      setSuppOutcomeUnknown(unknown);
+      if (!unknown) {
+        setClearedSupplemental(request.commandId ?? null);
+        supplementalRequest.current = null;
+        try { localStorage.removeItem(supplementalKey); } catch { /* Keep the command available if storage cannot be changed. */ }
+      }
+      setSuppError(unknown ? supplementalUnknownMessage : cause instanceof Error ? cause.message : 'Không thể thực hiện xuất bổ sung.');
+    } finally {
+      sendingSupplemental.current = false;
+      setIsSubmittingSupp(false);
+    }
+  };
+
+  const retrySupplemental = () => {
+    const request = supplementalRequest.current ?? unresolvedSupplemental;
+    if (request && request.reconciliationBatchId === activeBatchId && request.issueDate === activeDate) {
+      void sendSupplemental(request);
+    }
+  };
+
   const handleSupplementalSubmit = async (customLines?: Array<{ dailyLineId: string; quantity: number; reason: string }>) => {
-    if (!isServiceDate(activeDate) || dateValidationError || routeMismatch || !daily || !day || !activeBatchId || scopeLocked || stateProps.error || stateProps.isFetching) return;
+    if (!isServiceDate(activeDate) || dateValidationError || routeMismatch || !daily || !day || !canIssueBatch || daily.batchStatus !== 'IN_PROGRESS' || !activeBatchId || scopeLocked || stateProps.error || stateProps.isFetching) return;
     const items = customLines?.length ? customLines : (!suppMaterialId || !suppReason.trim() ? [] : [{
       dailyLineId: suppMaterialId, quantity: Number(suppQuantity), reason: suppReason.trim(),
     }]);
     if (items.length === 0 || items.some((item) => !Number.isFinite(normalizeQuantity(item.quantity)) || normalizeQuantity(item.quantity) <= 0 || !item.reason.trim())) return;
-    setIsSubmittingSupp(true);
-    setSuppError(null);
-    setIssueSuccessScope('');
+    if (selectedDate !== activeDate) return;
     try {
       const issueLines = items.map((item) => {
         const target = lines.find((l) => l.dailyLineId === item.dailyLineId);
@@ -420,30 +526,16 @@ export function useMrxDailyWorkspace({
           varianceReason: item.reason,
         };
       });
-      const receipt = await mrxApi.createIssue({
-        commandId: attemptedCommand.current.supplemental ??= crypto.randomUUID(),
+      await sendSupplemental({
+        commandId: crypto.randomUUID(),
         expectedVersion: daily.sourceVersion,
         issueDate: activeDate,
         reconciliationBatchId: activeBatchId,
         isSupplemental: true,
         lines: issueLines,
       });
-      if (!receipt?.issueId?.trim() || !receipt.issueCode?.trim()) throw new Error('Thiếu xác nhận phiếu xuất kho.');
-      attemptedCommand.current.supplemental = undefined;
-      setIssueSuccessScope(`${activeBatchId}:${activeDate}`);
-      setIsSupplementalOpen(false);
-      setSuppQuantity('');
-      setSuppReason('');
-      await load(true);
     } catch (cause) {
-      const unknown = isUnknownIssueOutcome(cause);
-      setSuppOutcomeUnknown(unknown);
-      if (!unknown) attemptedCommand.current.supplemental = undefined;
-      setSuppError(unknown
-        ? 'Kết nối bị gián đoạn; phiếu có thể đã được ghi. Hãy tải lại để kiểm tra lịch sử trước khi xuất thêm.'
-        : cause instanceof Error ? cause.message : 'Không thể thực hiện xuất bổ sung.');
-    } finally {
-      setIsSubmittingSupp(false);
+      setSuppError(cause instanceof Error ? cause.message : 'Không thể thực hiện xuất bổ sung.');
     }
   };
 
@@ -466,6 +558,9 @@ export function useMrxDailyWorkspace({
     daily,
     day,
     history,
+    historyState,
+    isHistoryPageStale,
+    refetchHistory,
     historyPage,
     setHistoryPage,
     lines,
@@ -474,7 +569,7 @@ export function useMrxDailyWorkspace({
     isLegacyMissing,
     stateProps: {
       ...stateProps,
-      isPreviousData: stateProps.isPreviousData || isTransitioningBatch || isTransitioningHistoryPage,
+      isPreviousData: stateProps.isPreviousData || isTransitioningBatch,
       hasExistingData: Boolean(daily),
     },
     load,
@@ -487,9 +582,10 @@ export function useMrxDailyWorkspace({
     saving,
     mutationError,
     issueOutcomeUnknown,
+    retryInitial,
     setMutationError,
     issueSucceeded: issueSuccessScope === `${activeBatchId}:${activeDate}`,
-    isSupplementalOpen,
+    isSupplementalOpen: isSupplementalOpen || Boolean(unresolvedSupplemental),
     setIsSupplementalOpen,
     suppMaterialId,
     setSuppMaterialId,
@@ -498,12 +594,14 @@ export function useMrxDailyWorkspace({
     suppReason,
     setSuppReason,
     isSubmittingSupp,
-    suppError,
-    suppOutcomeUnknown,
+    suppError: suppError ?? (unresolvedSupplemental ? supplementalUnknownMessage : null),
+    suppOutcomeUnknown: suppOutcomeUnknown || Boolean(unresolvedSupplemental),
+    retrySupplemental,
     setSuppError,
     inspectedIssueId,
     setInspectedIssueId,
     handleFillAll,
+    canIssueBatch,
     canSubmit,
     submit,
     handleSupplementalSubmit,

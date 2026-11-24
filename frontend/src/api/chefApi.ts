@@ -119,7 +119,8 @@ export const chefApi = {
     shiftName: 'MORNING' | 'AFTERNOON',
     customerId: string,
     issuePageNumber = 1,
-    issuePageSize = 25
+    issuePageSize = 25,
+    signal?: AbortSignal,
   ): Promise<ChefDashboardData> {
     const planQuery = new URLSearchParams({ serviceDate, shiftName, customerId });
     const issueQuery = new URLSearchParams({
@@ -131,8 +132,8 @@ export const chefApi = {
     });
 
     const [dailyPlan, issuePage] = await Promise.all([
-      apiClient<RawDailyProductionPlan>(`/production-plans/daily?${planQuery.toString()}`),
-      apiClient<PagedIssues>(`/inventory-issues?${issueQuery.toString()}`),
+      apiClient<RawDailyProductionPlan>(`/production-plans/daily?${planQuery.toString()}`, { signal }),
+      apiClient<PagedIssues>(`/inventory-issues?${issueQuery.toString()}`, { signal }),
     ]);
 
     if (dailyPlan.customerId && dailyPlan.customerId !== customerId) {

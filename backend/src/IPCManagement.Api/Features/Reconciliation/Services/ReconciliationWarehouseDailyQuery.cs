@@ -124,11 +124,9 @@ internal static class ReconciliationWarehouseDailyQuery
                     });
                 }
             }
-            var weeklyStatus = compatibility.CanIssueByDate
+            var weeklyStatus = compatibility.ReasonCode != "LEGACY_DAILY_LINEAGE_MISSING"
                 ? ReconciliationDailyIssuePolicy.ResolveWeeklyStatus(dates.Select(date => new ReconciliationDailySummary(date.Status, date.IsApplicable)).ToList())
-                : compatibility.ReasonCode == "BATCH_READ_ONLY"
-                    ? ReconciliationDailyIssuePolicy.ResolveWeeklyStatus(dates.Select(date => new ReconciliationDailySummary(date.Status, date.IsApplicable)).ToList())
-                    : "LEGACY_INCOMPATIBLE";
+                : "LEGACY_INCOMPATIBLE";
             var batchId = GuidHelper.ToGuidString(batch.BatchId);
             result.Add(batchId, new ReconciliationWarehouseDailyDto(
                 batchId, batch.Status, batch.Version, weeklyStatus,

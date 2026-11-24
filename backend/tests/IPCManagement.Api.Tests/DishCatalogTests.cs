@@ -22,6 +22,7 @@ using Xunit;
 using IPCManagement.Api.Features.Catalog.Contracts;
 using IPCManagement.Api.Features.Catalog.Controllers;
 using IPCManagement.Api.Features.Catalog.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Features.SampleData.Services;
 
 using IPCManagement.Api.Exceptions;
@@ -981,7 +982,143 @@ public class DishCatalogTests
     }
 
     [Fact]
-    public async Task DishService_MrxMissingTemplate_Should_ContainOnlyScheduledDishesMissingOnServiceDate()
+    public async Task MrxCatalogImport_FutureEffectiveDatePersistsWithoutCountingAsActiveCoverageToday()
+    {
+        await using var fixture = await CreateCatalogFixtureAsync();
+        var future = ServiceCalendar.Today().AddDays(7);
+        const int tier = 30000;
+        var workbook = BomTemplateWorkbookBuilder.Build(tier, "Dùng chung", ServiceCalendar.Today(),
+            [["DISH-BOM", "Món BOM", "30000", "", "Nguyên liệu BOM", "KG", "0.48", "0", "", "", "PUBLISHED", ""]],
+            editableRows: true);
+        using var stream = new MemoryStream(workbook);
+        var request = new BomImportCommitRequestDto { MrxShared = true, PriceTier = tier, EffectiveFrom = future };
+        var service = CreateDishBomImportService(fixture.Context);
+        var preview = await service.PreviewAsync(stream, request);
+        preview.CanCommit.Should().BeTrue(string.Join(", ", preview.Rows.SelectMany(row => row.Errors)));
+        preview.Rows.Should().ContainSingle().Which.EffectiveFrom.Should().Be(future);
+        request.PreviewFingerprint = preview.PreviewFingerprint;
+        (await service.CommitAsync(stream, request, null)).CreatedRows.Should().Be(1);
+        (await fixture.Context.Dishboms.AsNoTracking().SingleAsync()).EffectiveFrom.Should().Be(future);
+        var coverage = await new DishCatalogDiagnosticsService(fixture.Context).GetBomCoverageAsync(tier);
+        coverage.Dishes.Should().ContainSingle().Which.HasBom.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task MrxCatalogDateUsesTheSameSharedEffectiveBomForCoverageAndBothWorkbooks()
+    {
+        await using var fixture = await CreateCatalogFixtureAsync();
+        var day = new DateOnly(2026, 7, 6);
+        var customerId = GuidHelper.NewId();
+        fixture.Context.Customers.Add(new Customer { CustomerId = customerId, CustomerCode = "PRIVATE-BOM", CustomerName = "Khách BOM", IsActive = true });
+        fixture.Context.Dishboms.AddRange(new DishBom
+        {
+            BomId = GuidHelper.NewId(), DishId = fixture.DishId, IngredientId = fixture.IngredientId, UnitId = fixture.UnitId,
+            CustomerId = customerId, PriceTierAmount = 30000, GrossQtyPerServing = 0.9m, BomStatus = "PUBLISHED", EffectiveFrom = day
+        }, new DishBom
+        {
+            BomId = GuidHelper.NewId(), DishId = fixture.DishId, IngredientId = fixture.IngredientId, UnitId = fixture.UnitId,
+            PriceTierAmount = 30000, GrossQtyPerServing = 0.3m, BomStatus = "PUBLISHED", EffectiveFrom = day.AddDays(1), EffectiveTo = day.AddDays(1)
+        });
+        await fixture.Context.SaveChangesAsync();
+        var controller = new DishCatalogDiagnosticsController(new DishCatalogDiagnosticsService(fixture.Context));
+        var operation = new IPCManagement.Api.Data.Transactions.SystemOperationRequestContext { Mode = SystemOperationEligibility.Default };
+        (await controller.GetBomCoverageAsync(30000, day, operation)).Should().BeOfType<ConflictObjectResult>();
+        operation.Mode = SystemOperationEligibility.MaterialReconciliation;
+        var templates = new DishBomTemplateService(fixture.Context);
+        foreach (var (date, expected) in new[] { (day, false), (day.AddDays(1), true), (day.AddDays(2), false) })
+        {
+            var response = (OkObjectResult)await controller.GetBomCoverageAsync(30000, date, operation);
+            var report = ((ApiResponse<BomCoverageReportDto>)response.Value!).Data!;
+            report.Dishes.Should().ContainSingle().Which.HasBom.Should().Be(expected);
+            report.TotalBomLines.Should().Be(expected ? 1 : 0);
+            foreach (var type in new[] { "all", "missing" })
+            {
+                var binary = await templates.BuildAsync(new BomTemplateQueryDto { MrxShared = true, PriceTier = 30000, EffectiveDate = date, TemplateType = type });
+                using var archive = new ZipArchive(new MemoryStream(binary.Content));
+                using var sheet = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+                var xml = XDocument.Load(sheet);
+                var rows = xml.Descendants(xml.Root!.Name.Namespace + "row").Skip(4).ToArray();
+                rows.Should().HaveCount(type == "all" || !expected ? 1 : 0);
+                if (type == "all")
+                    rows[0].Elements().Single(c => (string?)c.Attribute("r") == "D5").Value.Should().Be(expected ? "0.3" : "");
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(25000)]
+    [InlineData(30000)]
+    [InlineData(34000)]
+    public async Task MrxWholeCatalogWorkbook_ContainsOneTier_AndEditedFileVersionsItsSharedBom(int tier)
+    {
+        await using var fixture = await CreateCatalogFixtureAsync();
+        var day = new DateOnly(2026, 7, 6);
+        fixture.Context.Dishes.Add(new Dish
+        {
+            DishId = GuidHelper.NewId(), DishCode = "DISH-MISSING", DishName = "Món thiếu BOM", IsActive = true
+        });
+        fixture.Context.Dishboms.AddRange(MenuPriceTierPolicy.SupportedPriceTiers.Select(price => new DishBom
+        {
+            BomId = GuidHelper.NewId(), DishId = fixture.DishId, IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId, PriceTierAmount = price, GrossQtyPerServing = price / 100000m,
+            WasteRatePercent = 0, BomStatus = "PUBLISHED", EffectiveFrom = day
+        }));
+        await fixture.Context.SaveChangesAsync();
+        var workbook = await new DishBomTemplateService(fixture.Context).BuildAsync(new BomTemplateQueryDto
+        {
+            MrxShared = true, TemplateType = "all", PriceTier = tier, EffectiveDate = day
+        });
+        using var stream = new MemoryStream();
+        stream.Write(workbook.Content);
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true))
+        {
+            var sheet = archive.GetEntry("xl/worksheets/sheet1.xml")!;
+            XDocument xml;
+            using (var source = sheet.Open()) xml = XDocument.Load(source);
+            var ns = xml.Root!.Name.Namespace;
+            xml.Descendants(ns + "sheetProtection").Should().BeEmpty();
+            var cells = xml.Descendants(ns + "c").ToDictionary(cell => (string)cell.Attribute("r")!);
+            cells["H5"].Value.Should().Be(tier.ToString());
+            cells["H6"].Value.Should().Be(tier.ToString());
+            cells["D5"].Value.Should().BeEmpty();
+            cells["D6"].Element(ns + "v")!.Value = "0.48";
+            sheet.Delete();
+            using var output = archive.CreateEntry("xl/worksheets/sheet1.xml").Open();
+            xml.Save(output);
+        }
+
+        var import = CreateDishBomImportService(fixture.Context);
+        var request = new BomImportCommitRequestDto { MrxShared = true, PriceTier = tier, EffectiveFrom = day.AddDays(1) };
+        var preview = await import.PreviewAsync(stream, request);
+        preview.CanCommit.Should().BeTrue(string.Join(", ", preview.Rows.SelectMany(row => row.Errors)));
+        preview.Rows.Should().ContainSingle().Which.Action.Should().Be("version");
+        preview.PreviewFingerprint.Should().NotBeNullOrWhiteSpace();
+        await FluentActions.Invoking(() => import.CommitAsync(stream, request, null))
+            .Should().ThrowAsync<BusinessRuleException>().WithMessage("*xem trước*");
+        request.PreviewFingerprint = preview.PreviewFingerprint;
+        request.PriceTier = tier == 25000 ? 30000 : 25000;
+        var wrongTier = await import.PreviewAsync(stream, request);
+        wrongTier.CanCommit.Should().BeFalse();
+        wrongTier.Rows.Should().ContainSingle().Which.Errors.Should().Contain("Mức giá trong file không khớp với mức giá đang nhập.");
+        request.PriceTier = tier;
+        request.EffectiveFrom = day.AddDays(2);
+        await FluentActions.Invoking(() => import.CommitAsync(stream, request, null))
+            .Should().ThrowAsync<BusinessRuleException>().WithMessage("*Bản xem trước BOM đã thay đổi*");
+        (await fixture.Context.Dishboms.AsNoTracking().CountAsync()).Should().Be(3);
+        request.EffectiveFrom = day.AddDays(1);
+        var committed = await import.CommitAsync(stream, request, null);
+        committed.CreatedRows.Should().Be(1);
+        var after = await fixture.Context.Dishboms.AsNoTracking().ToListAsync();
+        after.Should().HaveCount(4).And.OnlyContain(row => row.CustomerId == null);
+        after.Should().ContainSingle(row => row.PriceTierAmount == tier && row.EffectiveFrom == day.AddDays(1) && row.GrossQtyPerServing == 0.48m);
+        after.Should().ContainSingle(row => row.PriceTierAmount == tier && row.EffectiveFrom == day && row.EffectiveTo == day);
+        after.Count(row => row.PriceTierAmount != tier && row.EffectiveTo == null).Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData(false, 25000, 8)]
+    [InlineData(true, 34000, 1)]
+    public async Task DishService_MrxMissingTemplate_Should_ContainOnlyScheduledDishesMissingOnServiceDate(bool shared, int tier, int templateRows)
     {
         await using var fixture = await CreateCatalogFixtureAsync();
         var customerId = GuidHelper.NewId();
@@ -1001,38 +1138,75 @@ public class DishCatalogTests
         fixture.Context.Menuschedules.Add(new MenuSchedule
         {
             MenuScheduleId = GuidHelper.NewId(), CustomerId = customerId, MenuId = menuId,
-            WeekStartDate = week, ServiceDate = week, ShiftName = "MORNING", MenuPrice = 25000,
+            WeekStartDate = week, ServiceDate = week, ShiftName = "MORNING", MenuPrice = tier,
             BomRatePercent = 100, Status = "PUBLISHED", MenuVersionId = versionId
         });
         fixture.Context.Menuschedules.Add(new MenuSchedule
         {
             MenuScheduleId = GuidHelper.NewId(), CustomerId = customerId, MenuId = menuId,
-            WeekStartDate = week, ServiceDate = week.AddDays(1), ShiftName = "MORNING", MenuPrice = 25000,
+            WeekStartDate = week, ServiceDate = week.AddDays(1), ShiftName = "AFTERNOON", MenuPrice = tier,
             BomRatePercent = 100, Status = "PUBLISHED", MenuVersionId = versionId
         });
         fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(), DishId = fixture.DishId, IngredientId = fixture.IngredientId,
-            UnitId = fixture.UnitId, PriceTierAmount = 25000, GrossQtyPerServing = 0.1m,
+            UnitId = fixture.UnitId, PriceTierAmount = tier, GrossQtyPerServing = 0.1m,
             WasteRatePercent = 0, BomStatus = "PUBLISHED", EffectiveFrom = week
         });
         await fixture.Context.SaveChangesAsync();
 
+        var customerKey = GuidHelper.ToGuidString(customerId);
+        var versionKey = GuidHelper.ToGuidString(versionId);
+        if (shared)
+        {
+            var query = new MrxWeeklyBomCoverageQuery(fixture.Context);
+            var coverage = await query.ReadAsync(customerKey, week, versionKey, default);
+            coverage.PriceTierAmount.Should().Be(34000);
+            var missing = coverage.MissingDishes.Should().ContainSingle().Which;
+            missing.DishCode.Should().Be("DISH-MISSING");
+            missing.Occurrences.Select(item => item.ShiftName).Should().Equal("MORNING", "AFTERNOON");
+            await FluentActions.Invoking(() => query.ReadAsync(customerKey, week, Guid.NewGuid().ToString(), default))
+                .Should().ThrowAsync<ArgumentException>();
+        }
         var result = await new DishBomTemplateService(fixture.Context).BuildAsync(new BomTemplateQueryDto
         {
-            TemplateType = "mrx-missing", CustomerId = GuidHelper.ToGuidString(customerId), PriceTier = 25000,
-            WeekStartDate = week, MenuVersionId = GuidHelper.ToGuidString(versionId)
+            MrxShared = shared, TemplateType = shared ? "mrx-shared-missing" : "mrx-missing",
+            CustomerId = shared ? null : customerKey, ScopeCustomerId = shared ? customerKey : null, PriceTier = 25000,
+            WeekStartDate = week, MenuVersionId = versionKey
         });
         var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
         try
         {
             await File.WriteAllBytesAsync(path, result.Content);
             var rows = new XlsxWorkbookReader().ReadTable(path, "BOM", BomTemplateWorkbookBuilder.DisplayHeaders);
-            rows.Should().HaveCount(8);
+            rows.Should().HaveCount(templateRows);
             rows.Should().OnlyContain(row => row["Mã món"] == "DISH-MISSING" && row["Hiệu lực từ"] == "2026-07-06" &&
-                row["Hiệu lực đến"] == "2026-07-07" && row["Nguyên liệu chính"] == "");
+                row["Hiệu lực đến"] == (shared ? "" : "2026-07-07") && row["Nguyên liệu chính"] == "");
+            rows.Should().OnlyContain(row => row["Mức giá"] == tier.ToString() && row["Khách hàng"] == (shared ? "" : "CUS-MRX"));
         }
         finally { File.Delete(path); }
+        if (!shared) return;
+
+        var importer = CreateDishBomImportService(fixture.Context);
+        var request = new BomImportCommitRequestDto
+        {
+            MrxShared = true, ScopeCustomerId = customerKey, WeekStartDate = week,
+            MenuVersionId = versionKey, PriceTier = tier
+        };
+        var valid = BomImportCsv(["DISH-MISSING", "Món thiếu", "34000", "", "ING-BOM", "Nguyên liệu BOM", "KG",
+            "0.31", "0", "2026-07-06", "", "PUBLISHED", ""]);
+        var outsideScope = valid.Replace("2026-07-06", "2026-07-05", StringComparison.Ordinal);
+        var rejected = await importer.PreviewAsync(ToStream(outsideScope), request);
+        rejected.CanCommit.Should().BeFalse();
+        var preview = await importer.PreviewAsync(ToStream(valid), request);
+        preview.CanCommit.Should().BeTrue(string.Join(", ", preview.Rows.SelectMany(row => row.Errors)));
+        request.PreviewFingerprint = preview.PreviewFingerprint;
+        (await importer.CommitAsync(ToStream(valid), request, null)).CreatedRows.Should().Be(1);
+        var saved = await fixture.Context.Dishboms.AsNoTracking().SingleAsync(line => line.DishId == missingDishId);
+        saved.CustomerId.Should().BeNull();
+        saved.EffectiveTo.Should().BeNull();
+        (await new MrxWeeklyBomCoverageQuery(fixture.Context).ReadAsync(customerKey, week, versionKey, default))
+            .MissingDishes.Should().BeEmpty();
     }
 
     [Fact]
@@ -1227,7 +1401,8 @@ public class DishCatalogTests
                 customerCode TEXT NOT NULL,
                 customerName TEXT NOT NULL,
                 note TEXT NULL,
-                isActive INTEGER NULL
+                isActive INTEGER NULL,
+                serviceShiftNames TEXT NULL
             );
 
             CREATE TABLE dishbom (

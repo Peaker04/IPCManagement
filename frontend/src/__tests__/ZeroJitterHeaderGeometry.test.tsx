@@ -10,7 +10,7 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
     const dailyProps = { batches: [], activeBatchId: 'b', batchStatus: 'COMPLETED',
       onSelectBatch: vi.fn(), activeDate: '2026-09-21', onSelectDate: vi.fn(), isWeeklyAll: false,
       hasInitialIssue: true, onOpenSupplemental: vi.fn(), onFillAll: vi.fn(), onSubmit: vi.fn(),
-      canSubmit: false, saving: false, linesCount: 3 };
+      canIssueBatch: true, canSubmit: false, saving: false, linesCount: 3 };
     const { rerender } = render(<>
       <MrxDailyHeaderBranch {...dailyProps} isPending />
       <MrxBatchHeaderBranch customers={[]} customerId="c" weekStartDate="2026-09-21" isPending
@@ -111,6 +111,7 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
         onOpenSupplemental={vi.fn()}
         onFillAll={vi.fn()}
         onSubmit={vi.fn()}
+        canIssueBatch={true}
         canSubmit={false}
         saving={false}
         linesCount={5}

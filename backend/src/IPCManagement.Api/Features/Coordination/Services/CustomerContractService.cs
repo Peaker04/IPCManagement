@@ -63,12 +63,16 @@ public sealed class CustomerContractService : ICustomerContractService
             CustomerCode = customerCode,
             CustomerName = customerName,
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
+            ServiceShiftNames = SerializeServiceShifts(request.ServiceShiftNames),
             IsActive = request.IsActive ?? true
         };
 
         _context.Customers.Add(customer);
         AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
             "CustomerCreated", null, customer.CustomerCode, "Tạo khách hàng từ màn contract");
+        if (customer.ServiceShiftNames is not null)
+            AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
+                nameof(Customer.ServiceShiftNames), null, customer.ServiceShiftNames, "Thiết lập ca phục vụ khách hàng");
 
         if (defaultMenuPrice is not null)
         {
@@ -116,6 +120,7 @@ public sealed class CustomerContractService : ICustomerContractService
             .ToList();
         if (request.DefaultMenuPrice is not null)
             MenuPriceTierPolicy.Normalize(request.DefaultMenuPrice.Value);
+        var serviceShifts = SerializeServiceShifts(request.ServiceShiftNames);
 
         var actorId = ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
@@ -145,6 +150,14 @@ public sealed class CustomerContractService : ICustomerContractService
                 nameof(Customer.IsActive), customer.IsActive.ToString(), request.IsActive.Value.ToString(),
                 "Cập nhật trạng thái khách hàng", auditCorrelationId);
             customer.IsActive = request.IsActive.Value;
+        }
+
+        if (serviceShifts is not null && !string.Equals(customer.ServiceShiftNames, serviceShifts, StringComparison.Ordinal))
+        {
+            AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
+                nameof(Customer.ServiceShiftNames), customer.ServiceShiftNames, serviceShifts,
+                "Cập nhật ca phục vụ khách hàng", auditCorrelationId);
+            customer.ServiceShiftNames = serviceShifts;
         }
 
         var changesContract = request.EffectiveFrom is not null || request.EffectiveTo is not null ||
@@ -415,6 +428,14 @@ public sealed class CustomerContractService : ICustomerContractService
             values = ["MORNING", "AFTERNOON"];
         }
 
+        return NormalizeKnownShifts(values);
+    }
+
+    private static string? SerializeServiceShifts(IReadOnlyList<string>? shifts)
+        => shifts is null ? null : string.Join(",", NormalizeKnownShifts(shifts));
+
+    private static IReadOnlyList<string> NormalizeKnownShifts(IReadOnlyList<string> values)
+    {
         var normalized = values
             .Select(NormalizeShiftName)
             .ToList();
@@ -518,6 +539,7 @@ public sealed class CustomerContractService : ICustomerContractService
             MenuScheduleCount = schedules.Count,
             ActiveWeekDays = activeWeekDays,
             ShiftNames = shiftNames,
+            ServiceShiftNames = customer.ServiceShiftNames is null ? null : SplitCsv(customer.ServiceShiftNames),
             DefaultMenuPrice = contract is null ? ResolveDefaultMenuPrice(schedules) : contract.DefaultMenuPrice,
             DefaultBomRatePercent = FixedBomRatePercent,
             LatestServiceDate = schedules.LastOrDefault()?.ServiceDate.ToString("yyyy-MM-dd")

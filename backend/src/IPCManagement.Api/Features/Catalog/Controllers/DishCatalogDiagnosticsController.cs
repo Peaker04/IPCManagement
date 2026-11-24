@@ -1,5 +1,7 @@
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Catalog.Contracts;
 using IPCManagement.Api.Features.Catalog.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Shared.Contracts;
@@ -19,8 +21,17 @@ public sealed class DishCatalogDiagnosticsController(IDishCatalogDiagnosticsServ
     [HttpGet("bom-coverage")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<BomCoverageReportDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetBomCoverageAsync([FromQuery] decimal? priceTier = null)
-        => Ok(ApiResponse<BomCoverageReportDto>.SuccessResult(await service.GetBomCoverageAsync(priceTier)));
+    public async Task<IActionResult> GetBomCoverageAsync([FromQuery] decimal? priceTier = null,
+        [FromQuery] DateOnly? effectiveDate = null, [FromServices] SystemOperationRequestContext? operation = null)
+    {
+        var sharedOnly = operation?.Mode == SystemOperationEligibility.MaterialReconciliation;
+        if (effectiveDate.HasValue && !sharedOnly)
+            return Conflict(ApiResponse.FailResult("Chỉ chọn ngày xét BOM trong chế độ Đối chiếu nguyên liệu."));
+        var report = sharedOnly
+            ? await service.GetMrxBomCoverageAsync(priceTier, effectiveDate)
+            : await service.GetBomCoverageAsync(priceTier);
+        return Ok(ApiResponse<BomCoverageReportDto>.SuccessResult(report));
+    }
 
     [HttpGet("bom-validation")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]

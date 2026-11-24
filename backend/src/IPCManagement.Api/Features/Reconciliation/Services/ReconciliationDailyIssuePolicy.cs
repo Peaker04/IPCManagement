@@ -72,8 +72,13 @@ public static class ReconciliationDailyIssuePolicy
         if (!hasDailyLineage) return new(true, false, "LEGACY_DAILY_LINEAGE_MISSING");
         if (string.Equals(batchStatus, "COMPLETED", StringComparison.Ordinal))
             return new(true, false, "BATCH_READ_ONLY");
-        return new(true, true, null);
+        return AllowsIssue(batchStatus)
+            ? new(true, true, null)
+            : new(true, false, "BATCH_NOT_TRANSFERRED");
     }
+
+    internal static bool AllowsIssue(string batchStatus, bool isSupplemental = false)
+        => batchStatus == "IN_PROGRESS" || (!isSupplemental && batchStatus == "TRANSFERRED");
 
     private static decimal Normalize(decimal quantity) => decimal.Round(quantity, 6, MidpointRounding.AwayFromZero);
 }

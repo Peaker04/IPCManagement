@@ -262,10 +262,11 @@ export function useReconciliationWorkspace(auditSubTab: 'warehouse' | 'source' =
     const customerId = customers.find((c) => c.customerCode === customerCode)?.customerId;
     if (!customerId) return;
     const bKey = `mrx_recon_month_batches_${customerId}_${selectedMonth}`;
-    let ignore = false;
-    mrxApi.getBatchPage({ customerId, ...businessMonthRange(selectedMonth), pageSize: 5, pageNumber: 1 })
+    const controller = new AbortController();
+    const { signal } = controller;
+    mrxApi.getBatchPage({ customerId, ...businessMonthRange(selectedMonth), pageSize: 5, pageNumber: 1 }, signal)
       .then(async (page) => {
-        if (ignore) return;
+        if (signal.aborted) return;
         const sortedItems = page.items;
         serverStateCache.set(bKey, sortedItems);
         const currentBatchId = batchIdRef.current;
@@ -312,7 +313,7 @@ export function useReconciliationWorkspace(auditSubTab: 'warehouse' | 'source' =
           } catch (err: unknown) {
             prefetchedError = err instanceof Error ? err : new Error('Không thể tải lô đối soát nguyên liệu.');
           }
-          if (ignore) return;
+          if (signal.aborted) return;
         } else if (
           selected &&
           hasUserSwitchedScopeRef.current &&
@@ -326,22 +327,20 @@ export function useReconciliationWorkspace(auditSubTab: 'warehouse' | 'source' =
           const reportCacheKey = `${reportScope}_1`;
           if (!serverStateCache.get(reportCacheKey)?.data) {
             try {
-              if (reportTab === 'variances') {
-                serverStateCache.set(reportCacheKey, { variancesReport: await mrxApi.getVarianceRegister(selected) });
-              } else if (reportTab === 'transactions') {
-                serverStateCache.set(reportCacheKey, {
-                  transactionsReport: await mrxApi.getTransactionsHistory({ batchId: selected, pageNumber: 1, pageSize: 25 }),
-                });
-              } else if (subTab === 'source') {
-                serverStateCache.set(reportCacheKey, { sourceReport: await mrxApi.getSourceChangesPage(selected, 1, 50, '') });
-              } else {
-                serverStateCache.set(reportCacheKey, { auditReport: await mrxApi.getAuditTrail(selected, 1, 50) });
-              }
+              const report = reportTab === 'variances'
+                ? { variancesReport: await mrxApi.getVarianceRegister(selected, undefined, signal) }
+                : reportTab === 'transactions'
+                  ? { transactionsReport: await mrxApi.getTransactionsHistory({ batchId: selected, pageNumber: 1, pageSize: 25 }, signal) }
+                  : subTab === 'source'
+                    ? { sourceReport: await mrxApi.getSourceChangesPage(selected, 1, 50, '', signal) }
+                    : { auditReport: await mrxApi.getAuditTrail(selected, 1, 50, '', signal) };
+              signal.throwIfAborted();
+              serverStateCache.set(reportCacheKey, report);
             } catch {
               // Let useReconciliationReports surface report fetch errors
             }
           }
-          if (ignore) return;
+          if (signal.aborted) return;
         }
         setBatches(sortedItems);
         setCatalogState({ key: catalogKey, page, error: null });
@@ -399,14 +398,14 @@ export function useReconciliationWorkspace(auditSubTab: 'warehouse' | 'source' =
         }, { replace: true });
       })
       .catch((cause: unknown) => {
-        if (!ignore) {
+        if (!signal.aborted) {
           setHasBatchesLoaded(true);
           const failure = cause instanceof Error ? cause : new Error('Không thể tải danh sách lô đối soát.');
           setCatalogState({ key: catalogKey, page: null, error: failure });
           setIsLoading(false);
         }
       });
-    return () => { ignore = true; };
+    return () => controller.abort();
   }, [customerCode, customers, setBatchId, setServiceDate, selectedMonth, catalogKey, catalogRetry]);
 
   const needsLinkedMetadata = activeReportTab !== 'lines' && Boolean(linkedBatchId && resolvedLink !== batchId &&

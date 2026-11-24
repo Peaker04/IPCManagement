@@ -197,8 +197,8 @@ export const adminApi = {
     }
   },
 
-  async getDish(dishId: string): Promise<DishItem> {
-    const dish = await apiClient<RawDish>(`/Dishes/${encodeURIComponent(dishId)}`);
+  async getDish(dishId: string, signal?: AbortSignal): Promise<DishItem> {
+    const dish = await apiClient<RawDish>(`/Dishes/${encodeURIComponent(dishId)}`, { signal });
     return { ...dish, dishType: dish.dishType ?? undefined, dishGroup: dish.dishGroup ?? undefined };
   },
 
@@ -259,7 +259,7 @@ export const adminApi = {
     };
   },
 
-  async getApprovalRules(): Promise<ApprovalRuleItem[]> {
-    return apiClient<ApprovalRuleItem[]>('/approval-rules');
+  async getApprovalRules(signal?: AbortSignal): Promise<ApprovalRuleItem[]> {
+    return apiClient<ApprovalRuleItem[]>('/approval-rules', { signal });
   },
 };

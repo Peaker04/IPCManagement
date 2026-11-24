@@ -7,6 +7,7 @@ import { AuthProvider } from '../store/authContext';
 import { approvalsApi } from '../api/approvalsApi';
 import { systemApi } from '../api/systemApi';
 import { ApiError } from '../api/client';
+import * as transport from '../api/client';
 import { MOCK_APPROVALS } from '../test/fixtures';
 
 function renderApprovals(initialEntry = '/approvals') {
@@ -31,7 +32,7 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
       reasonRequired: false,
       capabilities: { navigation: [], pageTabs: {} },
     });
-    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValue(MOCK_APPROVALS);
+    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValue({ items: MOCK_APPROVALS, limit: 20, hasNext: false, nextCursor: null });
     vi.spyOn(approvalsApi, 'getHistory').mockResolvedValue([]);
   });
 
@@ -59,11 +60,11 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
     // Filter tabs
     expect(await screen.findByRole('tab', { name: /Tất cả yêu cầu/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Nhu cầu nguyên liệu/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Đơn mua hàng PO/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Đề xuất mua hàng/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Phiếu nhập kho/i })).toBeInTheDocument();
 
     // Only telemetry derivable from the authoritative inbox is shown.
-    expect(screen.getByText(/Chờ duyệt:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chờ duyệt trên trang:/i)).toBeInTheDocument();
     expect(screen.queryByText(/SLA khẩn:|Đã duyệt hôm nay:/i)).not.toBeInTheDocument();
   });
 
@@ -72,7 +73,7 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
     const title = MOCK_APPROVALS[0].title;
     await screen.findByRole('row', { name: new RegExp(title) });
 
-    await userEvent.click(screen.getByRole('tab', { name: /Đơn mua hàng PO/i }));
+    await userEvent.click(screen.getByRole('tab', { name: /Đề xuất mua hàng/i }));
     const reset = await screen.findByRole('button', { name: 'Xóa bộ lọc (Xem tất cả hồ sơ)' });
     expect(screen.queryByRole('row', { name: new RegExp(title) })).not.toBeInTheDocument();
 
@@ -119,6 +120,33 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
     );
   });
 
+  it('does not send a discarded rejection reason when approving', async () => {
+    const decide = vi.spyOn(approvalsApi, 'decide').mockResolvedValue({ success: true });
+    renderApprovals();
+    await userEvent.click(await screen.findByRole('button', { name: 'Từ chối hồ sơ' }));
+    await userEvent.type(screen.getByPlaceholderText(/Nhập lý do từ chối/i), 'Lý do chưa gửi');
+    await userEvent.click(screen.getByRole('button', { name: 'Hủy bỏ' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Phê duyệt hồ sơ' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận phê duyệt' }));
+    expect(decide).toHaveBeenCalledWith(MOCK_APPROVALS[0].targetType, MOCK_APPROVALS[0].targetId,
+      'APPROVE', 'Phê duyệt hồ sơ theo thẩm quyền');
+  });
+
+  it('sends the selected type and the next inbox cursor to the API', async () => {
+    vi.mocked(approvalsApi.getInbox).mockRestore();
+    const request = vi.spyOn(transport, 'apiClient').mockImplementation(async endpoint => {
+      const url = new URL(endpoint, 'http://localhost');
+      if (url.pathname !== '/approvals/inbox') return [];
+      return url.searchParams.has('cursor')
+        ? { items: [], limit: 20, hasNext: false, nextCursor: null }
+        : { items: MOCK_APPROVALS, limit: 20, hasNext: true, nextCursor: 'next-page' };
+    });
+    renderApprovals('/approvals?type=material-demand');
+    await userEvent.click(await screen.findByRole('button', { name: 'Trang sau' }));
+    expect(request).toHaveBeenCalledWith('/approvals/inbox?targetType=material-demand&cursor=next-page',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }));
+  });
+
   it('keeps loaded inbox data visible when a decision conflicts with a newer version', async () => {
     vi.spyOn(approvalsApi, 'decide').mockRejectedValueOnce(new ApiError(409, 'Hồ sơ đã được người khác xử lý'));
     renderApprovals();
@@ -152,7 +180,7 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
     expect(screen.getByText('Lỗi máy chủ phê duyệt')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValueOnce(MOCK_APPROVALS);
+    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValueOnce({ items: MOCK_APPROVALS, limit: 20, hasNext: false, nextCursor: null });
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

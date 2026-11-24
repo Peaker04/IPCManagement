@@ -1,10 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '../store/authContext';
 import { AdvancedSettingsPage } from '../features/admin/AdvancedSettingsPage';
-import { systemApi } from '../api/systemApi';
+import { systemApi, type SystemOperationModeDto } from '../api/systemApi';
 import { ApiError } from '../api/client';
 
 function renderPage(entry = '/settings/advanced?view=mode') { return render(<AuthProvider><MemoryRouter initialEntries={[entry]}><Routes><Route path="/settings/advanced" element={<AdvancedSettingsPage />} /></Routes></MemoryRouter></AuthProvider>); }
@@ -32,8 +32,11 @@ describe('Advanced Settings', () => {
   });
   it('requires Backend reason and preserves the current mode on a version conflict', async () => {
     localStorage.setItem('ipc_v3_token', 'admin-session');
-    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 7, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: true, capabilities: { navigation: [], pageTabs: {} } });
-    const change = vi.spyOn(systemApi, 'setOperationalMode').mockRejectedValue(new ApiError(409, 'Chế độ vận hành đã thay đổi.'));
+    const base: SystemOperationModeDto = { mode: 'DEFAULT', label: 'Mặc định', version: 7, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: true, capabilities: { navigation: [], pageTabs: {} } };
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValueOnce(base)
+      .mockRejectedValueOnce(new ApiError(500, 'Không tải được phiên bản.')).mockResolvedValue({ ...base, version: 8 });
+    const change = vi.spyOn(systemApi, 'setOperationalMode').mockRejectedValueOnce(new ApiError(409, 'Chế độ vận hành đã thay đổi.'))
+      .mockResolvedValue({ ...base, mode: 'MATERIAL_RECONCILIATION', version: 9 });
     renderPage();
 
     await screen.findByText(/Chế độ hiện tại: Mặc định/);
@@ -46,9 +49,20 @@ describe('Advanced Settings', () => {
     await userEvent.click(confirmBtn);
 
     expect(change).toHaveBeenCalledWith('MATERIAL_RECONCILIATION', 7, 'Hoàn tất công việc đang mở');
-    expect(await screen.findByRole('alert')).toHaveTextContent('Chế độ vận hành đã thay đổi.');
+    const dialog = within(screen.getByRole('dialog', { name: 'Xác nhận chuyển chế độ vận hành' }));
+    expect(await dialog.findByRole('alert')).toHaveTextContent('Chế độ vận hành đã thay đổi.');
     expect(screen.getByText(/Chế độ hiện tại: Mặc định/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tải lại dữ liệu mới nhất' })).toBeInTheDocument();
+    expect(confirmBtn).toBeDisabled();
+    await userEvent.click(dialog.getByRole('button', { name: 'Tải lại dữ liệu mới nhất' }));
+    expect(await dialog.findByRole('alert')).toHaveTextContent('Không tải được phiên bản.');
+    expect(confirmBtn).toBeDisabled();
+    await userEvent.click(dialog.getByRole('button', { name: 'Tải lại dữ liệu mới nhất' }));
+    await waitFor(() => expect(confirmBtn).toBeEnabled());
+    expect(change).toHaveBeenCalledTimes(1);
+    expect(dialog.getByLabelText('Lý do chuyển chế độ')).toHaveValue('Hoàn tất công việc đang mở');
+    await userEvent.click(confirmBtn);
+    expect(change).toHaveBeenLastCalledWith('MATERIAL_RECONCILIATION', 8, 'Hoàn tất công việc đang mở');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it.each(['cache', 'diagnostics'])('fails closed from unsupported %s support view to mode settings', async (view) => {
@@ -60,7 +74,7 @@ describe('Advanced Settings', () => {
   it('H11: AdvancedSettingsPage renders feedback InlineBanner inside WorkspaceFrame.Body below TelemetrySubbar', async () => {
     localStorage.setItem('ipc_v3_token', 'admin-session');
     vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 7, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
-    vi.spyOn(systemApi, 'setOperationalMode').mockRejectedValue(new ApiError(409, 'Chế độ vận hành đã thay đổi.'));
+    vi.spyOn(systemApi, 'setOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'MRX', version: 8, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     renderPage();
 
     await screen.findByText(/Chế độ hiện tại: Mặc định/);
@@ -68,9 +82,9 @@ describe('Advanced Settings', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình hệ thống' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Xác nhận chuyển chế độ' }));
 
-    const alert = await screen.findByRole('alert');
+    const notice = await screen.findByText('Đã chuyển chế độ vận hành sang Đối soát nguyên liệu.');
     const subbar = screen.getByText(/Đang xem: Chế độ vận hành/).closest('div.min-h-11')!;
     // Feedback alert must follow TelemetrySubbar in DOM order so TelemetrySubbar never shifts down
-    expect(Boolean(subbar.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(Boolean(subbar.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
   });
 });

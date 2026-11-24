@@ -21,6 +21,7 @@ export interface StateBoundaryProps {
   delayMs?: number;
   isFetching?: boolean;
   isPreviousData?: boolean;
+  lockContent?: boolean;
   hasExistingData?: boolean;
   loadingVariant?: 'table' | 'cards' | 'matrix' | 'form';
   loadingGeometry?: SkeletonGeometry;
@@ -135,6 +136,7 @@ export function StateBoundary({
   isFetching,
   delayMs,
   isPreviousData,
+  lockContent,
   hasExistingData,
   loadingVariant = 'table',
   loadingGeometry,
@@ -361,6 +363,7 @@ export function StateBoundary({
   }
 
   // 6. Partial State Banner & Content
+  const isLoadingPrevious = isPreviousData && (!error || isFetching);
   return (
     <div className={clsx('flex-1 min-h-0 w-full flex flex-col relative', className)}>
       {error && hasExistingData && <div role="alert" className="px-4 py-2 text-xs bg-rose-50 border-b border-rose-200 text-rose-800 flex items-center justify-between shrink-0">
@@ -373,12 +376,12 @@ export function StateBoundary({
         </div>
       )}
       <div
-        role={isPreviousData ? 'progressbar' : undefined}
-        aria-label={isPreviousData ? 'Đang tải trang' : undefined}
-        aria-hidden={!isPreviousData || undefined}
+        role={isLoadingPrevious ? 'progressbar' : undefined}
+        aria-label={isLoadingPrevious ? 'Đang tải trang' : undefined}
+        aria-hidden={!isLoadingPrevious || undefined}
         className="sr-only"
       />
-      <div className={clsx('flex-1 min-h-0 w-full flex flex-col', isPreviousData && 'pointer-events-none select-none')} aria-busy={isPreviousData || undefined} inert={isPreviousData || undefined}>
+      <div className={clsx('flex-1 min-h-0 w-full flex flex-col', (isPreviousData || lockContent) && 'pointer-events-none select-none')} aria-busy={isLoadingPrevious || undefined} inert={isPreviousData || lockContent || undefined}>
         {children}
       </div>
     </div>

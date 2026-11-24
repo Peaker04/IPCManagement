@@ -100,6 +100,41 @@ describe('AdminCustomersBranch Component Tests (Rule TA-2 & TA-4)', () => {
     expect(screen.getByRole('row', { name: /Công ty Draxlmaier/ })).not.toHaveTextContent('30.000');
   });
 
+  it('submits selected service shifts when creating a customer without a price', async () => {
+    render(<AuthProvider><AdminCustomersBranch /></AuthProvider>);
+    await screen.findByText('Công ty May Amann');
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm khách hàng mới' }));
+    fireEvent.change(screen.getByLabelText('Mã khách hàng', { exact: true }), { target: { value: 'NEW' } });
+    fireEvent.change(screen.getByLabelText('Tên khách hàng', { exact: true }), { target: { value: 'Khách hàng mới' } });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Chiều' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo khách hàng' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(apiTransport.apiClient).toHaveBeenCalledWith('/coordination/customers/contract', {
+      method: 'POST', body: JSON.stringify({ customerCode: 'NEW', customerName: 'Khách hàng mới', isActive: true, serviceShiftNames: ['AFTERNOON'] }),
+    });
+  });
+
+  it('lets a customer without a contract save service shifts and shows the saved values', async () => {
+    const customer = { ...mockContracts[0], customerCode: 'WL', customerName: 'WENDLER', contractId: null,
+      contractStatus: 'FALLBACK', defaultMenuPrice: null, menuScheduleCount: 0, activeWeekDays: [], shiftNames: [] };
+    const updatePath = `/coordination/customers/${customer.customerId}/contract`;
+    visibleContracts = [customer];
+    const transport = vi.mocked(apiTransport.apiClient);
+    const read = transport.getMockImplementation()!;
+    transport.mockImplementation((path, options) => path === updatePath && options?.method === 'PUT'
+      ? Promise.resolve({ ...customer, serviceShiftNames: ['MORNING', 'AFTERNOON'] }) : read(path, options));
+    render(<AuthProvider><AdminCustomersBranch /></AuthProvider>);
+    const row = await screen.findByRole('row', { name: /WENDLER/ });
+    expect(row).toHaveTextContent('Chưa thiết lập');
+    fireEvent.click(row);
+    fireEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sáng' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Chiều' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
+    await waitFor(() => expect(row).toHaveTextContent(/Sáng.*Chiều/));
+    expect(transport).toHaveBeenCalledWith(updatePath, { method: 'PUT', body: JSON.stringify({ serviceShiftNames: ['MORNING', 'AFTERNOON'] }) });
+  });
+
   it('edits selected customer note/status through toolbar, retaining failed drafts without contract or name fields', async () => {
     let failUpdate = true;
     const transport = vi.mocked(apiTransport.apiClient).getMockImplementation()!;

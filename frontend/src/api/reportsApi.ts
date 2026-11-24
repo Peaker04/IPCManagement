@@ -38,20 +38,20 @@ function addPeriod(params: URLSearchParams, period?: string) {
 }
 
 export const reportsApi = {
-  async getDemand(period?: string, customerId?: string, pageNumber = 1, pageSize = 25): Promise<ReportPage<DemandReportItem>> {
+  async getDemand(period?: string, customerId?: string, pageNumber = 1, pageSize = 25, signal?: AbortSignal): Promise<ReportPage<DemandReportItem>> {
     const params = pageParams(pageNumber, pageSize);
     addPeriod(params, period);
     if (customerId && customerId !== 'ALL') params.set('customerId', customerId);
-    return apiClient<ReportPage<DemandReportItem>>(`/workflow-reports/ingredient-demand/aggregate/page?${params}`);
+    return apiClient<ReportPage<DemandReportItem>>(`/workflow-reports/ingredient-demand/aggregate/page?${params}`, { signal });
   },
-  async getPriceVariance(period?: string, pageNumber = 1, pageSize = 25): Promise<ReportPage<PriceVarianceReportItem>> {
+  async getPriceVariance(period?: string, pageNumber = 1, pageSize = 25, signal?: AbortSignal): Promise<ReportPage<PriceVarianceReportItem>> {
     const params = pageParams(pageNumber, pageSize);
     addPeriod(params, period);
-    return apiClient<ReportPage<PriceVarianceReportItem>>(`/workflow-reports/receipt-price-variance/page?${params}`);
+    return apiClient<ReportPage<PriceVarianceReportItem>>(`/workflow-reports/receipt-price-variance/page?${params}`, { signal });
   },
-  async getCurrentStock(warehouseId?: string, pageNumber = 1, pageSize = 25): Promise<ReportPage<CurrentStockReportItem>> {
+  async getCurrentStock(warehouseId?: string, pageNumber = 1, pageSize = 25, signal?: AbortSignal): Promise<ReportPage<CurrentStockReportItem>> {
     const params = pageParams(pageNumber, pageSize);
     if (warehouseId && warehouseId !== 'ALL') params.set('warehouseId', warehouseId);
-    return apiClient<ReportPage<CurrentStockReportItem>>(`/workflow-reports/current-stock/page?${params}`);
+    return apiClient<ReportPage<CurrentStockReportItem>>(`/workflow-reports/current-stock/page?${params}`, { signal });
   },
 };

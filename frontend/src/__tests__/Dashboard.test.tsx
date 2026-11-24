@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
@@ -82,6 +82,24 @@ describe('Dashboard Feature (FR-DASH — Bàn điều hành hôm nay)', () => {
     expect(screen.getByText('2. Lập KHSX & Tính nhu cầu BOM')).toBeInTheDocument();
     expect(screen.getByText('3. Xuất kho & Chế biến tại bếp')).toBeInTheDocument();
     expect(screen.getByText('4. Giao nhận suất & Đối soát')).toBeInTheDocument();
+  });
+
+  it('cancels the previous KPI read and keeps the newest refresh result', async () => {
+    let previousSignal: AbortSignal | undefined;
+    let resolvePrevious!: (data: typeof MOCK_DASHBOARD_DATA) => void;
+    const fetchDashboard = vi.spyOn(dashboardApi, 'getDashboardData').mockImplementationOnce((options) => {
+      previousSignal = options?.signal;
+      return new Promise((resolve) => { resolvePrevious = resolve; });
+    });
+
+    renderDashboard();
+    await waitFor(() => expect(fetchDashboard).toHaveBeenCalledTimes(1));
+    await userEvent.click(screen.getByRole('button', { name: 'Làm mới' }));
+
+    expect(previousSignal?.aborted).toBe(true);
+    expect(await screen.findByText('Suất ăn theo KHSX')).toBeVisible();
+    await act(async () => resolvePrevious({ ...MOCK_DASHBOARD_DATA, metrics: [] }));
+    expect(screen.getByText('Suất ăn theo KHSX')).toBeVisible();
   });
 
   it('handles error state and provides retry mechanism', async () => {

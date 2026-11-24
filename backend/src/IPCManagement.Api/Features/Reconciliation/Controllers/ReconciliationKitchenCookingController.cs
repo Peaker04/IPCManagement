@@ -67,4 +67,25 @@ public sealed class ReconciliationKitchenCookingController(ReconciliationKitchen
     private static bool IsCompatibilityError(InvalidOperationException error) =>
         error.Message.Contains("KITCHEN_FROZEN_LINEAGE_", StringComparison.Ordinal)
         || error.Message.Contains("LEGACY_DAILY_LINEAGE_MISSING", StringComparison.Ordinal);
+
+    [HttpGet("/api/reconciliation/kitchen-cooking/xlsx")]
+    [Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+    public async Task<IActionResult> ScopedXlsx([FromQuery] DateOnly weekStartDate, [FromQuery] Guid[] batchIds,
+        [FromQuery] DateOnly? serviceDate, [FromQuery] string shift = "ALL", CancellationToken token = default)
+    {
+        try
+        {
+            var bytes = await service.BuildScopedXlsxAsync(weekStartDate, batchIds, serviceDate, shift, token);
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"phieu-nau-{serviceDate ?? weekStartDate:yyyy-MM-dd}.xlsx");
+        }
+        catch (ArgumentException error)
+        {
+            return BadRequest(ApiResponse.FailResult(error.Message));
+        }
+        catch (InvalidOperationException error) when (IsCompatibilityError(error))
+        {
+            var message = error.Message.Split(": ", 2, StringSplitOptions.None);
+            return Conflict(ApiResponse.FailResult(message[^1]));
+        }
+    }
 }

@@ -22,6 +22,7 @@ export interface MrxDailyHeaderBranchProps {
   availableDates?: string[];
   isWeeklyAll: boolean;
   hasInitialIssue: boolean;
+  canIssueBatch: boolean;
   onOpenSupplemental: () => void;
   onFillAll: () => void;
   onSubmit: () => void | Promise<void>;
@@ -46,6 +47,7 @@ export function MrxDailyHeaderBranch({
   availableDates,
   isWeeklyAll,
   hasInitialIssue,
+  canIssueBatch,
   onOpenSupplemental,
   onFillAll,
   onSubmit,
@@ -66,7 +68,7 @@ export function MrxDailyHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
-      className="mrx-scope-header"
+      className="mrx-scope-header mrx-daily-issue-header"
       title="Xuất kho nguyên liệu theo ngày"
       breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
       contextSelectors={
@@ -122,6 +124,8 @@ export function MrxDailyHeaderBranch({
             <Badge variant="neutral" size="default" className="h-9 px-3 text-xs flex items-center text-slate-500">
               Không có định lượng ca
             </Badge>
+          ) : !canIssueBatch ? (
+            <Badge variant="neutral" size="default">Chỉ xem</Badge>
           ) : hasInitialIssue ? (
             <Button
               variant="default"
@@ -145,9 +149,11 @@ export function MrxDailyHeaderBranch({
                 variant="default"
                 size="default"
                 onClick={() => void onSubmit()}
-                disabled={!canSubmit}
+                disabled={!canSubmit && !saving}
+                loading={saving}
+                loadingText="Đang ghi…"
               >
-                {saving ? 'Đang ghi…' : 'Xác nhận xuất kho'}
+                Xác nhận xuất kho
               </Button>
             </>
           )}

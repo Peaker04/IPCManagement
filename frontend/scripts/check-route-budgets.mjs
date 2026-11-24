@@ -123,7 +123,8 @@ export function checkRouteBudgets({ configPath = resolve(frontendRoot, 'route-bu
   const routes = validateRoutes(config)
   const results = routes.map((route) => {
     const entryKey = findManifestEntry(manifest, route)
-    const currentBytes = gzipBytes(distRoot, collectAssets(manifest, entryKey))
+    const assets = manifest['index.html'] ? collectAssets(manifest, 'index.html') : new Set()
+    const currentBytes = gzipBytes(distRoot, collectAssets(manifest, entryKey, assets))
     return { ...route, currentBytes }
   })
 

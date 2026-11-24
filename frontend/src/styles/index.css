@@ -335,7 +335,28 @@
   .mrx-source-header .mrx-source-customer { flex: 0 0 10rem; }
   .mrx-source-header .mrx-source-batch { flex: 1 1 16rem; }
 }
+.mrx-history-scroll {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
 .mrx-history-list { width: 100%; min-width: 0; }
+.mrx-warehouse-quantity-grid th {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding-block: 0.375rem;
+}
+.mrx-warehouse-quantity-grid td > .tabular-nums {
+  max-inline-size: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.mrx-cooking-export-lots {
+  max-block-size: min(38dvh, 22rem);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
 .mrx-prep-detail { display: grid; gap: 16px; padding: 16px; }
 .mrx-prep-allocations { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; }
 .mrx-prep-allocations th, .mrx-prep-allocations td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border-subtle); overflow-wrap: anywhere; }
@@ -371,6 +392,9 @@
   min-width: 0;
 }
 .mrx-history-head {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
   min-height: 38px;
   background: var(--bg-subtle);
   color: var(--text-muted);
@@ -420,9 +444,9 @@
 }
 @container (max-width: 850px) {
   .mrx-history-head { display: none; }
-  .mrx-history-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; align-items: start; }
+  .mrx-history-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; align-items: start; }
   .mrx-history-status { align-items: flex-start; text-align: left; }
-  .mrx-history-action { grid-column: 1 / -1; justify-self: start; }
+  .mrx-history-action { align-self: end; }
   .mrx-history-mobile-label { display: inline; font-size: 12px; color: var(--text-muted); }
 }
 @container (max-width: 520px) {
@@ -430,9 +454,18 @@
   .mrx-source-header [data-slot="header-title"] { grid-column: 1; grid-row: 1; }
   .mrx-source-header [data-slot="header-command-region"] { grid-column: 1; grid-row: 2; justify-self: start; }
   .mrx-source-header [data-slot="header-scope"] { grid-column: 1; grid-row: 3; }
+  .mrx-source-header .mrx-source-customer, .mrx-source-header .mrx-source-batch { flex: 1 1 calc(50% - 4px); min-width: 0; }
   .mrx-history-row { grid-template-columns: minmax(0, 1fr); }
-  .mrx-history-action { grid-column: 1; }
+  .mrx-history-action { grid-column: 1; justify-self: start; }
   .mrx-history-meta { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 560px) {
+  .mrx-scope-header.mrx-daily-issue-header { grid-template-columns: minmax(0, 1fr); }
+  .mrx-daily-issue-header [data-slot="header-title"] { grid-column: 1; grid-row: 1; }
+  .mrx-daily-issue-header [data-slot="header-title"] h1 { white-space: normal; }
+  .mrx-daily-issue-header [data-slot="header-scope"] { grid-column: 1; grid-row: 2; }
+  .mrx-daily-issue-header [data-slot="header-command-region"] { grid-column: 1; grid-row: 3; }
+  .mrx-daily-issue-header [data-slot="header-actions"] { flex-wrap: wrap; }
 }
 .mrx-command-slot {
   width: auto;
@@ -587,6 +620,11 @@ html, body {
   scrollbar-gutter: stable;
 }
 
+.workbench-grid-scroll,
+.workbench-grid-skeleton {
+  scrollbar-gutter: stable;
+}
+
 /* Custom hairline scrollbar for data tables */
 ::-webkit-scrollbar {
   width: 6px;
@@ -670,6 +708,10 @@ html, body {
 }
 
 @media print {
+  .mrx-cooking-ingredients { overflow: visible; }
+  .mrx-cooking-ingredients table { min-width: 0; }
+  .mrx-cooking-ingredients :is(thead, th, td) { position: static; }
+  .mrx-cooking-ingredients :is(th, td) { overflow-wrap: anywhere; }
   aside,
   header,
   nav,

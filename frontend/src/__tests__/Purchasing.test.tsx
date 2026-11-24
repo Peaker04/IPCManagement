@@ -6,7 +6,7 @@ import { PurchasingPage } from '../features/purchasing/PurchasingPage';
 import { AuthProvider } from '../store/authContext';
 import { purchasingApi } from '../api/purchasingApi';
 import { systemApi } from '../api/systemApi';
-import { MOCK_PURCHASE_ORDERS, MOCK_SUPPLIERS } from '../test/fixtures';
+import { fixturePage, MOCK_PURCHASE_ORDERS, MOCK_SUPPLIERS } from '../test/fixtures';
 
 function renderPurchasing(initialEntry = '/purchasing') {
   return render(
@@ -30,7 +30,8 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
       reasonRequired: false,
       capabilities: { navigation: [], pageTabs: {} },
     });
-    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValue(MOCK_PURCHASE_ORDERS);
+    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockImplementation(async (_, query) => fixturePage(
+      MOCK_PURCHASE_ORDERS.filter(order => !query || query.supplierId === 'ALL' || query.supplierId === order.supplierId)));
     vi.spyOn(purchasingApi, 'getSuppliers').mockResolvedValue(MOCK_SUPPLIERS);
   });
 
@@ -70,7 +71,7 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
 
     // Telemetry pills
     expect(screen.getByText(/Tổng PO:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tổng giá trị:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tổng giá trị trên trang:/i)).toBeInTheDocument();
     expect(screen.getByText(/Đối tác:/i)).toBeInTheDocument();
   });
 
@@ -118,7 +119,7 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
     expect(screen.getByText('Lỗi máy chủ thu mua')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValueOnce(MOCK_PURCHASE_ORDERS);
+    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValueOnce(fixturePage(MOCK_PURCHASE_ORDERS));
     vi.spyOn(purchasingApi, 'getSuppliers').mockResolvedValueOnce(MOCK_SUPPLIERS);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
@@ -127,12 +128,41 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
   });
 
   it('renders clean empty state when no purchase orders exist', async () => {
-    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValue([]);
+    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValue(fixturePage([]));
 
     renderPurchasing();
 
     expect(await screen.findByText('Không tìm thấy đơn mua hàng')).toBeInTheDocument();
     expect(screen.getByText(/Không có đơn PO nào khớp với điều kiện tìm kiếm/i)).toBeInTheDocument();
+  });
+
+  it('refreshes orders after cancelling without reloading the supplier catalog', async () => {
+    const order = { ...MOCK_PURCHASE_ORDERS[0], status: 'ORDERED' as const };
+    const getOrders = vi.spyOn(purchasingApi, 'getPurchaseOrders')
+      .mockResolvedValueOnce(fixturePage([order]))
+      .mockResolvedValue(fixturePage([{ ...order, status: 'CANCELLED' }]));
+    const getSuppliers = vi.mocked(purchasingApi.getSuppliers);
+    const cancel = vi.spyOn(purchasingApi, 'cancelPurchaseOrder').mockResolvedValue(undefined);
+    renderPurchasing();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Hủy đơn PO' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận hủy đơn PO' }));
+    expect(await screen.findAllByText('Đã hủy')).not.toHaveLength(0);
+    expect(cancel).toHaveBeenCalledExactlyOnceWith(order.id);
+    expect(getOrders).toHaveBeenCalledTimes(2);
+    expect(getSuppliers).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses a server-scoped supplier filter and resets only the order query', async () => {
+    renderPurchasing('/purchasing?supplierId=sup-2');
+    expect(await screen.findByRole('combobox', { name: 'Lọc nhà cung cấp' })).toHaveValue('sup-2');
+    await userEvent.click(await screen.findByRole('button', { name: 'Xóa bộ lọc PO' }));
+    expect(await screen.findAllByText(MOCK_PURCHASE_ORDERS[0].code)).not.toHaveLength(0);
+    expect(purchasingApi.getPurchaseOrders).toHaveBeenNthCalledWith(1, expect.any(AbortSignal),
+      { supplierId: 'sup-2', status: 'ALL', pageNumber: 1 });
+    expect(purchasingApi.getPurchaseOrders).toHaveBeenNthCalledWith(2, expect.any(AbortSignal),
+      { supplierId: 'ALL', status: 'ALL', pageNumber: 1 });
+    expect(purchasingApi.getSuppliers).toHaveBeenCalledTimes(1);
   });
 
   it('renders Vietnamese domain labels for PO statuses and avoids raw English enums', async () => {

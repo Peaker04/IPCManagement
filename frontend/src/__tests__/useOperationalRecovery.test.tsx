@@ -109,6 +109,26 @@ describe('useOperationalRecovery', () => {
     expect(result.current.error).toBeNull();
     expect(result.current.data).toEqual([{ id: '2', name: 'Item 2' }]);
   });
+
+  it('keeps the current result during a transient refresh failure and clears it on denial', async () => {
+    const data = [{ id: '1', name: 'Dữ liệu đã tải' }];
+    const fetcher = vi.fn().mockResolvedValueOnce(data)
+      .mockRejectedValueOnce(new ApiError(500, 'Lỗi tải lại'))
+      .mockRejectedValueOnce(new ApiError(403, 'Quyền đã thay đổi'));
+    const { result } = renderHook(() => useOperationalRecovery({
+      queryKey: 'refresh_scope', fetcher, initialFilters: defaultFilters, defaultFilters,
+    }));
+
+    await act(async () => {});
+    await act(async () => { await result.current.refetch(); });
+    expect(result.current.error?.message).toBe('Lỗi tải lại');
+    expect(result.current.data).toEqual(data);
+
+    await act(async () => { await result.current.refetch(); });
+    expect(result.current.error?.message).toBe('Quyền đã thay đổi');
+    expect(result.current.data).toBeNull();
+    expect(serverStateCache.get('refresh_scope')).toBeNull();
+  });
 });
 
 describe('executeSafeMutation', () => {

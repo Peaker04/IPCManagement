@@ -431,7 +431,8 @@ public class SampleDataImportServiceTests
                 customerCode TEXT NOT NULL,
                 customerName TEXT NOT NULL,
                 note TEXT NULL,
-                isActive INTEGER NULL
+                isActive INTEGER NULL,
+                serviceShiftNames TEXT NULL
             );
             """;
         await command.ExecuteNonQueryAsync();
@@ -709,7 +710,8 @@ public class SampleDataImportServiceTests
                 customerCode TEXT NOT NULL,
                 customerName TEXT NOT NULL,
                 note TEXT NULL,
-                isActive INTEGER NULL
+                isActive INTEGER NULL,
+                serviceShiftNames TEXT NULL
             );
             CREATE TABLE customerimportmappings (
                 mappingId BLOB PRIMARY KEY,

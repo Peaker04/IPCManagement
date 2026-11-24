@@ -2,6 +2,24 @@ using System.Text.Json;
 using IPCManagement.DatabaseTool;
 using MySqlConnector;
 
+if (args.Length == 8 && args[0] == "preparation-groups" && args[1] == "snapshot" &&
+    args[2] == "--settings" && args[4] == "--database" && args[6] == "--output")
+{
+    try
+    {
+        PreparationGroupReviewCommand.ValidateSnapshotTarget(args[5]);
+        await using var snapshotConnection = await OpenServerConnectionAsync(Path.GetFullPath(args[3]));
+        await snapshotConnection.ChangeDatabaseAsync(args[5]);
+        return await PreparationGroupReviewCommand.SnapshotAsync(snapshotConnection, args[7]);
+    }
+    catch (Exception exception)
+    {
+        // Driver messages may include server/account details; private snapshot failures stay sanitized.
+        Console.Error.WriteLine($"Preparation snapshot failed ({exception.GetType().Name}); no group changes were requested.");
+        return 1;
+    }
+}
+
 if (args.Length >= 1 && args[0] == "reset-passwords")
 {
     await using var conn = await OpenServerConnectionAsync("backend/src/IPCManagement.Api/appsettings.json");

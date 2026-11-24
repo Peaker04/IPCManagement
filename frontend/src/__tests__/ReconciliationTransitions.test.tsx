@@ -38,11 +38,11 @@ describe('Reconciliation transitions and reports', () => {
     renderReconciliation(`/reconciliation?view=audit&batchId=${MOCK_RECONCILIATION.batchId}`);
     const find = await screen.findByRole('searchbox', { name: 'Tìm trong nhật ký kiểm toán kho' });
     await userEvent.type(find, 'Older');
-    await waitFor(() => expect(warehouse).toHaveBeenLastCalledWith(MOCK_RECONCILIATION.batchId, 1, 50, 'Older'));
+    await waitFor(() => expect(warehouse).toHaveBeenLastCalledWith(MOCK_RECONCILIATION.batchId, 1, 50, 'Older', expect.any(AbortSignal)));
     expect(await screen.findByText('Older warehouse match')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: /Nguồn & BOM/ }));
     expect(await screen.findByText('Older source match')).toBeVisible();
-    expect(source).toHaveBeenLastCalledWith(MOCK_RECONCILIATION.batchId, 1, 50, 'Older');
+    expect(source).toHaveBeenLastCalledWith(MOCK_RECONCILIATION.batchId, 1, 50, 'Older', expect.any(AbortSignal));
     expect(screen.getByRole('navigation', { name: 'Phân trang nhật ký kiểm toán' })).toHaveTextContent('1 kết quả');
   });
 
@@ -112,7 +112,7 @@ describe('Reconciliation transitions and reports', () => {
       customerId: 'customer-1',
       weekFrom: '2026-01-01',
       weekTo: '2026-12-31',
-    })));
+    }), expect.any(AbortSignal)));
     expect(screen.getByRole('combobox', { name: 'Lọc theo khách hàng' })).toHaveValue('customer-1');
     expect(screen.getByRole('combobox', { name: 'Kỳ thời gian' })).toHaveValue('THIS_YEAR');
   });
@@ -264,7 +264,7 @@ describe('Reconciliation transitions and reports', () => {
     if (reason === 'invalidated') serverStateCache.invalidate(key);
     const transport = vi.spyOn(apiTransport, 'apiClient').mockResolvedValue({ ...batch, status: 'IN_PROGRESS', version: 10 });
     const summary = await mrxApi.getBatchSummary(batch.batchId, batch.weekStartDate ?? undefined);
-    expect(transport).toHaveBeenCalledWith(`/reconciliation/batches/${batch.batchId}`);
+    expect(transport).toHaveBeenCalledWith(`/reconciliation/batches/${batch.batchId}`, { signal: undefined });
     expect(summary.status).toBe('IN_PROGRESS');
     expect(summary.version).toBe(10);
   });
@@ -1180,7 +1180,7 @@ describe('Reconciliation transitions and reports', () => {
     expect(await screen.findByText('Thịt bò DAV')).toBeInTheDocument();
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chọn khách hàng đối soát' }), 'KH2');
-    await waitFor(() => expect(mrxApi.getVarianceRegister).toHaveBeenCalledWith('b-kh2'));
+    await waitFor(() => expect(mrxApi.getVarianceRegister).toHaveBeenCalledWith('b-kh2', undefined, expect.any(AbortSignal)));
     // While b-kh2 variance report is still pending, header batch option must NOT have flipped to KH2 · 19/10/2026 ahead of the table!
     expect(screen.getByRole('button', { name: 'Tải Excel Sổ chênh lệch' })).toBeDisabled();
     expect(screen.getByText('Thịt bò DAV')).toBeInTheDocument();

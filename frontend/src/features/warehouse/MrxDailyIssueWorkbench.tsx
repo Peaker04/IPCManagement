@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { Boxes } from 'lucide-react';
 import { ApiError } from '../../api/client';
-import { invalidateMrxCaches } from '../../api/mrxCacheInvalidation';
 import { Button } from '../../components/ui/button';
 import { Num } from '../../components/ui/num';
 import { PaginationBar } from '../../components/workbench/PaginationBar';
@@ -65,6 +64,9 @@ export function MrxDailyIssueWorkbench({
     daily,
     day,
     history,
+    historyState,
+    isHistoryPageStale,
+    refetchHistory,
     historyPage,
     setHistoryPage,
     lines,
@@ -82,6 +84,7 @@ export function MrxDailyIssueWorkbench({
     saving,
     mutationError,
     issueOutcomeUnknown,
+    retryInitial,
     setMutationError,
     issueSucceeded,
     isSupplementalOpen,
@@ -95,10 +98,12 @@ export function MrxDailyIssueWorkbench({
     isSubmittingSupp,
     suppError,
     suppOutcomeUnknown,
+    retrySupplemental,
     setSuppError,
     inspectedIssueId,
     setInspectedIssueId,
     handleFillAll,
+    canIssueBatch,
     canSubmit,
     submit,
     handleSupplementalSubmit,
@@ -117,6 +122,8 @@ export function MrxDailyIssueWorkbench({
     );
   }, [history?.items, historyQuery]);
   const isIssueOutcomeUnknown = issueOutcomeUnknown;
+  const isIssueConflict = mutationError instanceof ApiError && mutationError.status === 409;
+  const isStaleIssue = isIssueConflict && mutationError.code === 'MRX_ISSUE_STALE';
   const isOutsideBatchDate = Boolean(daily?.dates.length && !isWeeklyAll && !day);
   const dirtyNavigation = useOptionalDirtyNavigation();
   const registerDirty = dirtyNavigation?.registerDirty;
@@ -235,6 +242,7 @@ export function MrxDailyIssueWorkbench({
         }}
         isWeeklyAll={isWeeklyAll}
         hasInitialIssue={hasInitialIssue}
+        canIssueBatch={canIssueBatch}
         onOpenSupplemental={() => {
           if (scopeLocked) return;
           setSuppMaterialId(lines[0]?.dailyLineId || '');
@@ -334,19 +342,27 @@ export function MrxDailyIssueWorkbench({
       {daily?.dates.some(date => !isServiceDate(date.serviceDate) && date.lines.length > 0) && <InlineBanner variant="info">
         Lô có dữ liệu Chủ nhật lịch sử. Tổng hợp lô giữ nguyên dữ liệu này; Chủ nhật chỉ xem, không tạo phiếu mới.
       </InlineBanner>}
-      {mutationError && (
+      {daily?.batchId === activeBatchId && daily.batchStatus === 'READY' && (
+        <InlineBanner variant="info" title="Lô chưa chuyển sang Kho"
+          actionLabel={stateProps.isFetching ? undefined : 'Làm mới'} onAction={() => void load(true)}>
+          Điều phối cần chọn “Chuyển sang Kho” ở màn chuẩn bị lô. Sau khi bàn giao, chọn “Làm mới” để xuất kho.
+        </InlineBanner>
+      )}
+      {(mutationError || isIssueOutcomeUnknown) && (
         <InlineBanner
-          variant={mutationError instanceof ApiError && mutationError.status === 409 ? 'conflict' : 'error'}
-          title={isIssueOutcomeUnknown ? 'Chưa xác nhận được kết quả xuất kho' : mutationError instanceof ApiError && mutationError.status === 409 ? 'Dữ liệu xuất kho đã thay đổi' : 'Không thể ghi phiếu xuất'}
-          actionLabel={isIssueOutcomeUnknown ? 'Tải lại để kiểm tra kết quả' : mutationError instanceof ApiError && mutationError.status === 409 ? 'Tải lại dữ liệu mới nhất' : undefined}
-          onAction={isIssueOutcomeUnknown ? () => { invalidateMrxCaches(); window.location.reload(); } : mutationError instanceof ApiError && mutationError.status === 409 ? () => {
+          variant={isIssueConflict ? 'conflict' : 'error'}
+          title={isIssueOutcomeUnknown ? 'Chưa xác nhận được kết quả xuất kho' : isStaleIssue ? 'Dữ liệu xuất kho đã thay đổi' : 'Không thể ghi phiếu xuất'}
+          actionLabel={isIssueOutcomeUnknown ? (saving ? undefined : 'Gửi lại cùng mã lệnh') : isIssueConflict ? 'Tải lại dữ liệu mới nhất' : undefined}
+          onAction={isIssueOutcomeUnknown ? retryInitial : isIssueConflict ? () => {
             setMutationError(null);
             void load(true);
           } : undefined}
           onClose={isIssueOutcomeUnknown ? undefined : () => setMutationError(null)}
           className="shrink-0 rounded-none border-x-0"
         >
-          {isIssueOutcomeUnknown ? 'Kết nối bị gián đoạn; phiếu có thể đã được ghi. Hãy tải lại để kiểm tra lịch sử trước khi xuất thêm.' : mutationError.message}
+          {isIssueOutcomeUnknown
+            ? 'Phiếu có thể đã được ghi. Gửi lại cùng mã lệnh để nhận phiếu đã ghi hoặc hoàn tất lần gửi trước.'
+            : mutationError?.message}
         </InlineBanner>
       )}
 
@@ -371,10 +387,11 @@ export function MrxDailyIssueWorkbench({
       <WorkspaceFrame.Body>
         <StateBoundary
           {...stateProps}
+          className={activeTab === 'demand' && isOutsideBatchDate ? 'justify-start! py-5!' : undefined}
           onRetry={() => { if (!activeBatchId && catalogError) retryCatalog(); else void load(true); }}
           error={stateProps.error || (!activeBatchId ? catalogError : null)}
           hasExistingData={Boolean(daily || history)}
-          isPreviousData={stateProps.isPreviousData || Boolean(activeTab === 'history' && !history && daily && !stateProps.error)}
+          isPreviousData={stateProps.isPreviousData}
           isLoading={stateProps.isLoading || Boolean(!stateProps.error && activeBatchId && !daily && !history)}
           onResolveConflict={() => load(true)}
           loadingVariant="table"
@@ -382,7 +399,7 @@ export function MrxDailyIssueWorkbench({
             {activeTab === 'demand' && <div aria-hidden="true" className="px-4 py-2 border-b border-slate-200 bg-slate-50 shrink-0"><div className="h-8 w-60 rounded bg-slate-200" /></div>}
             <WorkbenchSkeleton geometry={{ kind: 'table', columns: 5, rows: 10,
               columnWidths: activeTab === 'history' ? ['24%', '18%', '16%', '18%', '24%']
-                : isWeeklyAll ? ['34%', '10%', '18%', '18%', '20%'] : ['30%', '16%', '20%', '20%', '14%'],
+                : isWeeklyAll ? ['26%', '12%', '20%', '20%', '22%'] : ['26%', '21%', '17%', '18%', '18%'],
             }} />
           </div>}
           emptyIcon={Boxes}
@@ -398,7 +415,7 @@ export function MrxDailyIssueWorkbench({
           } : (!activeBatchId || batches.length === 0 ? () => navigate('/') : undefined)}
         >
           {activeTab === 'demand' ? (
-            <fieldset disabled={scopeLocked} className="flex-1 min-h-0 flex flex-col bg-white">
+            <fieldset disabled={scopeLocked} className="flex-1 min-h-0 min-w-0 flex flex-col bg-white">
               <MrxDailyLinesBranch
                 isWeeklyAll={isWeeklyAll}
                 weeklyAggregateLines={weeklyAggregateLines}
@@ -408,7 +425,7 @@ export function MrxDailyIssueWorkbench({
                 reasons={reasons}
                 setReasons={setReasons}
                 hasInitialIssue={hasInitialIssue}
-                readOnly={!isServiceDate(activeDate)}
+                readOnly={!canIssueBatch || !isServiceDate(activeDate)}
                 lastRevisionAt={day?.lastRevisionAt}
                 lastRevisionByName={day?.lastRevisionByName}
                 lastRevisionByRole={day?.lastRevisionByRole}
@@ -425,16 +442,26 @@ export function MrxDailyIssueWorkbench({
                 clearLabel="Xóa tìm trong lịch sử phiếu"
                 scope="Tìm trong trang lịch sử phiếu xuất hiện tại."
               />
-              <DataGrid
-                data={filteredHistoryItems}
-                columns={historyColumns}
-                keyExtractor={(row) => row.issueId}
-                emptyMessage={historyQuery ? "Không tìm thấy phiếu xuất nào khớp với từ khóa." : "Chưa có phiếu xuất kho nào cho lô này."}
-              />
+              <StateBoundary
+                isPreviousData={historyState.isFetching || historyState.isLoading}
+                isFetching={historyState.isFetching}
+                lockContent={isHistoryPageStale}
+                hasExistingData={Boolean(history)}
+                error={historyState.error}
+                onRetry={() => void refetchHistory(true)}
+              >
+                <DataGrid
+                  data={filteredHistoryItems}
+                  columns={historyColumns}
+                  keyExtractor={(row) => row.issueId}
+                  emptyMessage={history ? (historyQuery ? "Không tìm thấy phiếu xuất nào khớp với từ khóa." : "Chưa có phiếu xuất kho nào cho lô này.") : undefined}
+                />
+              </StateBoundary>
               <PaginationBar label="Phân trang phiếu xuất MRX" page={history?.pageNumber ?? historyPage} pageSize={25}
                 totalCount={history?.totalCount} totalPages={history?.totalPages}
                 hasPrev={history?.hasPrev ?? false} hasNext={history?.hasNext ?? false}
-                pending={stateProps.isFetching || stateProps.isPreviousData || scopeLocked} onPageChange={setHistoryPage} />
+                pending={historyState.isFetching || historyState.isLoading || isHistoryPageStale || stateProps.isPreviousData || scopeLocked}
+                retainButtonFocus onPageChange={setHistoryPage} />
             </div>
           )}
         </StateBoundary>
@@ -454,6 +481,7 @@ export function MrxDailyIssueWorkbench({
         onSuppReasonChange={setSuppReason}
         suppError={suppError}
         isOutcomeUnknown={suppOutcomeUnknown}
+        onRetryUnknown={retrySupplemental}
         isSubmittingSupp={isSubmittingSupp}
         onSubmit={handleSupplementalSubmit}
       />

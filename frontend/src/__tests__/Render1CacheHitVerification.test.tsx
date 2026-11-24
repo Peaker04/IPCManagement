@@ -318,6 +318,10 @@ describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification',
       { customerId: 'c-anv', customerCode: 'ANV', customerName: 'AMANN' },
     ]);
     vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue(mockSource);
+    vi.spyOn(bomApi, 'getMrxWeeklyCoverage').mockResolvedValue({
+      customerId: testCustomerId, weekStartDate: testWeek, menuVersionId: 'mv-published-1',
+      priceTierAmount: 25000, missingDishes: [],
+    });
     vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
       items: [
         {
@@ -504,9 +508,12 @@ describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification',
 
   it('PurchasingPage: Render #1 synchronously mounts cached POs and suppliers without skeleton flash', () => {
     localStorage.setItem('ipc_v3_mode', 'DEFAULT');
-    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValue(MOCK_PURCHASE_ORDERS);
+    const orderPage = { items: MOCK_PURCHASE_ORDERS, totalCount: MOCK_PURCHASE_ORDERS.length,
+      pageNumber: 1, pageSize: 20, totalPages: 1, hasPrev: false, hasNext: false };
+    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValue(orderPage);
     vi.spyOn(purchasingApi, 'getSuppliers').mockResolvedValue(MOCK_SUPPLIERS);
-    serverStateCache.set('purchasing_data', { pos: MOCK_PURCHASE_ORDERS, sups: MOCK_SUPPLIERS });
+    serverStateCache.set('purchase_order_page_{"supplierId":"ALL","status":"ALL","pageNumber":1}', orderPage);
+    serverStateCache.set('purchasing_suppliers', MOCK_SUPPLIERS);
 
     render(
       <AuthProvider>
@@ -558,9 +565,10 @@ describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification',
 
   it('ApprovalPage: Render #1 synchronously mounts cached inbox items without skeleton flash', () => {
     localStorage.setItem('ipc_v3_mode', 'DEFAULT');
-    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValue(MOCK_APPROVALS);
+    const inboxPage = { items: MOCK_APPROVALS, limit: 20, hasNext: false, nextCursor: null };
+    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValue(inboxPage);
     vi.spyOn(approvalsApi, 'getHistory').mockResolvedValue([]);
-    serverStateCache.set('approval_inbox_ALL', MOCK_APPROVALS);
+    serverStateCache.set('approval_inbox_page_{"type":"ALL","cursor":""}', inboxPage);
 
     render(
       <AuthProvider>

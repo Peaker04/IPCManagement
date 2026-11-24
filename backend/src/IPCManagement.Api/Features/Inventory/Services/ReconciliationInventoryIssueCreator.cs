@@ -6,6 +6,7 @@ using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Infrastructure.Lifecycle;
@@ -90,10 +91,15 @@ internal sealed class ReconciliationInventoryIssueCreator
             .SingleOrDefaultAsync(item => item.BatchId == batchId, token)
             ?? throw new BusinessRuleException("Không tìm thấy lô đối chiếu để xuất kho.");
         var isSupplemental = dto.IsSupplemental == true;
-        var statusAllowsIssue = isSupplemental
-            ? batch.Status == "IN_PROGRESS"
-            : batch.Status is "TRANSFERRED" or "IN_PROGRESS";
-        if (!statusAllowsIssue || batch.Version != dto.ExpectedVersion)
+        if (!ReconciliationDailyIssuePolicy.AllowsIssue(batch.Status, isSupplemental))
+            throw new ResourceConflictException(batch.Status switch
+            {
+                "READY" => "Điều phối cần chọn “Chuyển sang Kho” trước khi xuất.",
+                "TRANSFERRED" => "Lô chưa có phiếu xuất đầu tiên để thực hiện xuất thêm.",
+                "COMPLETED" => "Lô đã chốt đối soát và chỉ có thể xem.",
+                _ => "Điều phối cần đóng băng lô và chuyển sang Kho trước khi xuất."
+            });
+        if (batch.Version != dto.ExpectedVersion)
             throw new DbUpdateConcurrencyException("Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.");
         var allDailyLines = batch.Lines.SelectMany(line => line.DailyLines).ToList();
         if (allDailyLines.Count == 0)

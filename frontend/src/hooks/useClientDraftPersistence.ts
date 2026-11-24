@@ -21,12 +21,13 @@ export function getDraftStorageKey(formKey: string, userId?: string | null): str
 }
 
 export function clearAllClientDrafts(preserveMrxUserId?: string): void {
-  const preservedPrefix = preserveMrxUserId ? getDraftStorageKey('mrx_initial_', preserveMrxUserId) : null;
+  const preservedPrefixes = preserveMrxUserId
+    ? ['mrx_initial_', 'mrx_supplemental_'].map(form => getDraftStorageKey(form, preserveMrxUserId)) : [];
   try {
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(DRAFT_PREFIX) && !(preservedPrefix && key.startsWith(preservedPrefix))) {
+      if (key && key.startsWith(DRAFT_PREFIX) && !preservedPrefixes.some(prefix => key.startsWith(prefix))) {
         keysToRemove.push(key);
       }
     }

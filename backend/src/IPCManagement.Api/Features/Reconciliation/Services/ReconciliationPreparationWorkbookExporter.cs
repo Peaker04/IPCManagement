@@ -164,7 +164,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
                 supplier) { SupplierId = resolvedSupplier.Id, SupplierCode = resolvedSupplier.Code, PreparationGroupCode = daily.BatchLine.Ingredient.PreparationGroupCode });
         }
 
-        if (query.IsSupplemental != false)
+        if (!query.SupplierDemand && query.IsSupplemental != false)
         {
             var deltaQuery = context.Reconciliationsourcedeltas.AsNoTracking()
                 .Include(d => d.DailyLine).ThenInclude(dl => dl!.BatchLine).ThenInclude(bl => bl.Ingredient)
@@ -242,7 +242,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
         foreach (var row in detailRows)
             RegisterCustomer(customerDefinitionsById, row.CustomerId, row.CustomerCode, row.CustomerName);
 
-        if (query.IncludeMenus)
+        if (query.IncludeMenus && !query.SupplierDemand)
         {
             var cooking = new ReconciliationKitchenExportService(context);
             foreach (var batch in batches.OrderBy(item => Convert.ToHexString(item.BatchId), StringComparer.Ordinal))
@@ -317,7 +317,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
         CancellationToken token = default)
     {
         var workbook = await GetWorkbookAsync(query, token);
-        return PreparationWorkbookBuilder.BuildXlsx(workbook, query.IncludeMenus);
+        return PreparationWorkbookBuilder.BuildXlsx(workbook, query.IncludeMenus, query.SupplierDemand);
     }
 
     private void EnsureReconciliationMode()

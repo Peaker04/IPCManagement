@@ -69,7 +69,7 @@ export function WorkbenchSkeleton({ geometry, className, delayMs = LOADING_INDIC
       aria-busy="true"
       data-skeleton-kind={geometry.kind}
       data-loading-phase={showMarks ? 'visible' : 'reserved'}
-      className={clsx('flex-1 min-h-0 w-full flex flex-col bg-white overflow-hidden', className)}
+      className={clsx('flex-1 min-h-0 w-full flex flex-col bg-white overflow-hidden', geometry.kind === 'table' && 'workbench-grid-skeleton', className)}
     >
       {/* Zone 2 TelemetrySubbar Skeleton (44px / h-11) */}
       {geometry.toolbar && (

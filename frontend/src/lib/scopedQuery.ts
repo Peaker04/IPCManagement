@@ -71,7 +71,8 @@ const DEFAULT_RECORD: QueryRecord = {
 // Global In-Memory Query Store
 class ScopedQueryClientStore {
   private records = new Map<string, QueryRecord>();
-  private inFlight = new Map<string, Promise<unknown>>();
+  private inFlight = new Map<string, { promise: Promise<unknown>; controller?: AbortController }>();
+  private observers = new Map<string, number>();
   private listeners = new Set<() => void>();
 
   public normalizeKey(
@@ -140,15 +141,39 @@ class ScopedQueryClientStore {
   }
 
   public getInFlight<T>(normalizedKey: string): Promise<T> | undefined {
-    return this.inFlight.get(normalizedKey) as Promise<T> | undefined;
+    return this.inFlight.get(normalizedKey)?.promise as Promise<T> | undefined;
   }
 
-  public setInFlight<T>(normalizedKey: string, promise: Promise<T>): void {
-    this.inFlight.set(normalizedKey, promise);
+  public setInFlight<T>(normalizedKey: string, promise: Promise<T>, controller?: AbortController): void {
+    this.inFlight.set(normalizedKey, { promise, controller });
   }
 
   public clearInFlight(normalizedKey: string): void {
     this.inFlight.delete(normalizedKey);
+  }
+
+  public observeQuery(key: string): () => void {
+    this.observers.set(key, (this.observers.get(key) ?? 0) + 1);
+    return () => {
+      const remaining = (this.observers.get(key) ?? 1) - 1;
+      if (remaining > 0) {
+        this.observers.set(key, remaining);
+        return;
+      }
+      this.observers.delete(key);
+      queueMicrotask(() => {
+        if (this.observers.has(key)) return;
+        const request = this.inFlight.get(key);
+        if (!request?.controller) return;
+        this.inFlight.delete(key);
+        request.controller.abort();
+        const record = this.records.get(key);
+        if (record?.isFetching) {
+          this.records.set(key, { ...record, isFetching: false, isRefetching: false });
+          this.notify();
+        }
+      });
+    };
   }
 
   public invalidateQueries(keyPatternParts: (string | number | boolean | null | undefined)[]): void {
@@ -171,6 +196,7 @@ class ScopedQueryClientStore {
   }
 
   public clearAll(): void {
+    for (const { controller } of this.inFlight.values()) controller?.abort();
     this.records.clear();
     this.inFlight.clear();
     this.notify();
@@ -229,11 +255,17 @@ export function useScopedQuery<TData, TError = Error>({
       if (!enabled) return undefined;
       const existing = queryClient.getInFlight<TData>(normalizedKey);
       if (existing) return existing.catch(() => undefined);
-      const fetchPromise = Promise.resolve().then(() => queryFnRef.current());
-      queryClient.setInFlight(normalizedKey, fetchPromise);
+      const controller = new AbortController();
+      const read = queryFnRef.current;
+      const fetchPromise = Promise.resolve().then(() => {
+        controller.signal.throwIfAborted();
+        return read(controller.signal);
+      });
+      queryClient.setInFlight(normalizedKey, fetchPromise, controller);
       queryClient.setFetching(normalizedKey, isManual, mode, scopeKey);
       try {
         const result = await fetchPromise;
+        if (controller.signal.aborted) return undefined;
         if (queryClient.getInFlight(normalizedKey) === fetchPromise) {
           queryClient.set(normalizedKey, result, mode, scopeKey);
         }
@@ -248,6 +280,8 @@ export function useScopedQuery<TData, TError = Error>({
     },
     [enabled, normalizedKey, mode, scopeKey]
   );
+
+  useEffect(() => enabled ? queryClient.observeQuery(normalizedKey) : undefined, [enabled, normalizedKey]);
 
   useEffect(() => {
     if (!enabled || record.error) return;
