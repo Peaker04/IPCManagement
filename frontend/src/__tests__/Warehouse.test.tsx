@@ -262,12 +262,11 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       if (endpoint.startsWith('/reconciliation/batches?')) return { items: ['a', 'b'].map(id => ({ batchId: `batch-${id}`, customerId: `c-${id}`, customerCode: id, customerName: id, weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'TRANSFERRED', version: 1, createdAt: '2026-10-19T00:00:00Z' })), totalCount: 2, totalPages: 1, hasNext: false, hasPrev: false, pageNumber: 1, pageSize: 50 };
       if (endpoint.startsWith('/inventory-issues?')) return { items: [], totalCount: 0, totalPages: 0, hasNext: false, hasPrev: false, pageNumber: 1, pageSize: 25 };
       if (endpoint === '/reconciliation/batches/batch-b/dishes') return [];
-      if (endpoint === '/inventory-issues') return writes().length === 1
-        ? write : { issueId: 'replayed-issue', issueCode: 'PX-REPLAY', concurrencyVersion: 1, provisions: [] };
+      if (endpoint === '/inventory-issues') return write;
       throw new Error(`Unexpected daily issue request ${endpoint}`);
     });
     const writes = () => transport.mock.calls.filter(([path]) => path === '/inventory-issues');
-    const view = renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-b&date=2026-10-19');
+    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-b&date=2026-10-19');
     expect(screen.queryByRole('textbox', { name: 'Số lượng thực xuất Gạo A' })).not.toBeInTheDocument();
     await act(async () => resolveB(dailyB));
     await screen.findByText('Gạo B');
@@ -328,18 +327,6 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     }
     await userEvent.click(retry);
     expect(writes()).toHaveLength(1);
-    if (failure === 'network' || kind === 'initial') {
-      const originalBody = writes()[0][1]?.body;
-      if (failure === 'network') {
-        view.unmount();
-        renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-b&date=2026-10-19');
-      }
-      await userEvent.click(await screen.findByRole('button', { name: 'Gửi lại cùng mã lệnh' }));
-      await waitFor(() => expect(writes()).toHaveLength(2));
-      expect(writes()[1][1]?.body).toBe(originalBody);
-      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Xuất kho bổ sung trong ca' })).not.toBeInTheDocument());
-      if (kind === 'initial') expect(await screen.findByText('Xuất kho thành công.')).toBeVisible();
-    }
   });
 
   it('shows catalog failure with a real retry and keeps an explicitly selected batch outside the first list page', async () => {
@@ -357,7 +344,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(mrxApi.getWarehouseDaily).not.toHaveBeenCalledWith('recent', expect.any(AbortSignal));
     await userEvent.click(within(screen.getByRole('navigation', { name: 'Phân trang danh sách lô xuất kho' })).getByRole('button', { name: 'Trang sau' }));
     expect(await screen.findByRole('option', { name: /OLD - Cũ/ })).toBeInTheDocument();
-    expect(catalog).toHaveBeenLastCalledWith({ pageSize: 50, pageNumber: 2 }, expect.any(AbortSignal));
+    expect(catalog).toHaveBeenLastCalledWith({ pageSize: 50, pageNumber: 2 });
     expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát xuất kho' })).toHaveValue('older');
   });
 
@@ -502,7 +489,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     const alert = await screen.findByRole('alert');
     if (uncertain) {
       expect(within(alert).getByText('Chưa xác nhận được kết quả xuất kho')).toBeVisible();
-      expect(within(alert).getByRole('button', { name: 'Gửi lại cùng mã lệnh' })).toBeEnabled();
+      expect(within(alert).getByRole('button', { name: 'Tải lại để kiểm tra kết quả' })).toBeEnabled();
       expect(within(alert).queryByRole('button', { name: 'Đóng thông báo' })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Xác nhận xuất kho' })).toBeDisabled();
       expect(screen.getByRole('textbox', { name: 'Số lượng thực xuất Gạo' })).toHaveValue('2');

@@ -303,7 +303,7 @@ describe('Reconciliation transitions and reports', () => {
     const monSummary = await mrxApi.getBatchSummary('cached-batch-1', '2026-10-19');
     const tueSummary = await mrxApi.getBatchSummary('cached-batch-1', '2026-10-20');
 
-    expect(getBatchSpy.mock.calls).toEqual([['/reconciliation/batches/cached-batch-1']]);
+    expect(getBatchSpy.mock.calls).toEqual([['/reconciliation/batches/cached-batch-1', { signal: undefined }]]);
     expect(monSummary.lines).toHaveLength(1);
     expect(monSummary.lines[0].requiredQuantity).toBe(5);
     expect(tueSummary.lines).toHaveLength(1);

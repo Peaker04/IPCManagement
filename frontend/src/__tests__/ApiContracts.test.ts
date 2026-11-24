@@ -158,7 +158,7 @@ describe('Frontend API contracts against backend DTOs', () => {
     const userId = '11111111-1111-1111-1111-111111111111';
     localStorage.setItem('ipc_v3_user', JSON.stringify(identified ? { userId } : {}));
     const draftKey = getDraftStorageKey('mrx_initial_batch_day', userId);
-    const supplementalKey = getDraftStorageKey('mrx_supplemental_batch_day', userId);
+    const supplementalKey = getDraftStorageKey('mrx_supplemental_command_batch_day', userId);
     const unrelatedKeys = [getDraftStorageKey('mrx_initial_batch_day', '22222222-2222-2222-2222-222222222222'), getDraftStorageKey('purchase', userId)];
     const draft = JSON.stringify({ version: 1, quantities: { line: '2.75' }, reasons: {} });
     localStorage.setItem(draftKey, draft);
