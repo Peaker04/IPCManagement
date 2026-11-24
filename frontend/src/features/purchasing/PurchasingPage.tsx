@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Truck, ShoppingCart } from 'lucide-react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
@@ -13,6 +13,7 @@ import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
 import { Modal } from '../../components/ui/modal';
 import { InlineBanner } from '../../components/ui/inline-banner';
+import { PaginationBar } from '../../components/workbench/PaginationBar';
 import {
   purchasingApi,
   type PurchaseOrderItem,
@@ -21,6 +22,10 @@ import {
 } from '../../api/purchasingApi';
 import { formatVietnameseDate } from '../../utils/dates';
 import { serverStateCache } from '../../store/serverStateCache';
+import { useUrlWorkbenchState } from '../../hooks/useUrlWorkbenchState';
+import { useOperationalRecovery } from '../../hooks/useOperationalRecovery';
+import { useWorkbenchQuery } from '../../hooks/useWorkbenchQuery';
+import type { ReportPage } from '../../api/reportsApi';
 
 const PO_STATUS_CONFIG: Record<string, { label: string; variant: 'neutral' | 'info' | 'warning' | 'success' | 'danger' }> = {
   DRAFT: { label: 'Dự thảo', variant: 'neutral' },
@@ -33,42 +38,47 @@ const PO_STATUS_CONFIG: Record<string, { label: string; variant: 'neutral' | 'in
   CANCELLED: { label: 'Đã hủy', variant: 'danger' },
 };
 
-interface PurchasingSnapshot {
-  pos: PurchaseOrderItem[];
-  sups: SupplierItem[];
-  selectedSupplierId: string;
-  statusFilter: string;
-  selectedPoId: string | null;
-}
-
 export function PurchasingPage() {
-  const snapshot = serverStateCache.get<PurchasingSnapshot>('snapshot:purchasing')?.data;
-  const cachedPurchasing = snapshot ? { pos: snapshot.pos, sups: snapshot.sups } : serverStateCache.get<{ pos: PurchaseOrderItem[]; sups: SupplierItem[] }>('purchasing_data')?.data;
-  const [orders, setOrders] = useState<PurchaseOrderItem[]>(() => cachedPurchasing?.pos ?? []);
-  const [suppliers, setSuppliers] = useState<SupplierItem[]>(() => cachedPurchasing?.sups ?? []);
-  const [selectedSupplierId, setSelectedSupplierId] = useState(() => snapshot?.selectedSupplierId || 'ALL');
-  const [statusFilter, setStatusFilter] = useState<string>(() => snapshot?.statusFilter || 'ALL');
-  const [selectedPoId, setSelectedPoId] = useState<string | null>(() => snapshot?.selectedPoId ?? (cachedPurchasing?.pos?.[0]?.id ?? null));
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const { filters, setFilter, resetFilters, page, setPage, selectedId, setSelectedId } = useUrlWorkbenchState();
+  const selectedSupplierId = filters.supplierId || 'ALL';
+  const statusFilter = filters.status || 'ALL';
+  const orderFilters = useMemo(() => ({ supplierId: selectedSupplierId, status: statusFilter, pageNumber: page }),
+    [selectedSupplierId, statusFilter, page]);
+  const ordersQuery = useOperationalRecovery<ReportPage<PurchaseOrderItem>, typeof orderFilters>({
+    queryKey: `purchase_order_page_${JSON.stringify(orderFilters)}`,
+    fetcher: (query, signal) => purchasingApi.getPurchaseOrders(signal, query),
+    initialFilters: orderFilters,
+    activeFilters: orderFilters,
+    defaultFilters: { supplierId: 'ALL', status: 'ALL', pageNumber: 1 },
+  });
+  const suppliersQuery = useWorkbenchQuery<SupplierItem[]>({
+    scopeKey: 'purchasing_suppliers',
+    cacheKey: 'purchasing_suppliers',
+    snapshotKey: '',
+    queryFn: (_, signal) => purchasingApi.getSuppliers(signal),
+  });
+  const suppliers = suppliersQuery.data ?? [];
+  const { isLoading, isFetching, isPreviousData } = ordersQuery;
+  const error = ordersQuery.error;
+  const hasLoadedOnce = ordersQuery.data !== null;
+  const [cancelTarget, setCancelTarget] = useState<PurchaseOrderItem | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelSuccess, setCancelSuccess] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<Error | null>(null);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(() => Boolean(cachedPurchasing));
-  const [isLoading, setIsLoading] = useState<boolean>(() => !cachedPurchasing);
-  const [isFetching, setIsFetching] = useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(null);
+  const mounted = useRef(false);
 
   const handleCancelPo = async () => {
-    if (!selectedPo) return;
+    if (!cancelTarget || isCancelling || isFetching || isPreviousData || error
+      || selectedPo?.id !== cancelTarget.id) return;
     setIsCancelling(true);
     setCancelError(null);
     try {
-      await purchasingApi.cancelPurchaseOrder(selectedPo.id);
-      setCancelSuccess(`Đã hủy đơn mua hàng ${selectedPo.code} thành công.`);
-      setIsCancelModalOpen(false);
-      setCancelError(null);
-      serverStateCache.delete('purchasing_data');
-      await loadData();
+      await purchasingApi.cancelPurchaseOrder(cancelTarget.id);
+      serverStateCache.deletePrefix('purchase_order_page_');
+      if (!mounted.current) return;
+      setCancelSuccess(`Đã hủy đơn mua hàng ${cancelTarget.code} thành công.`);
+      setCancelTarget(null);
+      await ordersQuery.refetch();
     } catch (err: unknown) {
       setCancelError(err instanceof Error ? err : new Error('Không thể hủy đơn mua hàng.'));
     } finally {
@@ -76,76 +86,21 @@ export function PurchasingPage() {
     }
   };
 
-  const loadData = async () => {
-    const cached = serverStateCache.get<{ pos: PurchaseOrderItem[]; sups: SupplierItem[] }>('purchasing_data')?.data;
-    if (cached) {
-      setOrders(cached.pos);
-      setSuppliers(cached.sups);
-      setIsLoading(false);
-      setIsFetching(true);
-    } else if (!hasLoadedOnce) {
-      setIsLoading(true);
-    } else {
-      setIsFetching(true);
-    }
-    setError(null);
-    try {
-      const [pos, sups] = await Promise.all([
-        purchasingApi.getPurchaseOrders(),
-        purchasingApi.getSuppliers(),
-      ]);
-      setOrders(pos);
-      setSuppliers(sups);
-      setHasLoadedOnce(true);
-      serverStateCache.set('purchasing_data', { pos, sups });
-      serverStateCache.set('snapshot:purchasing', { pos, sups, selectedSupplierId, statusFilter, selectedPoId: selectedPoId || pos[0]?.id || null });
-      if (pos.length > 0 && !selectedPoId) {
-        setSelectedPoId(pos[0].id);
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err : new Error('Không thể tải danh sách đơn mua hàng PO.'));
-    } finally {
-      setIsLoading(false);
-      setIsFetching(false);
-    }
+  const loadData = () => {
+    if (suppliersQuery.stateProps.error) void suppliersQuery.refetch(true);
+    void ordersQuery.refetch();
   };
 
   useEffect(() => {
-    let ignore = false;
-    Promise.all([purchasingApi.getPurchaseOrders(), purchasingApi.getSuppliers()])
-      .then(([pos, sups]) => {
-        if (ignore) return;
-        setOrders(pos);
-        setSuppliers(sups);
-        setHasLoadedOnce(true);
-        serverStateCache.set('purchasing_data', { pos, sups });
-        setSelectedPoId((current) => current || pos[0]?.id || null);
-      })
-      .catch((cause: unknown) => {
-        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách đơn mua hàng PO.'));
-      })
-      .finally(() => {
-        if (!ignore) {
-          setIsLoading(false);
-          setIsFetching(false);
-        }
-      });
-    return () => { ignore = true; };
+    mounted.current = true;
+    return () => { mounted.current = false; };
   }, []);
 
-  const filteredOrders = useMemo(() => {
-    return orders.filter((po) => {
-      if (selectedSupplierId !== 'ALL' && po.supplierId !== selectedSupplierId) return false;
-      if (statusFilter !== 'ALL' && po.status !== statusFilter) return false;
-      return true;
-    });
-  }, [orders, selectedSupplierId, statusFilter]);
+  const pageData = ordersQuery.data;
+  const filteredOrders = pageData?.items ?? [];
+  const selectedPo = filteredOrders.find(p => p.id === selectedId) || filteredOrders.find(p => p.linesCount > 0) || filteredOrders[0] || null;
 
-  const selectedPo = orders.find((p) => p.id === selectedPoId) || filteredOrders.find((p) => p.linesCount > 0) || filteredOrders[0] || null;
-
-  const totalAmount = useMemo(() => {
-    return filteredOrders.reduce((sum, po) => sum + po.totalAmount, 0);
-  }, [filteredOrders]);
+  const totalAmount = filteredOrders.reduce((sum, po) => sum + po.totalAmount, 0);
 
   const supplierOptions = [
     {
@@ -158,10 +113,10 @@ export function PurchasingPage() {
   ];
 
   const STATUS_TABS = [
-    { id: 'ALL', label: 'Tất cả đơn PO', count: orders.length },
-    { id: 'ORDERED', label: 'Đã đặt hàng', count: orders.filter((o) => o.status === 'ORDERED').length },
-    { id: 'PARTIALLY_RECEIVED', label: 'Nhận một phần', count: orders.filter((o) => o.status === 'PARTIALLY_RECEIVED').length },
-    { id: 'RECEIVED', label: 'Đã nhận đủ', count: orders.filter((o) => o.status === 'RECEIVED').length },
+    { id: 'ALL', label: 'Tất cả đơn PO' },
+    { id: 'ORDERED', label: 'Đã đặt hàng' },
+    { id: 'PARTIALLY_RECEIVED', label: 'Nhận một phần' },
+    { id: 'RECEIVED', label: 'Đã nhận đủ' },
   ];
 
   const columns: ColumnDef<PurchaseOrderItem>[] = [
@@ -241,7 +196,7 @@ export function PurchasingPage() {
               aria-label="Lọc nhà cung cấp"
               options={supplierOptions}
               value={selectedSupplierId}
-              onChange={(e) => setSelectedSupplierId(e.target.value)}
+              onChange={(e) => setFilter('supplierId', e.target.value)}
               className="h-9 w-72 font-medium text-sm"
             />
             <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-medium flex items-center whitespace-nowrap shrink-0">
@@ -257,7 +212,8 @@ export function PurchasingPage() {
             <Button
               variant="outline"
               size="default"
-              onClick={loadData}
+              onClick={() => void loadData()}
+              disabled={isFetching || isCancelling}
               className="h-9 text-sm font-medium"
             >
               Làm mới
@@ -272,7 +228,7 @@ export function PurchasingPage() {
           <Tabs
             items={STATUS_TABS}
             activeId={statusFilter}
-            onChange={(id) => setStatusFilter(id)}
+            onChange={(id) => setFilter('status', id)}
             size="default"
           />
         }
@@ -280,11 +236,11 @@ export function PurchasingPage() {
           <>
             <span className="inline-flex items-center gap-1">
               <span className="text-slate-500">Tổng PO:</span>
-              <strong className="text-slate-900 font-mono font-bold">{filteredOrders.length} đơn</strong>
+              <strong className="text-slate-900 font-mono font-bold"><Num value={pageData?.totalCount} /> đơn</strong>
             </span>
             <span className="text-slate-300">·</span>
             <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Tổng giá trị:</span>
+              <span className="text-slate-500">Tổng giá trị trên trang:</span>
               <strong className="text-emerald-700 font-mono font-bold">
                 {totalAmount.toLocaleString('vi-VN')} ₫
               </strong>
@@ -300,22 +256,18 @@ export function PurchasingPage() {
 
       {/* Zone 3: SplitView (Master 7 cols PO list | Detail 5 cols PO lines) */}
       <StateBoundary
-        isLoading={isLoading && !hasLoadedOnce}
-        isFetching={isFetching || (isLoading && hasLoadedOnce)}
-        hasExistingData={hasLoadedOnce || Boolean(cachedPurchasing)}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        isPreviousData={isPreviousData}
+        hasExistingData={hasLoadedOnce}
+        loadingGeometry={{ kind: 'split', splitRatio: '60/40', columns: 6, rows: 10 }}
         error={error}
-        onRetry={loadData}
-        isEmpty={!isLoading && !isFetching && filteredOrders.length === 0}
+        onRetry={() => void loadData()}
+        isEmpty={hasLoadedOnce && !isPreviousData && page === 1 && filteredOrders.length === 0}
         emptyScenario={selectedSupplierId !== 'ALL' || statusFilter !== 'ALL' ? 'filter-empty' : 'true-empty'}
-        onResetFilters={() => {
-          setSelectedSupplierId('ALL');
-          setStatusFilter('ALL');
-        }}
+        onResetFilters={resetFilters}
         actionLabel={selectedSupplierId !== 'ALL' || statusFilter !== 'ALL' ? 'Xóa bộ lọc PO' : 'Làm mới đơn mua hàng'}
-        onAction={selectedSupplierId !== 'ALL' || statusFilter !== 'ALL' ? () => {
-          setSelectedSupplierId('ALL');
-          setStatusFilter('ALL');
-        } : loadData}
+        onAction={selectedSupplierId !== 'ALL' || statusFilter !== 'ALL' ? resetFilters : () => void loadData()}
         contextDomain="purchasing"
         emptyTitle="Không tìm thấy đơn mua hàng"
         emptyDescription="Không có đơn PO nào khớp với điều kiện tìm kiếm hoặc trạng thái đã chọn. PO mới phải được tạo từ một đề xuất mua hàng đã duyệt."
@@ -328,7 +280,7 @@ export function PurchasingPage() {
               columns={columns}
               keyExtractor={(row) => row.id}
               selectedKey={selectedPo?.id}
-              onRowClick={(row) => setSelectedPoId(row.id)}
+              onRowClick={(row) => setSelectedId(row.id)}
               minWidth="min-w-[550px]"
             />
           }
@@ -403,7 +355,8 @@ export function PurchasingPage() {
                     <Button
                       variant="outline"
                       size="xs"
-                      onClick={() => setIsCancelModalOpen(true)}
+                      disabled={isFetching || isPreviousData || isCancelling || Boolean(error)}
+                      onClick={() => setCancelTarget(selectedPo)}
                       className="text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                     >
                       Hủy đơn PO
@@ -425,6 +378,12 @@ export function PurchasingPage() {
           }
         />
       </StateBoundary>
+      {pageData && (
+        <PaginationBar label="Phân trang đơn mua hàng" page={pageData.pageNumber}
+          pageSize={pageData.pageSize} totalCount={pageData.totalCount} totalPages={pageData.totalPages}
+          hasPrev={pageData.hasPrev} hasNext={pageData.hasNext} pending={isFetching || isPreviousData || Boolean(error)}
+          retainButtonFocus onPageChange={setPage} />
+      )}
 
       {cancelSuccess && (
         <InlineBanner variant="success" onClose={() => setCancelSuccess(null)} className="shrink-0">
@@ -433,15 +392,15 @@ export function PurchasingPage() {
       )}
 
       <Modal
-        isOpen={isCancelModalOpen}
+        isOpen={Boolean(cancelTarget)}
         onClose={() => {
           if (!isCancelling) {
-            setIsCancelModalOpen(false);
+            setCancelTarget(null);
             setCancelError(null);
           }
         }}
-        title={`Xác nhận hủy đơn mua hàng: ${selectedPo?.code ?? ''}`}
-        description={`Nhà cung cấp: ${selectedPo?.supplierName ?? ''} · Tổng giá trị: ${selectedPo ? selectedPo.totalAmount.toLocaleString('vi-VN') : 0} ₫`}
+        title={`Xác nhận hủy đơn mua hàng: ${cancelTarget?.code ?? ''}`}
+        description={`Nhà cung cấp: ${cancelTarget?.supplierName ?? ''} · Tổng giá trị: ${cancelTarget ? cancelTarget.totalAmount.toLocaleString('vi-VN') : 0} ₫`}
         footer={
           <>
             <Button
@@ -449,14 +408,15 @@ export function PurchasingPage() {
               size="sm"
               disabled={isCancelling}
               onClick={() => {
-                setIsCancelModalOpen(false);
+                setCancelTarget(null);
                 setCancelError(null);
               }}
             >
               Quay lại
             </Button>
-            <Button variant="destructive" size="sm" disabled={isCancelling} onClick={() => void handleCancelPo()}>
-              {isCancelling ? 'Đang hủy…' : 'Xác nhận hủy đơn PO'}
+            <Button variant="destructive" size="sm" disabled={isFetching || isPreviousData || Boolean(error) || selectedPo?.id !== cancelTarget?.id}
+              loading={isCancelling} loadingText="Đang hủy…" onClick={() => void handleCancelPo()}>
+              Xác nhận hủy đơn PO
             </Button>
           </>
         }

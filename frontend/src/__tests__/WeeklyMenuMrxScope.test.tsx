@@ -822,7 +822,7 @@ describe('Weekly Menu MRX scope and source', () => {
 
     // Wait until mv-cust-2 getMaterialInspection has been invoked (meaning getWeeklySource resolved mv-cust-2)
     await waitFor(() => {
-      expect(mrxApi.getMaterialInspection).toHaveBeenCalledWith('mv-cust-2', expect.anything());
+      expect(mrxApi.getMaterialInspection).toHaveBeenCalledWith('mv-cust-2', expect.anything(), expect.any(AbortSignal));
     });
     // Table with Thịt bò C1 must still be mounted (not unmounted to a skeleton) while resolveCust2Materials is pending!
     expect(screen.getByText('Thịt bò C1')).toBeInTheDocument();

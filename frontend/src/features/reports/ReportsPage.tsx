@@ -80,11 +80,11 @@ export function ReportsPage() {
 
   const reportQuery = useScopedQuery<ReportPage<unknown>>({
     queryKey: ["reports", reportScope, pageNumber],
-    queryFn: () => activeView === "demand"
-      ? reportsApi.getDemand(period, customerId, pageNumber, PAGE_SIZE)
+    queryFn: signal => activeView === "demand"
+      ? reportsApi.getDemand(period, customerId, pageNumber, PAGE_SIZE, signal)
       : activeView === "prices"
-        ? reportsApi.getPriceVariance(period, pageNumber, PAGE_SIZE)
-        : reportsApi.getCurrentStock(undefined, pageNumber, PAGE_SIZE),
+        ? reportsApi.getPriceVariance(period, pageNumber, PAGE_SIZE, signal)
+        : reportsApi.getCurrentStock(undefined, pageNumber, PAGE_SIZE, signal),
     enabled: activeView !== "demand" || Boolean(customerId),
     keepPreviousData: true,
     mode: operationalMode,
@@ -187,6 +187,7 @@ export function ReportsPage() {
       hasPrev={pageInfo?.hasPrev ?? false}
       hasNext={pageInfo?.hasNext ?? false}
       pending={isLoading || reportQuery.isFetching || reportQuery.isPreviousData}
+      retainButtonFocus
       onPageChange={setPageNumber}
     />
   </div>;

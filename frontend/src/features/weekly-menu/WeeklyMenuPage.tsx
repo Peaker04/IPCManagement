@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../../store/useAuth';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { InlineBanner } from '../../components/ui/inline-banner';
 import { weeklyMenuApi, type WeeklyMenuData } from '../../api/weeklyMenuApi';
+import { ApiError } from '../../api/client';
 import { getCachedArray, serverStateCache } from '../../store/serverStateCache';
 import type { CustomerOption } from '../../types';
 import { WeeklyScheduleView } from './views/WeeklyScheduleView';
@@ -96,32 +97,38 @@ function DefaultWeeklyMenuPage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  const requestSequence = useRef(0);
+  const key = `weekly_menu_${customerCode}_${weekStartDate}`;
+  const [dataKey, setDataKey] = useState(menuKey);
+  const read = useRef<AbortController | null>(null);
+  const activeReadKey = useRef(key);
+  const selectedCustomer = customers.find(customer => customer.customerCode === customerCode);
+  const isPreviousData = Boolean(data && dataKey !== key);
 
   const handlePublish = async () => {
-    const matchedCustomer = customers.find((c) => c.customerCode === customerCode);
-    if (!matchedCustomer) return;
+    if (!selectedCustomer || isPreviousData || isFetching || isLoading || isPublishing || error) return;
     setIsPublishing(true);
     setError(null);
     try {
-      const schedules = await weeklyMenuApi.getMenuSchedules(matchedCustomer.customerId, weekStartDate);
+      const schedules = await weeklyMenuApi.getMenuSchedules(selectedCustomer.customerId, weekStartDate);
       if (schedules.length === 0) throw new Error('Không tìm thấy lịch thực đơn để xuất bản.');
       await weeklyMenuApi.publishMenuSchedule(schedules[0].menuScheduleId, 'Xuất bản thực đơn tuần');
-      setPublishSuccess('Đã xuất bản thực đơn tuần thành công.');
-      await handleRefresh();
+      if (activeReadKey.current === key) {
+        setPublishSuccess('Đã xuất bản thực đơn tuần thành công.');
+        await handleRefresh();
+      }
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause : new Error('Không thể xuất bản thực đơn.'));
+      if (activeReadKey.current === key) setError(cause instanceof Error ? cause : new Error('Không thể xuất bản thực đơn.'));
     } finally {
       setIsPublishing(false);
     }
   };
 
   useEffect(() => {
-    let ignore = false;
+    const controller = new AbortController();
     weeklyMenuApi
-      .getCustomers()
+      .getCustomers(controller.signal)
       .then((list) => {
-        if (ignore) return;
+        if (controller.signal.aborted) return;
         setCustomers(list);
         setHasCustomersLoaded(true);
         serverStateCache.set('catalog_customers', list);
@@ -131,66 +138,72 @@ function DefaultWeeklyMenuPage() {
         if (list.length === 0) setIsLoading(false);
       })
       .catch((cause: unknown) => {
-        if (!ignore) {
+        if (!controller.signal.aborted) {
           setHasCustomersLoaded(true);
           setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách khách hàng.'));
           setIsLoading(false);
         }
       });
-    return () => {
-      ignore = true;
-    };
+    return () => controller.abort();
   }, []);
 
-  useEffect(() => {
-    if (!customerCode) return;
-    const key = `weekly_menu_${customerCode}_${weekStartDate}`;
-    const sequence = ++requestSequence.current;
-    weeklyMenuApi
-      .getWeeklyMenuData(customerCode, weekStartDate)
+  const load = useCallback((refresh = false) => {
+    if (!customerCode || !selectedCustomer) return;
+    read.current?.abort();
+    const controller = new AbortController();
+    read.current = controller;
+    if (refresh) {
+      setIsLoading(true);
+      setIsFetching(true);
+      setError(null);
+    }
+    return weeklyMenuApi
+      .getWeeklyMenuData(customerCode, weekStartDate, { signal: controller.signal, customer: selectedCustomer })
       .then((response) => {
-        if (sequence === requestSequence.current) {
+        if (!controller.signal.aborted) {
           setData(response);
-          serverStateCache.set(key, response);
-          serverStateCache.set('snapshot:weekly_menu', { customerCode, weekStartDate, data: response });
+          setDataKey(key);
+          setError(null);
+          if (!response.viewErrors) {
+            serverStateCache.set(key, response);
+            serverStateCache.set('snapshot:weekly_menu', { customerCode, weekStartDate, data: response });
+          }
         }
       })
       .catch((cause: unknown) => {
-        if (sequence === requestSequence.current) {
-          setData(null);
+        if (!controller.signal.aborted) {
+          if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) {
+            setData(null);
+            serverStateCache.delete(key);
+            serverStateCache.delete('snapshot:weekly_menu');
+          }
           setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu thực đơn tuần.'));
         }
       })
       .finally(() => {
-        if (sequence === requestSequence.current) {
+        if (read.current === controller) {
+          read.current = null;
           setIsLoading(false);
           setIsFetching(false);
         }
       });
-  }, [customerCode, weekStartDate]);
+  }, [customerCode, key, selectedCustomer, weekStartDate]);
 
-  const handleRefresh = async () => {
-    if (!customerCode) return;
-    const key = `weekly_menu_${customerCode}_${weekStartDate}`;
-    serverStateCache.delete(key);
-    const sequence = ++requestSequence.current;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await weeklyMenuApi.getWeeklyMenuData(customerCode, weekStartDate);
-      if (sequence === requestSequence.current) {
-        setData(response);
-        serverStateCache.set(key, response);
-      }
-    } catch (cause: unknown) {
-      if (sequence === requestSequence.current) {
-        setData(null);
-        setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu thực đơn tuần.'));
-      }
-    } finally {
-      if (sequence === requestSequence.current) setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    activeReadKey.current = key;
+    let active = true;
+    queueMicrotask(() => { if (active) void load(); });
+    return () => {
+      active = false;
+      activeReadKey.current = '';
+      read.current?.abort();
+      read.current = null;
+    };
+  }, [key, load]);
+
+  const handleRefresh = async () => { await load(true); };
+  const viewError = !isPreviousData && (activeView === 'demand' || activeView === 'production-plan')
+    ? data?.viewErrors?.[activeView] : undefined;
 
   const isViewEmpty = useMemo(() => {
     if (!data) return true;
@@ -281,6 +294,7 @@ function DefaultWeeklyMenuPage() {
               <Button
                 variant="outline"
                 size="default"
+                disabled={isPreviousData || isFetching || isLoading || Boolean(error)}
                 onClick={() => setIsEditorModalOpen(true)}
                 className="h-9 text-sm font-medium"
               >
@@ -291,11 +305,13 @@ function DefaultWeeklyMenuPage() {
               <Button
                 variant="default"
                 size="default"
-                disabled={isPublishing}
+                disabled={!isPublishing && (isPreviousData || isFetching || isLoading || Boolean(error))}
+                loading={isPublishing}
+                loadingText="Đang xuất bản…"
                 onClick={() => void handlePublish()}
                 className="h-9 text-sm font-medium bg-slate-900 hover:bg-slate-800 text-white"
               >
-                {isPublishing ? 'Đang xuất bản…' : 'Xuất bản thực đơn'}
+                Xuất bản thực đơn
               </Button>
             )}
             <Button variant="outline" size="default" onClick={handleRefresh} className="h-9 text-sm font-medium">
@@ -314,8 +330,9 @@ function DefaultWeeklyMenuPage() {
       <StateBoundary
         isLoading={isLoading && !data}
         isFetching={isFetching || (isLoading && Boolean(data))}
-        hasExistingData={Boolean(data || snapshot?.data)}
-        error={error}
+        isPreviousData={isPreviousData}
+        hasExistingData={!viewError && Boolean(data)}
+        error={error || viewError}
         onRetry={handleRefresh}
         isEmpty={!isLoading && !isFetching && hasCustomersLoaded && isViewEmpty}
         emptyScenario="prerequisite-blocked"

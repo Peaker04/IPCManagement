@@ -1,5 +1,21 @@
 # Current task — IDLE
 
+2026-11-24. Tích hợp checkpoint `1b4f40e1` trên `origin/main` `14ab00cb`. Giữ migration `20261118174006_AddCustomerServiceShiftNames` và các luồng phê duyệt, xuất bổ sung, phục hồi từ các PR đã vào main. Ghép phân trang Kho, sửa kích thước bảng MRX, phân trang Excel Bếp và các thay đổi frontend khớp phạm vi. Build FE/BE và Application Tests 49/49 đạt. Bảo vệ main yêu cầu Verify và một review phê duyệt trước squash.
+
+2026-11-24. Mở rộng audit chớp UI MRX theo FR-MENU, FR-WH, FR-CHEF, FR-RECON và FR-CAT, C1–C6. **FAIL** Chi tiết Lịch sử nguồn co 648 → 202 px khi phân trang; đổi mốc BOM dỡ bảng và hiện skeleton; banner lỗi Định lượng/Kế hoạch đẩy bảng 41–49 px; xác nhận nhập BOM ở Chuẩn bị lô đẩy bảng 32 px. **PASS** 47 kịch bản hiện có và 7 probe fixture hoàn tất, Danh bạ hoàn tất giữ nguyên bảng qua 500 và thử lại. **NEEDS_EVIDENCE** Dashboard, các nhánh giao dịch/kiểm toán còn lại, quyền và thiết bị đầy đủ. Mã ứng dụng chưa đổi. [Báo cáo](../.artifacts/mrx-flash-wide/REPORT.md).
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers | Mở rộng audit chớp khi thao tác MRX | Phân trang modal, lọc BOM và khôi phục lỗi ở nhiều route | IPC Debugging, IPC UI Review | Có, Chrome giữ phản hồi và đo node/tọa độ | Chuyển loại bảng hoặc route được ghi là quan sát, chưa quy thành lỗi chớp | Phân biệt dữ liệu cũ bị dỡ, banner làm đổi chiều cao và control đổi nhánh |
+
+2026-11-24. Audit thao tác chớp và dịch bố cục MRX, FR-WH/FR-CHEF, C1–C6, loading cấp 3/4. **FAIL** Xác nhận xuất kho ở 390/834 px đẩy đầu bảng xuống 34,5 px trong lúc GET còn chờ và giá trị ô 4 → rỗng → 4. Đổi lô Kho/Bếp ở 390/834/1440 px giữ bảng nhưng chớp nút/nhãn. **PASS** 10 phép đo/đối chứng Chrome fixture hoàn tất. **NEEDS_EVIDENCE** Vai trò khác, thiết bị thật và các thao tác MRX ngoài phạm vi. Không sửa mã ứng dụng. [Báo cáo](../.artifacts/mrx-flash-audit/REPORT.md).
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Ponytail Audit | Audit chớp khi thao tác MRX | Khoảng giữa POST thành công và GET còn chờ | IPC Debugging, IPC UI Review | Có, số đo Chrome ở hai độ rộng xác nhận cùng một lỗi | Dữ liệu HTTP fixture, một người dùng | Ưu tiên bàn giao biên nhận → tải lại và giữ vị trí command khi đổi lô |
+
+2026-11-24. Khởi động FE và BE cục bộ theo yêu cầu. **PASS** Vite `http://127.0.0.1:5173/`, API Development `http://localhost:5262`, Swagger và health endpoints trả 200. Proxy Vite nhận 401 từ API khi chưa đăng nhập. MySQL và migration healthy, không có migration chờ trong bản đang chạy. **DEGRADED** Readiness báo lifecycle-outbox, relay đang tắt theo cấu hình hiện hành. Hai tiến trình vẫn chạy trên loopback, FE PID 40932 và BE PID 37468. Vite dùng bộ phụ thuộc đã có qua node_modules junction.
+
 2026-11-19. FR-CAT / BOM-05 MRX workbook usability follow-up on PR #62. All MRX templates now reserve five blank ingredient rows per missing dish and applicable effective-date interval. Retain published rows in full exports. Hide start and end date columns while preserving their cells for reimport. The visible dish code column uses a wider cell, no wrapping and shrink-to-fit. PASS 44 Catalog and workbook tests including Open XML and import round trips across three tiers, plus lint of the updated browser test. Merge paused for user follow-up.
 
 | Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |

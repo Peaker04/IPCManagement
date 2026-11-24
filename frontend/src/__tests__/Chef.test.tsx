@@ -98,7 +98,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Trang sau' }));
 
-    expect(chefApi.getChefDashboardData).toHaveBeenLastCalledWith(expect.any(String), 'MORNING', 'customer-1', 2, 25);
+    expect(chefApi.getChefDashboardData).toHaveBeenLastCalledWith(expect.any(String), 'MORNING', 'customer-1', 2, 25, expect.any(AbortSignal));
   });
 
   it('handles API errors and retries the current customer/date/shift scope', async () => {

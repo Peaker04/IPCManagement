@@ -177,7 +177,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
                     RemainingQuantity = remaining, UnplannedIssuedQuantity = balance?.UnplannedIssuedQuantity ?? 0m });
         }
 
-        if (query.IsSupplemental != false)
+        if (!query.SupplierDemand && query.IsSupplemental != false)
         {
             var dailyById = dailyLines.ToDictionary(x => Convert.ToHexString(x.DailyLineId), StringComparer.Ordinal);
             foreach (var material in extraMaterials)

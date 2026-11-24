@@ -10,9 +10,14 @@ test('MRX material unit remains readable across split-workbench widths', async (
   });
   const material = { dishBomId: 'bom-1', ingredientId: 'i-1', ingredientCode: 'ING-1', ingredientName: 'ba chỉ lóc sườn', grossQuantityPerServing: 0.015, sourceUnitId: 'kg', sourceUnitName: 'Kilogram', requiredQuantity: 0.18, canonicalUnitId: 'kg', canonicalUnitName: 'Kilogram' };
   const inspection = { menuVersionId: 'mv-w42', contentFingerprint: 'fingerprint', fingerprintFormatVersion: 3, diagnostics: [], page: { items: [{ ingredientId: 'i-1', ingredientCode: 'ING-1', ingredientName: 'ba chỉ lóc sườn', canonicalUnitId: 'kg', canonicalUnitName: 'Kilogram', requiredQuantity: 0.6, contributions: [{ serviceDate: '2026-11-23', shift: 'MORNING', quantityPlanLineId: 'line-1', dishId: 'dish-1', dishName: 'Heo xào măng', dishSlot: 'main', finalServings: 12, material }] }], totalCount: 1, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false } };
+  let failFilteredRead = true;
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
     if (!url.pathname.startsWith('/api/')) return route.continue();
+    if (url.pathname === '/api/reconciliation/batches/quantity-import/materials' && url.searchParams.has('SearchKeyword')) {
+      if (failFilteredRead) return route.fulfill({ status: 500, json: { success: false, message: 'Không thể tải bộ lọc nguyên liệu' } });
+      return route.fulfill({ json: { success: true, data: { ...inspection, page: { ...inspection.page, items: [], totalCount: 0, totalPages: 0 } } } });
+    }
     const data = url.pathname === '/api/system-operation-mode'
       ? { mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát MRX', version: 1, updatedAt: '2026-11-15T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } }
       : url.pathname === '/api/coordination/customers' ? [{ customerId: 'c-anv', customerCode: 'ANV', customerName: 'AMANN' }]
@@ -38,4 +43,29 @@ test('MRX material unit remains readable across split-workbench widths', async (
     expect(geometry.textRight).toBeLessThanOrEqual(geometry.cellRight + 1);
     await page.screenshot({ path: test.info().outputPath(`mrx-material-unit-${width}.png`) });
   }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: (text: string) => { sessionStorage.setItem('copied-material-code', text); return Promise.resolve(); } },
+    });
+  });
+  const row = page.getByRole('row', { name: /ba chỉ lóc sườn/ });
+  const copy = row.getByRole('button', { name: 'Sao chép ING-1' });
+  await copy.focus();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => sessionStorage.getItem('copied-material-code'))).toBe('ING-1');
+  await expect(page.getByRole('heading', { name: 'Nguồn tính chi tiết' })).toBeVisible();
+  await row.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Nguồn tính · ba chỉ lóc sườn' })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Tìm nguyên liệu' }).fill('không khớp');
+  await expect(page.getByRole('alert')).toContainText('Không thể tải bộ lọc nguyên liệu');
+  const previousRow = page.locator('tr').filter({ hasText: 'ba chỉ lóc sườn' });
+  await expect(previousRow).toHaveCount(1);
+  expect(await previousRow.evaluate(element => Boolean(element.closest('[inert]')))).toBe(true);
+  failFilteredRead = false;
+  await page.getByRole('button', { name: 'Thử lại', exact: true }).click();
+  await expect(previousRow).toHaveCount(0);
+  await expect(page.getByText('Không có nguyên liệu phù hợp')).toBeVisible();
 });

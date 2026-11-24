@@ -207,6 +207,13 @@ public class PurchaseOrderService : IPurchaseOrderService
         var pageNumber = Math.Max(1, query.PageNumber);
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
         var filteredQuery = BuildOrderQuery(query.Status);
+        if (!string.IsNullOrWhiteSpace(query.SupplierId))
+        {
+            var supplierId = GuidHelper.ParseGuidString(query.SupplierId);
+            filteredQuery = supplierId is null
+                ? filteredQuery.Where(_ => false)
+                : filteredQuery.Where(order => order.SupplierId == supplierId);
+        }
         var totalCount = await filteredQuery.CountAsync(cancellationToken);
         var orderIdsByRequest = await filteredQuery
             .Select(order => new { order.PurchaseRequestId })
@@ -216,6 +223,7 @@ public class PurchaseOrderService : IPurchaseOrderService
             .ToDictionary(group => group.Key, group => group.Count());
         var orders = await filteredQuery
             .OrderByDescending(order => order.CreatedAt)
+            .ThenBy(order => order.PurchaseOrderId)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -250,20 +258,27 @@ public class PurchaseOrderService : IPurchaseOrderService
         var purchaseOrderIdBytes = GuidHelper.ParseGuidString(purchaseOrderId)
             ?? throw new ArgumentException("Đơn mua hàng không hợp lệ.");
 
-        var order = await LoadOrderAsync(purchaseOrderIdBytes, cancellationToken)
-            ?? throw new KeyNotFoundException("Không tìm thấy đơn mua hàng.");
-
-        if (order.Purchaseorderlines.Any(line => line.ReceivedQty > 0))
-        {
-            throw new BusinessRuleException("Không thể hủy đơn mua hàng đã có dòng nhận hàng.");
-        }
-
-        order.Status = StatusCancelled;
-        order.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return MapToDto(order);
+        return await _transactionRunner.ExecuteAsync(
+            async token =>
+            {
+                var order = await LoadOrderAsync(purchaseOrderIdBytes, token)
+                    ?? throw new KeyNotFoundException("Không tìm thấy đơn mua hàng.");
+                if (order.Purchaseorderlines.Any(line => line.ReceivedQty > 0))
+                {
+                    throw new BusinessRuleException("Không thể hủy đơn mua hàng đã có dòng nhận hàng.");
+                }
+                if (order.Status != StatusCancelled)
+                {
+                    order.Status = StatusCancelled;
+                    order.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync(token);
+                }
+                return MapToDto(order);
+            },
+            token => _context.Purchaseorders.AsNoTracking().AnyAsync(
+                order => order.PurchaseOrderId == purchaseOrderIdBytes && order.Status == StatusCancelled, token),
+            IsolationLevel.Serializable,
+            cancellationToken);
     }
 
     private async Task<PurchaseOrder?> LoadOrderAsync(byte[] purchaseOrderId, CancellationToken cancellationToken)

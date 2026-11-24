@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -8,8 +8,8 @@ import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
-import { getCachedArray, serverStateCache } from '../../store/serverStateCache';
 import { adminApi, type ApprovalRuleItem } from '../../api/adminApi';
+import { useWorkbenchQuery } from '../../hooks/useWorkbenchQuery';
 
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   'purchase-order': 'Đơn mua hàng PO',
@@ -18,42 +18,16 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 export function ApprovalRulesPage() {
-  const cachedRules = getCachedArray<ApprovalRuleItem>('admin_approval_rules');
-  const [rules, setRules] = useState<ApprovalRuleItem[]>(() => cachedRules || []);
   const [activeType, setActiveType] = useState('ALL');
-  const [isLoading, setIsLoading] = useState(!cachedRules);
-  const [error, setError] = useState<Error | null>(null);
-
-  const loadData = async () => {
-    if (rules.length === 0) setIsLoading(true);
-    setError(null);
-    try {
-      const items = await adminApi.getApprovalRules();
-      setRules(items);
-      serverStateCache.set('admin_approval_rules', items);
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause : new Error('Không thể tải quy tắc phê duyệt.'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let ignore = false;
-    adminApi.getApprovalRules()
-      .then((items) => {
-        if (ignore) return;
-        setRules(items);
-        serverStateCache.set('admin_approval_rules', items);
-      })
-      .catch((cause: unknown) => {
-        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải quy tắc phê duyệt.'));
-      })
-      .finally(() => { if (!ignore) setIsLoading(false); });
-    return () => { ignore = true; };
-  }, []);
-
-  const filteredRules = useMemo(() => activeType === 'ALL' ? rules : rules.filter((rule) => rule.documentType === activeType), [rules, activeType]);
+  const query = useWorkbenchQuery<ApprovalRuleItem[]>({
+    scopeKey: 'admin_approval_rules',
+    cacheKey: 'admin_approval_rules',
+    snapshotKey: '',
+    queryFn: (_, signal) => adminApi.getApprovalRules(signal),
+  });
+  const rules = query.data ?? [];
+  const loadData = () => query.refetch(true);
+  const filteredRules = activeType === 'ALL' ? rules : rules.filter(rule => rule.documentType === activeType);
   const tabs = [
     { id: 'ALL', label: 'Tất cả', count: rules.length },
     ...Object.entries(DOCUMENT_TYPE_LABELS).map(([id, label]) => ({ id, label, count: rules.filter((rule) => rule.documentType === id).length })),
@@ -72,8 +46,7 @@ export function ApprovalRulesPage() {
     <WorkspaceHeader title="Thiết lập quy trình duyệt" breadcrumb="Hệ thống · Quy trình phê duyệt" contextSelectors={<Badge variant="neutral" size="default" className="h-9 px-3">{rules.length} quy tắc phê duyệt hiệu lực</Badge>} actions={<Button variant="outline" size="default" onClick={loadData}>Làm mới</Button>} />
     <TelemetrySubbar leftControls={<Tabs items={tabs} activeId={activeType} onChange={setActiveType} size="sm" />} telemetryPills={<span className="text-slate-500 tabular-nums"><strong className="inline-block min-w-[2ch] text-right font-mono text-slate-900">{filteredRules.length}</strong> quy tắc trong phạm vi</span>} />
     <StateBoundary
-      isLoading={isLoading}
-      error={error}
+      {...query.stateProps}
       onRetry={loadData}
       isEmpty={false}
       emptyScenario="empty-first-use"

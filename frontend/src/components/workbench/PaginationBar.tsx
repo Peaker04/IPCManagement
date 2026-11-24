@@ -13,12 +13,13 @@ interface PaginationBarProps {
   hasPrev: boolean;
   hasNext: boolean;
   pending?: boolean;
+  retainButtonFocus?: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
   placement?: 'footer' | 'toolbar' | 'selector';
 }
 
-export function PaginationBar({ label, hideVisibleLabel, page, pageSize, totalCount, totalPages, hasPrev, hasNext, pending, onPageChange, onPageSizeChange, placement = 'footer' }: PaginationBarProps) {
+export function PaginationBar({ label, hideVisibleLabel, page, pageSize, totalCount, totalPages, hasPrev, hasNext, pending, retainButtonFocus, onPageChange, onPageSizeChange, placement = 'footer' }: PaginationBarProps) {
   const isSelector = placement === 'selector';
   const showNavigation = isSelector
     ? (totalPages !== undefined && totalPages > 1) || page > 1 || hasPrev || hasNext
@@ -45,12 +46,19 @@ export function PaginationBar({ label, hideVisibleLabel, page, pageSize, totalCo
         >
           {Array.from(new Set([25, 50, 100, pageSize])).sort((a, b) => a - b).map(size => <option key={size} value={size}>{size} dòng/trang</option>)}
         </Select></div>}
-        {showNavigation && <><Button variant="outline" size={isSelector ? 'icon' : 'default'} className={isSelector ? 'h-8 w-8 text-xs' : 'h-9 text-xs'} aria-label="Trang trước" title="Trang trước" disabled={!hasPrev || pending} onClick={() => onPageChange(page - 1)}>
-          {isSelector ? <ChevronLeft size={14} aria-hidden="true" /> : 'Trang trước'}
-        </Button>
-        <Button variant="outline" size={isSelector ? 'icon' : 'default'} className={isSelector ? 'h-8 w-8 text-xs' : 'h-9 text-xs'} aria-label="Trang sau" title="Trang sau" disabled={!hasNext || pending} onClick={() => onPageChange(page + 1)}>
-          {isSelector ? <ChevronRight size={14} aria-hidden="true" /> : 'Trang sau'}
-        </Button></>}
+        {showNavigation && [
+          { label: 'Trang trước', available: hasPrev, change: -1, Icon: ChevronLeft },
+          { label: 'Trang sau', available: hasNext, change: 1, Icon: ChevronRight },
+        ].map(({ label: actionLabel, available, change, Icon }) => {
+          const blocked = !available || Boolean(pending);
+          return <Button key={change} type="button" variant="outline" size={isSelector ? 'icon' : 'default'}
+            className={`${isSelector ? 'h-8 w-8 text-xs' : 'h-9 text-xs'}${retainButtonFocus && blocked ? ' cursor-not-allowed opacity-50' : ''}`}
+            aria-label={actionLabel} title={actionLabel} disabled={blocked && !retainButtonFocus}
+            aria-disabled={retainButtonFocus && blocked || undefined} tabIndex={retainButtonFocus && !available ? -1 : undefined}
+            onClick={() => { if (!blocked) onPageChange(page + change); }}>
+            {isSelector ? <Icon size={14} aria-hidden="true" /> : actionLabel}
+          </Button>;
+        })}
       </div>}
     </nav>
   );

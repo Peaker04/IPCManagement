@@ -422,7 +422,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     // 2. View: variances
     const { unmount: unmount2 } = renderReconciliation('/reconciliation?view=variances&date=2026-10-24');
     await vi.waitFor(() => {
-      expect(mrxApi.getVarianceRegister).toHaveBeenLastCalledWith(MOCK_RECONCILIATION.batchId);
+      expect(mrxApi.getVarianceRegister).toHaveBeenLastCalledWith(MOCK_RECONCILIATION.batchId, undefined, expect.any(AbortSignal));
     });
     expect(await screen.findByText('Sổ theo dõi chênh lệch & quyết định xử lý tuần')).toBeInTheDocument();
     expect(await screen.findByText(/Bao bì lẻ/)).toBeInTheDocument();
@@ -572,8 +572,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     renderReconciliation(`/reconciliation?view=completed${query}`);
 
-    if (scope) await waitFor(() => expect(getCompleted).toHaveBeenCalledWith(1, 50, scope));
-    else expect(getCompleted).toHaveBeenCalledWith(1, 50);
+    await waitFor(() => expect(getCompleted).toHaveBeenCalledWith(1, 50, scope ?? {}, expect.any(AbortSignal)));
     expect(await screen.findByText(/Danh bạ lô đối soát đã hoàn tất/i)).toBeInTheDocument();
     expect(screen.queryByText('b2d7e7be-6be0-40bd-8409-d4cc1bd5471d')).not.toBeInTheDocument();
     expect(screen.queryByText('4c90da94-81eb-4cbc-8121-f5d573c4c1b8')).not.toBeInTheDocument();
@@ -905,11 +904,11 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     await userEvent.click(within(pager).getByRole('button', { name: 'Trang sau' }));
     expect(screen.getByText('Ghi nhận trang đầu')).toBeVisible();
     expect(pager).toHaveTextContent('Trang 1/2');
-    expect(within(pager).getByRole('button', { name: 'Trang sau' })).toBeDisabled();
+    expect(within(pager).getByRole('button', { name: 'Trang sau' })).toHaveAttribute('aria-disabled', 'true');
     await act(async () => { releaseSecondPage(); });
     expect(await screen.findByText('Ghi nhận cũ hơn')).toBeVisible();
     expect(reads).toContain('/api/reconciliation/reports/audit-trail?pageNumber=2&pageSize=50&batchId=audit-batch-a');
-    expect(within(pager).getByRole('button', { name: 'Trang sau' })).toBeDisabled();
+    expect(within(pager).getByRole('button', { name: 'Trang sau' })).toHaveAttribute('aria-disabled', 'true');
     await selectReviewBatch(second.batchId);
     expect(await screen.findByText('Nhật ký lô thứ hai')).toBeVisible();
     expect(screen.getByRole('navigation', { name: 'Phân trang nhật ký kiểm toán' })).toHaveTextContent('Trang 1/2');
@@ -957,7 +956,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(reads.some(url => url.pathname.endsWith('/transactions-history') && url.searchParams.get('batchId') === MOCK_RECONCILIATION.batchId && url.searchParams.get('pageNumber') === '2' && url.searchParams.get('pageSize') === '25')).toBe(true);
     const historyPager = screen.getByRole('navigation', { name: 'Phân trang giao dịch kho' });
     expect(within(historyPager).getByRole('button', { name: 'Trang trước' })).toBeEnabled();
-    expect(within(historyPager).getByRole('button', { name: 'Trang sau' })).toBeDisabled();
+    expect(within(historyPager).getByRole('button', { name: 'Trang sau' })).toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(within(historyPager).getByRole('button', { name: 'Trang trước' }));
     expect(await screen.findByText('PX-PAGE-1')).toBeInTheDocument();
     expect(screen.queryByText('PX-PAGE-2')).not.toBeInTheDocument();
@@ -1008,11 +1007,13 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     history.mockImplementationOnce(() => new Promise((resolve) => { resolveRefresh = resolve; }));
     await userEvent.click(screen.getByRole('button', { name: 'Làm mới' }));
     await waitFor(() => expect(history).toHaveBeenCalledTimes(3));
+    const refreshSignal = history.mock.calls[2][1]?.signal;
     expect(screen.getByText('PX-A')).toBeInTheDocument();
     expect(screen.getAllByRole('table')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Tải Excel Lịch sử kho' })).toBeDisabled();
     expect(screen.queryByRole('status', { name: 'Đang tải nội dung' })).not.toBeInTheDocument();
     await selectReviewBatch(batchB);
+    expect(refreshSignal?.aborted).toBe(true);
     expect(await screen.findByText('PX-B')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Tải Excel Lịch sử kho' })).toBeEnabled());
     await act(async () => { resolveRefresh(report(batchA, 'PX-A-DELAYED')); });

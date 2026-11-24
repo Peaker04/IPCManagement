@@ -6761,6 +6761,13 @@
             }
           },
           {
+            "name": "WarehouseId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "PageNumber",
             "in": "query",
             "schema": {
@@ -8556,6 +8563,13 @@
         "parameters": [
           {
             "name": "Status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SupplierId",
             "in": "query",
             "schema": {
               "type": "string"

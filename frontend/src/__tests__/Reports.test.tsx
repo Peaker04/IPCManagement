@@ -89,10 +89,11 @@ describe('Reports', () => {
     let resolve!: (value: Awaited<ReturnType<typeof reportsApi.getDemand>>) => void;
     vi.mocked(reportsApi.getDemand).mockImplementationOnce(() => new Promise(r => { resolve = r; }));
     await userEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
-    expect(reportsApi.getDemand).toHaveBeenLastCalledWith(expect.any(String), 'customer-1', 2, 25);
+    expect(reportsApi.getDemand).toHaveBeenLastCalledWith(expect.any(String), 'customer-1', 2, 25, expect.any(AbortSignal));
     expect(screen.getByText('Gạo')).toBeVisible();
     expect(screen.queryByText('Chưa có dữ liệu báo cáo')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Trang sau' })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('button', { name: 'Trang sau' })).toHaveFocus();
     await act(async () => resolve({ items: [], totalCount: 26, pageNumber: 2, pageSize: 25, totalPages: 2, hasPrev: true, hasNext: false }));
     expect(await screen.findByText('Chưa có dữ liệu báo cáo')).toBeVisible();
   });
@@ -101,6 +102,16 @@ describe('Reports', () => {
     renderPage('/reports?view=prices');
     expect(await screen.findByRole('columnheader', { name: 'Phiếu nhập' })).toBeInTheDocument();
     expect(screen.getByText('PN-1')).toBeInTheDocument();
+  });
+
+  it('aborts a report read when its view unmounts', async () => {
+    const fetchStock = vi.mocked(reportsApi.getCurrentStock).mockImplementation(() => new Promise(() => {}));
+    const view = renderPage('/reports?view=stock');
+    await waitFor(() => expect(fetchStock).toHaveBeenCalledTimes(1));
+    const signal = fetchStock.mock.calls[0][3];
+    expect(signal?.aborted).toBe(false);
+    view.unmount();
+    await waitFor(() => expect(signal?.aborted).toBe(true));
   });
 
   it('allows manual refresh via header action and provides error retry', async () => {

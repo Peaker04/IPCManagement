@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { ReportPage } from './reportsApi';
 
 export interface PurchaseOrderLineItem {
   lineId: string;
@@ -56,12 +57,7 @@ export interface RawPo {
   lines: RawPoLine[];
 }
 
-export const purchasingApi = {
-  async getPurchaseOrders(): Promise<PurchaseOrderItem[]> {
-    const resp = await apiClient<RawPo[] | { items: RawPo[] }>('/purchase-orders');
-    const items = Array.isArray(resp) ? resp : resp?.items || [];
-
-    return items.map((po) => {
+function mapOrder(po: RawPo): PurchaseOrderItem {
       const lines: PurchaseOrderLineItem[] = po.lines.map((line) => ({
         lineId: line.purchaseOrderLineId,
         ingredientCode: line.ingredientId,
@@ -84,11 +80,19 @@ export const purchasingApi = {
         linesCount: lines.length,
         lines,
       };
-    });
+}
+
+export const purchasingApi = {
+  async getPurchaseOrders(signal?: AbortSignal, query = { supplierId: 'ALL', status: 'ALL', pageNumber: 1 }): Promise<ReportPage<PurchaseOrderItem>> {
+    const params = new URLSearchParams({ pageNumber: String(query.pageNumber), pageSize: '20' });
+    if (query.supplierId !== 'ALL') params.set('supplierId', query.supplierId);
+    if (query.status !== 'ALL') params.set('status', query.status);
+    const { page } = await apiClient<{ page: ReportPage<RawPo> }>(`/purchase-orders/page?${params}`, { signal });
+    return { ...page, items: page.items.map(mapOrder) };
   },
 
-  async getSuppliers(): Promise<SupplierItem[]> {
-    return apiClient<SupplierItem[]>('/suppliers');
+  async getSuppliers(signal?: AbortSignal): Promise<SupplierItem[]> {
+    return apiClient<SupplierItem[]>('/suppliers', { signal });
   },
 
   async createPurchaseOrdersFromRequest(purchaseRequestId: string): Promise<PurchaseOrderItem[]> {
@@ -97,30 +101,7 @@ export const purchasingApi = {
       { method: 'POST' }
     );
 
-    return orders.map((po) => {
-      const lines = po.lines.map((line) => ({
-        lineId: line.purchaseOrderLineId,
-        ingredientCode: line.ingredientId,
-        ingredientName: line.ingredientName,
-        unit: line.unitName,
-        orderedQuantity: line.orderedQty,
-        unitPrice: line.unitPrice,
-        lineTotal: line.orderedQty * line.unitPrice,
-      }));
-
-      return {
-        id: po.purchaseOrderId,
-        code: po.purchaseOrderCode,
-        purchaseRequestCode: po.purchaseRequestCode,
-        supplierId: po.supplierId,
-        supplierName: po.supplierName,
-        orderDate: po.orderDate,
-        status: po.status.toUpperCase() as PurchaseOrderItem['status'],
-        totalAmount: lines.reduce((sum, line) => sum + line.lineTotal, 0),
-        linesCount: lines.length,
-        lines,
-      };
-    });
+    return orders.map(mapOrder);
   },
 
   async cancelPurchaseOrder(orderId: string): Promise<unknown> {

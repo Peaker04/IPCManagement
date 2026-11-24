@@ -145,20 +145,18 @@ export function useMrxDailyWorkspace({
     return source.dates[0].serviceDate;
   };
 
-  const dailyQuery = useWorkbenchQuery<{ daily: MrxWarehouseDaily | null; history: MrxIssuePage | null }>({
+  const dailyQuery = useWorkbenchQuery<{ daily: MrxWarehouseDaily | null }>({
     scopeKey: 'mrx_daily',
-    cacheKey: `mrx_daily_${activeBatchId}${historyPage > 1 ? `_history_${historyPage}` : ''}`,
-    snapshotKey: historyPage === 1 && snapshot?.activeBatchId === activeBatchId
+    cacheKey: `mrx_daily_${activeBatchId}`,
+    snapshotKey: snapshot?.activeBatchId === activeBatchId
       ? 'snapshot:mrx_daily'
-      : `snapshot:mrx_daily_${activeBatchId}_${historyPage}`,
+      : `snapshot:mrx_daily_${activeBatchId}_1`,
     scopeId: activeBatchId,
     isCatalogLoading: catalogLoading,
-    queryFn: async () => {
-      const [nextDaily, nextHistory] = await Promise.all([
-        mrxApi.getWarehouseDaily(activeBatchId),
-        mrxApi.getIssues(activeBatchId, historyPage, 25),
-      ]);
-      return { daily: nextDaily, history: nextHistory };
+    queryFn: async (_, signal) => {
+      const daily = await mrxApi.getWarehouseDaily(activeBatchId, signal);
+      if (!daily || !Array.isArray(daily.dates)) throw new Error('Không nhận được định lượng xuất kho của lô.');
+      return { daily };
     },
     isCompatibilityBlocked: (cause) => {
       const err = cause instanceof Error ? cause : new Error();
@@ -176,7 +174,22 @@ export function useMrxDailyWorkspace({
       ? 'Chưa có lô đối soát nào được chọn hoặc khởi tạo cho tuần này.'
       : 'Kiểm tra lại ngày phục vụ hoặc chuyển sang màn hình Chuẩn bị phối hợp để xem toàn bộ các lô.',
   });
-  const { data: queryPayload, stateProps, refetch: load } = dailyQuery;
+  const historyQuery = useWorkbenchQuery<{ batchId: string; requestedPage: number; page: MrxIssuePage }>({
+    scopeKey: 'mrx_daily_history',
+    cacheKey: `mrx_daily_history_${activeBatchId}_${historyPage}`,
+    snapshotKey: '',
+    scopeId: activeBatchId,
+    queryFn: async (_, signal) => {
+      const page = await mrxApi.getIssues(activeBatchId, historyPage, 25, signal);
+      if (!page || !Array.isArray(page.items)) throw new Error('Không nhận được lịch sử phiếu xuất của lô.');
+      return { batchId: activeBatchId, requestedPage: historyPage, page };
+    },
+  });
+  const { data: queryPayload, stateProps, refetch: refetchDaily } = dailyQuery;
+  const { data: historyPayload, stateProps: historyState, refetch: refetchHistory } = historyQuery;
+  const load = async (force?: boolean) => {
+    await Promise.all([refetchDaily(force), refetchHistory(force)]);
+  };
 
   const isLegacyMissing = Boolean(stateProps.isPartial || stateProps.error?.message.includes('LEGACY_DAILY_LINEAGE_MISSING'));
   const isTransitioningBatch = Boolean(
@@ -195,8 +208,8 @@ export function useMrxDailyWorkspace({
     if (!activeBatchId || !daily || daily.batchId !== activeBatchId) return;
     workspaceSessionStore.setScope({ batchId: activeBatchId, serviceDate: activeDate, weekStartDate: activeDate === 'ALL' ? undefined : weekStartFor(activeDate) });
   }, [activeBatchId, activeDate, daily]);
-  const history = daily ? (queryPayload?.history ?? null) : null;
-  const isTransitioningHistoryPage = Boolean(queryPayload?.history && queryPayload.history.pageNumber !== historyPage);
+  const history = daily?.batchId === historyPayload?.batchId ? historyPayload?.page ?? null : null;
+  const isHistoryPageStale = Boolean(history && historyPayload?.requestedPage !== historyPage);
 
   const draftScope = `${user?.userId}_${activeBatchId}_${activeDate}_${daily?.sourceVersion}`;
   const quantities = draft.scope === draftScope || issueOutcomeUnknown ? draft.quantities : {};
@@ -487,6 +500,9 @@ export function useMrxDailyWorkspace({
     daily,
     day,
     history,
+    historyState,
+    isHistoryPageStale,
+    refetchHistory,
     historyPage,
     setHistoryPage,
     lines,
@@ -495,7 +511,7 @@ export function useMrxDailyWorkspace({
     isLegacyMissing,
     stateProps: {
       ...stateProps,
-      isPreviousData: stateProps.isPreviousData || isTransitioningBatch || isTransitioningHistoryPage,
+      isPreviousData: stateProps.isPreviousData || isTransitioningBatch,
       hasExistingData: Boolean(daily),
     },
     load,

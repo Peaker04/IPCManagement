@@ -67,7 +67,7 @@ export function MrxCookingWorkbench() {
     snapshotKey: `snapshot:mrx_cooking_${batchId || 'none'}`,
     scopeId: batchId,
     isCatalogLoading: !batchId && catalogLoading,
-    queryFn: () => mrxApi.getKitchenCooking(batchId),
+    queryFn: (_, signal) => mrxApi.getKitchenCooking(batchId, signal),
     isCompatibilityBlocked: (cause: unknown) => {
       const err = cause instanceof Error ? cause : new Error();
       return err.message.includes('KITCHEN_FROZEN_LINEAGE_MISSING') || err.message.includes('LEGACY_DAILY_LINEAGE_MISSING');
@@ -88,10 +88,10 @@ export function MrxCookingWorkbench() {
   const isForeignData = Boolean(cookingData && cookingData.batchId !== batchId && !isTransitioningBatch);
 
   useEffect(() => {
-    let ignore = false;
-    mrxApi.getBatchPage({ pageSize: 50, pageNumber: catalogPage })
+    const controller = new AbortController();
+    mrxApi.getBatchPage({ pageSize: 50, pageNumber: catalogPage }, controller.signal)
       .then((page) => {
-        if (ignore) return;
+        if (controller.signal.aborted) return;
         const { batchId, urlBatchId, setSearchParams } = selectionRef.current;
         const items = page?.items ?? [];
         setBatches(previous => {
@@ -133,8 +133,8 @@ export function MrxCookingWorkbench() {
           }, { replace: true });
         }
       })
-      .catch((cause: unknown) => { if (!ignore) { setCatalogLoading(false); setBatchListError(cause instanceof Error ? cause : new Error('Không thể tải danh sách lô nấu.')); } });
-    return () => { ignore = true; };
+      .catch((cause: unknown) => { if (!controller.signal.aborted) { setCatalogLoading(false); setBatchListError(cause instanceof Error ? cause : new Error('Không thể tải danh sách lô nấu.')); } });
+    return () => controller.abort();
   }, [batchListRetry, catalogPage]);
 
   const dishGroups = useMemo<DishGroup[]>(() => {

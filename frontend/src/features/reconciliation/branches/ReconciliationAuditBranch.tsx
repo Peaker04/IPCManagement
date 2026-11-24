@@ -138,19 +138,21 @@ export function ReconciliationAuditBranch({
       {isColdTarget ? <WorkbenchSkeleton geometry={{ kind: 'table', columns: 6, rows: 10 }} /> : auditSubTab === 'warehouse' ? (
         <DataGrid
           data={visibleAuditRows}
+          pending={pending}
           hideHeaderWhenEmpty
           columns={auditColumns}
           minWidth="min-w-[1100px]"
-          keyExtractor={(row, idx) => row.auditId || `audit-${idx}`}
+          keyExtractor={row => row.auditId}
           emptyMessage={query ? 'Không có bản ghi kiểm toán khớp tìm kiếm.' : 'Chưa có nhật ký kiểm toán nào cho phạm vi này.'}
         />
       ) : (
         <DataGrid
           data={sourcePageRows}
+          pending={pending}
           hideHeaderWhenEmpty
           columns={sourceChangeColumns}
           minWidth="min-w-[1100px]"
-          keyExtractor={(row, idx) => row.changeId || `sc-${idx}`}
+          keyExtractor={row => row.changeId}
           emptyMessage={query ? 'Không có thay đổi nguồn khớp tìm kiếm.' : 'Lô đối soát chưa có ghi nhận thay đổi nguồn hay điều chỉnh BOM nào.'}
         />
       )}
@@ -164,6 +166,7 @@ export function ReconciliationAuditBranch({
           hasPrev={page > 1}
           hasNext={Boolean(totalPages && page < totalPages)}
           pending={pending}
+          retainButtonFocus
           onPageChange={onPageChange}
         />
       )}

@@ -47,10 +47,11 @@ export const coordinationApi = {
   async getOrders(
     serviceDate: string,
     shiftName: 'MORNING' | 'AFTERNOON',
-    customerCode: string
+    customerCode: string,
+    signal?: AbortSignal,
   ): Promise<CoordinationShiftSummary> {
     const query = new URLSearchParams({ serviceDate, shiftName });
-    const response = await apiClient<CoordinationOrderItem[]>(`/coordination/orders?${query.toString()}`);
+    const response = await apiClient<CoordinationOrderItem[]>(`/coordination/orders?${query.toString()}`, { signal });
     const orders = response.filter((order) => order.customerCode === customerCode);
     const registeredServings = orders.reduce((sum, order) => sum + order.forecastQuantity, 0);
     const actualServings = orders.reduce((sum, order) => sum + order.actualQuantity, 0);
