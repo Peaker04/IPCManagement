@@ -43,7 +43,7 @@ function MaterialsTable({ rows }: { rows: readonly MrxMaterialInspection[] }) {
     masterWidthClass="w-full lg:w-5/12"
     hasActiveDetail={Boolean(selected)} onBackToMaster={() => setSelectedKey('')}
     master={<DataGrid data={rows} columns={columns} keyExtractor={materialKey} onRowClick={row => setSelectedKey(materialKey(row))} selectedKey={selectedKey} minWidth="min-w-[500px]" emptyMessage="Không có nguyên liệu phù hợp" />}
-    detail={<div className="flex-1 min-h-0 flex flex-col"><h2 className="h-10 px-4 py-2 text-sm font-semibold border-b border-slate-200 bg-slate-50 flex items-center shrink-0">{selected ? `Nguồn tính · ${selected.ingredientName}` : 'Nguồn tính chi tiết'}</h2>{selected ? <DataGrid data={selected.contributions} columns={details} keyExtractor={(row, index) => `${row.quantityPlanLineId}:${row.material.dishBomId}:${index}`} minWidth="min-w-[790px]" /> : <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8 text-center"><div aria-hidden="true" className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-3 text-slate-400"><Boxes size={22} strokeWidth={1.75} /></div><p className="text-sm text-slate-500">Chọn nguyên liệu để xem từng ngày, món và định mức nguồn.</p></div>}</div>}
+    detail={<div className="flex-1 min-h-0 min-w-0 flex flex-col"><h2 className="min-h-10 content-center px-4 py-2 wrap-anywhere text-sm font-semibold border-b border-slate-200 bg-slate-50 shrink-0">{selected ? `Nguồn tính · ${selected.ingredientName}` : 'Nguồn tính chi tiết'}</h2>{selected ? <DataGrid data={selected.contributions} columns={details} keyExtractor={(row, index) => `${row.quantityPlanLineId}:${row.material.dishBomId}:${index}`} minWidth="min-w-[790px]" /> : <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8 text-center"><div aria-hidden="true" className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-3 text-slate-400"><Boxes size={22} strokeWidth={1.75} /></div><p className="text-sm text-slate-500">Chọn nguyên liệu để xem từng ngày, món và định mức nguồn.</p></div>}</div>}
   />;
 }
 
@@ -85,6 +85,7 @@ export function MrxQuantityInspectionPage({ view }: { view: 'materials' | 'plans
   const [revisionNotice, setRevisionNotice] = useState(false);
   const fingerprint = useRef<{ scope: string; value: string } | null>(null);
   const result = workspace.result;
+  const confirmedPage = workspace.stateProps.isPreviousData ? null : result?.data.page;
   const scopeKey = `${customerId}:${weekStartDate}`;
   const update = useCallback((values: Record<string, string>, replace = false) => setParams(current => {
     const next = new URLSearchParams(current);
@@ -124,7 +125,7 @@ export function MrxQuantityInspectionPage({ view }: { view: 'materials' | 'plans
       actions={<Button variant="outline" onClick={() => void workspace.refresh()} disabled={workspace.stateProps.isFetching}>Làm mới</Button>} />
     <div className="min-h-11 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-1.5 border-b border-slate-200 bg-slate-50/80 text-xs shrink-0">
       <dl aria-label="Nguồn định lượng" className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <div className="flex items-baseline gap-1"><dt className="text-slate-500">Nguồn:</dt><dd className="font-medium text-slate-900">{workspace.stateProps.isPreviousData ? 'Phạm vi trước · đang tải' : 'Hiện hành'}</dd></div>
+        <div className="flex items-baseline gap-1"><dt className="text-slate-500">Nguồn:</dt><dd className="font-medium text-slate-900">{workspace.stateProps.isPreviousData ? (workspace.stateProps.isFetching ? 'Phạm vi trước · đang tải' : 'Phạm vi trước · chỉ xem') : 'Hiện hành'}</dd></div>
         <div className="flex items-baseline gap-1"><dt className="text-slate-500">Tính chất:</dt><dd className="font-medium text-slate-900">Dự kiến</dd></div>
         <div className="flex items-baseline gap-1"><dt className="text-slate-500">Phiên bản:</dt><dd className="font-medium text-slate-900 min-w-[2ch] font-mono tabular-nums">{workspace.source ? <Num value={workspace.source.menuVersionNo} /> : '—'}</dd></div>
       </dl>
@@ -139,7 +140,8 @@ export function MrxQuantityInspectionPage({ view }: { view: 'materials' | 'plans
       </div>}
     </StateBoundary>
     <PaginationBar label={title} page={pageNumber} pageSize={pageSize} totalCount={result?.data.page.totalCount} totalPages={result?.data.page.totalPages}
-      hasPrev={Boolean(result?.data.page.hasPrev)} hasNext={Boolean(result?.data.page.hasNext)} pending={workspace.stateProps.isLoading || workspace.stateProps.isFetching}
+      retainButtonFocus
+      hasPrev={pageNumber > 1} hasNext={Boolean(confirmedPage?.hasNext)} pending={workspace.stateProps.isLoading || workspace.stateProps.isFetching}
       onPageChange={page => update({ page: String(page) })} onPageSizeChange={size => update({ pageSize: String(size) })} />
   </div>;
 }

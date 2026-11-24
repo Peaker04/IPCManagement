@@ -256,11 +256,11 @@ export const mrxApi = {
     withMrxInvalidation(apiClient<MrxSupplementalDemand>(`/reconciliation/supplemental-demands/${encodeURIComponent(id)}/submit`, { method: 'POST', body: JSON.stringify(request) }), true),
   cancelSupplementalDemand: (id: string, request: MrxSupplementalDemandCommand) =>
     withMrxInvalidation(apiClient<MrxSupplementalDemand>(`/reconciliation/supplemental-demands/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify(request) }), true),
-  getMaterialInspection: (menuVersionId: string, query: MrxInspectionQuery) =>
-    apiClient<MrxMaterialInspectionPage>(inspectionPath('materials', menuVersionId, query)),
-  getPlanInspection: (menuVersionId: string, query: MrxInspectionQuery) =>
-    apiClient<MrxPlanInspectionPage>(inspectionPath('plans', menuVersionId, query)),
-  getBatchPage: (filters: MrxBatchPageQuery = {}) => {
+  getMaterialInspection: (menuVersionId: string, query: MrxInspectionQuery, signal?: AbortSignal) =>
+    apiClient<MrxMaterialInspectionPage>(inspectionPath('materials', menuVersionId, query), { signal }),
+  getPlanInspection: (menuVersionId: string, query: MrxInspectionQuery, signal?: AbortSignal) =>
+    apiClient<MrxPlanInspectionPage>(inspectionPath('plans', menuVersionId, query), { signal }),
+  getBatchPage: (filters: MrxBatchPageQuery = {}, signal?: AbortSignal) => {
     const query = new URLSearchParams();
     if (filters.customerId) query.set('CustomerId', filters.customerId);
     if (filters.customerCode) query.set('CustomerCode', filters.customerCode);
@@ -271,7 +271,7 @@ export const mrxApi = {
     if (filters.status) query.set('Status', filters.status);
     query.set('PageNumber', String(filters.pageNumber ?? 1));
     query.set('PageSize', String(filters.pageSize ?? 20));
-    return apiClient<MrxBatchPage>(`/reconciliation/batches?${query}`);
+    return apiClient<MrxBatchPage>(`/reconciliation/batches?${query}`, { signal });
   },
 
   previewSourceChange: (request: MrxMenuChangeRequest) =>
@@ -303,20 +303,21 @@ export const mrxApi = {
 
   getDraftSources: () => apiClient<MrxDraftSource[]>('/reconciliation/batches/draft-sources'),
 
-  getWeeklySource: (customerId: string, weekStartDate: string) => {
+  getWeeklySource: (customerId: string, weekStartDate: string, signal?: AbortSignal) => {
     const query = new URLSearchParams({ customerId, weekStartDate });
-    return apiClient<MrxWeeklySource | null>(`/reconciliation/weekly-menu?${query}`);
+    return apiClient<MrxWeeklySource | null>(`/reconciliation/weekly-menu?${query}`, { signal });
   },
 
-  getEditScope: (customerId: string, weekStartDate: string) => {
+  getEditScope: (customerId: string, weekStartDate: string, signal?: AbortSignal) => {
     const query = new URLSearchParams({ customerId, weekStartDate });
-    return apiClient<MrxEditScope>(`/reconciliation/weekly-menu/edit-scope?${query}`);
+    return apiClient<MrxEditScope>(`/reconciliation/weekly-menu/edit-scope?${query}`, { signal });
   },
 
-  previewQuantityImport: (request: PreviewQuantityImportRequest) =>
+  previewQuantityImport: (request: PreviewQuantityImportRequest, signal?: AbortSignal) =>
     apiClient<MrxQuantityPreview>('/reconciliation/batches/quantity-import/preview', {
       method: 'POST',
       body: JSON.stringify(request),
+      signal,
     }),
 
   commitQuantityImport: (request: CommitQuantityImportRequest) =>
@@ -331,9 +332,10 @@ export const mrxApi = {
       body: JSON.stringify(request),
     })),
 
-  getBatch: async (batchId: string) => {
+  getBatch: async (batchId: string, signal?: AbortSignal) => {
     const revision = getMrxCacheRevision();
-    const batch = await apiClient<MrxBatch>(batchPath(batchId));
+    const batch = await apiClient<MrxBatch>(batchPath(batchId), { signal });
+    signal?.throwIfAborted();
     if (revision === getMrxCacheRevision()) serverStateCache.set(`mrx_raw_batch_${batchId}`, batch);
     return batch;
   },
@@ -358,17 +360,17 @@ export const mrxApi = {
       body: JSON.stringify({ expectedVersion }),
     })),
 
-  getWarehouseDaily: (batchId: string) =>
-    apiClient<MrxWarehouseDaily>(batchPath(batchId, '/warehouse-daily')),
+  getWarehouseDaily: (batchId: string, signal?: AbortSignal) =>
+    apiClient<MrxWarehouseDaily>(batchPath(batchId, '/warehouse-daily'), { signal }),
 
-  getIssues: (batchId: string, pageNumber = 1, pageSize = 25) => {
+  getIssues: (batchId: string, pageNumber = 1, pageSize = 25, signal?: AbortSignal) => {
     const query = new URLSearchParams({
       SourceFamily: 'MATERIAL_RECONCILIATION',
       ReconciliationBatchId: batchId,
       PageNumber: String(pageNumber),
       PageSize: String(pageSize),
     });
-    return apiClient<MrxIssuePage>(`/inventory-issues?${query}`);
+    return apiClient<MrxIssuePage>(`/inventory-issues?${query}`, { signal });
   },
 
   getIssueById: (issueId: string, sourceFamily = 'MATERIAL_RECONCILIATION') =>
@@ -388,12 +390,12 @@ export const mrxApi = {
     return apiClient<MrxSourceDeltaPage>(`/reconciliation/source-deltas?${query}`);
   },
 
-  getSourceHistory: (pageNumber = 1, pageSize = 25, filters: { customerCode?: string; batchId?: string; serviceDate?: string } = {}) => {
+  getSourceHistory: (pageNumber = 1, pageSize = 25, filters: { customerCode?: string; batchId?: string; serviceDate?: string } = {}, signal?: AbortSignal) => {
     const query = new URLSearchParams({ PageNumber: String(pageNumber), PageSize: String(pageSize) });
     if (filters.customerCode) query.set('CustomerCode', filters.customerCode);
     if (filters.batchId) query.set('BatchId', filters.batchId);
     if (filters.serviceDate) query.set('ServiceDate', filters.serviceDate);
-    return apiClient<MrxSourceHistoryPage>(`/reconciliation/source-history?${query}`);
+    return apiClient<MrxSourceHistoryPage>(`/reconciliation/source-history?${query}`, { signal });
   },
   getSourceHistoryDetail: (eventId: string, pageNumber = 1, pageSize = 25) =>
     apiClient<MrxSourceHistoryDetail>(`/reconciliation/source-history/${encodeURIComponent(eventId)}?PageNumber=${pageNumber}&PageSize=${pageSize}`),
@@ -425,8 +427,8 @@ export const mrxApi = {
       body: JSON.stringify({ expectedVersion }),
     }), true),
 
-  getKitchenCooking: (batchId: string) =>
-    apiClient<MrxKitchenCooking>(batchPath(batchId, '/kitchen-cooking')),
+  getKitchenCooking: (batchId: string, signal?: AbortSignal) =>
+    apiClient<MrxKitchenCooking>(batchPath(batchId, '/kitchen-cooking'), { signal }),
 
   getScopedKitchenCookingExportUrl: ({ weekStartDate, batchIds, serviceDate, shift }: {
     weekStartDate: string;
@@ -477,17 +479,17 @@ export const mrxApi = {
     return `/api/reconciliation/preparation/export-workbook?${params}`;
   },
 
-  getOperationalSummary: (filters: { customerId?: string; weekFrom?: string; weekTo?: string; queuePage?: number; queuePageSize?: number } = {}) => {
+  getOperationalSummary: (filters: { customerId?: string; weekFrom?: string; weekTo?: string; queuePage?: number; queuePageSize?: number } = {}, signal?: AbortSignal) => {
     const query = new URLSearchParams();
     if (filters.customerId) query.set('customerId', filters.customerId);
     if (filters.weekFrom) query.set('weekFrom', filters.weekFrom);
     if (filters.weekTo) query.set('weekTo', filters.weekTo);
     if (filters.queuePage) query.set('queuePage', String(filters.queuePage));
     if (filters.queuePageSize) query.set('queuePageSize', String(filters.queuePageSize));
-    return apiClient<MrxOperationalSummary>(`/reconciliation/reports/operational-summary${query.size ? `?${query}` : ''}`);
+    return apiClient<MrxOperationalSummary>(`/reconciliation/reports/operational-summary${query.size ? `?${query}` : ''}`, { signal });
   },
 
-  getTransactionsHistory: (query: { batchId?: string; fromDate?: string; toDate?: string; pageNumber?: number; pageSize?: number } = {}) => {
+  getTransactionsHistory: (query: { batchId?: string; fromDate?: string; toDate?: string; pageNumber?: number; pageSize?: number } = {}, signal?: AbortSignal) => {
     const params = new URLSearchParams({
       pageNumber: String(query.pageNumber ?? 1),
       pageSize: String(query.pageSize ?? 25),
@@ -495,26 +497,26 @@ export const mrxApi = {
     if (query.batchId) params.set('batchId', query.batchId);
     if (query.fromDate) params.set('fromDate', query.fromDate);
     if (query.toDate) params.set('toDate', query.toDate);
-    return apiClient<MrxTransactionHistoryReport>(`/reconciliation/reports/transactions-history?${params}`);
+    return apiClient<MrxTransactionHistoryReport>(`/reconciliation/reports/transactions-history?${params}`, { signal });
   },
 
-  getVarianceRegister: (batchId?: string, weekStartDate?: string) => {
+  getVarianceRegister: (batchId?: string, weekStartDate?: string, signal?: AbortSignal) => {
     const params = new URLSearchParams();
     if (batchId) params.set('batchId', batchId);
     if (weekStartDate) params.set('weekStartDate', weekStartDate);
-    return apiClient<MrxVarianceRegisterReport>(`/reconciliation/reports/variance-register?${params}`);
+    return apiClient<MrxVarianceRegisterReport>(`/reconciliation/reports/variance-register?${params}`, { signal });
   },
 
-  getCompletedRegister: (pageNumber = 1, pageSize = 50, scope: { customerId?: string; weekFrom?: string; weekTo?: string } = {}) => {
+  getCompletedRegister: (pageNumber = 1, pageSize = 50, scope: { customerId?: string; weekFrom?: string; weekTo?: string } = {}, signal?: AbortSignal) => {
     const params = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize), ...scope });
-    return apiClient<MrxCompletedRegisterReport>(`/reconciliation/reports/completed-register?${params}`);
+    return apiClient<MrxCompletedRegisterReport>(`/reconciliation/reports/completed-register?${params}`, { signal });
   },
 
-  getAuditTrail: (batchId?: string, pageNumber = 1, pageSize = 50, search = '') => {
+  getAuditTrail: (batchId?: string, pageNumber = 1, pageSize = 50, search = '', signal?: AbortSignal) => {
     const params = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
     if (batchId) params.set('batchId', batchId);
     if (search.trim()) params.set('search', search.trim());
-    return apiClient<MrxAuditTrailReport>(`/reconciliation/reports/audit-trail?${params}`);
+    return apiClient<MrxAuditTrailReport>(`/reconciliation/reports/audit-trail?${params}`, { signal });
   },
 
   getBatchDishes: (batchId: string) =>
@@ -523,11 +525,11 @@ export const mrxApi = {
   getSourceChanges: (batchId: string) =>
     apiClient<MrxSourceChangeItem[]>(`/reconciliation/batches/${encodeURIComponent(batchId)}/source-changes`),
 
-  getSourceChangesPage: (batchId: string, pageNumber = 1, pageSize = 50, search = '') => {
+  getSourceChangesPage: (batchId: string, pageNumber = 1, pageSize = 50, search = '', signal?: AbortSignal) => {
     const params = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
     if (search.trim()) params.set('searchKeyword', search.trim());
     params.set('batchId', batchId);
-    return apiClient<MrxSourceChangePage>(`/reconciliation/reports/source-changes?${params}`);
+    return apiClient<MrxSourceChangePage>(`/reconciliation/reports/source-changes?${params}`, { signal });
   },
 
   async downloadKitchenCookingBlob(batchId: string, format: 'csv' | 'xlsx'): Promise<Blob> {

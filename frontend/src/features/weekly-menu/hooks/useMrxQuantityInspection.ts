@@ -21,8 +21,8 @@ export function useMrxQuantityInspection({ customerId, weekStartDate, view, ...q
   const sourceQuery = useWorkbenchQuery<MrxWeeklySource | null>({
     scopeKey: 'mrx_inspection_source', cacheKey: `mrx_inspection_source_${scope}`,
     snapshotKey: `snapshot:mrx_inspection_source_${scope}`, scopeId: validScope ? customerId : '', enabled: validScope,
-    queryFn: async () => {
-      try { return await mrxApi.getWeeklySource(customerId, weekStartDate); }
+    queryFn: async (_, signal) => {
+      try { return await mrxApi.getWeeklySource(customerId, weekStartDate, signal); }
       catch (cause) { if (cause instanceof ApiError && cause.status === 404) return null; throw cause; }
     },
     isDatasetEmpty: data => !data,
@@ -41,9 +41,9 @@ export function useMrxQuantityInspection({ customerId, weekStartDate, view, ...q
   const inspection = useWorkbenchQuery<InspectionResult>({
     scopeKey: 'mrx_inspection', cacheKey: key, snapshotKey: `snapshot:${key}`,
     scopeId: menuVersionId, enabled: published && Boolean(exactSource),
-    queryFn: async () => view === 'materials'
-      ? { view, data: await mrxApi.getMaterialInspection(menuVersionId, query) }
-      : { view, data: await mrxApi.getPlanInspection(menuVersionId, query) },
+    queryFn: async (_, signal) => view === 'materials'
+      ? { view, data: await mrxApi.getMaterialInspection(menuVersionId, query, signal) }
+      : { view, data: await mrxApi.getPlanInspection(menuVersionId, query, signal) },
     isDatasetEmpty: result => result.data.page.totalCount === 0,
     emptyTitle: view === 'materials' ? 'Không có nguyên liệu phù hợp' : 'Không có kế hoạch theo ca phù hợp',
     emptyDescription: 'Kiểm tra phạm vi tuần hoặc thay đổi từ khóa tìm kiếm.',

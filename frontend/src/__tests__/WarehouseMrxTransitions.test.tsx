@@ -8,6 +8,7 @@ import { WarehousePage } from '../features/warehouse/WarehousePage';
 import { AuthProvider } from '../store/authContext';
 import * as apiTransport from '../api/client';
 import { warehouseApi } from '../api/warehouseApi';
+import { fixturePage } from '../test/fixtures';
 import { systemApi } from '../api/systemApi';
 import { serverStateCache } from '../store/serverStateCache';
 import { MrxBatchDishesModal } from '../components/workbench/MrxBatchDishesModal';
@@ -54,8 +55,8 @@ describe('Warehouse MRX transitions', () => {
       hasNext: false,
     });
     vi.spyOn(warehouseApi, 'getWarehouses').mockResolvedValue(MOCK_WAREHOUSES);
-    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValue(MOCK_ISSUES);
-    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValue(MOCK_RECEIPTS);
+    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValue(fixturePage(MOCK_ISSUES));
+    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValue(fixturePage(MOCK_RECEIPTS));
   });
 
   it('E7: redirects non-MRX views (e.g. ?view=issues) to ?view=mrx-daily when operationalMode is MATERIAL_RECONCILIATION', async () => {
@@ -73,7 +74,7 @@ describe('Warehouse MRX transitions', () => {
     render(<AuthProvider><RouterProvider router={router} /></AuthProvider>);
     expect(await screen.findByRole('heading', { name: 'Xuất kho nguyên liệu theo ngày' })).toBeVisible();
     expect(router.state.location.search).toContain('view=mrx-daily');
-    await waitFor(() => expect(getDailySpy).toHaveBeenCalledWith('batch-1'));
+    await waitFor(() => expect(getDailySpy).toHaveBeenCalledWith('batch-1', expect.any(AbortSignal)));
   });
 
   it('H3: MrxDailyLinesBranch renders revision metadata inside LocalFindBar without mounting a separate banner above LocalFindBar, and keeps date tabs + LocalFindBar mounted on Lịch sử phiếu tab', async () => {
@@ -193,7 +194,9 @@ describe('Warehouse MRX transitions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
     expect(pager).toHaveTextContent('30 kết quả');
     expect(screen.getByText('GAO · Gạo ST25')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
+    const nextPageButton = screen.getByRole('button', { name: 'Trang sau' });
+    expect(nextPageButton).toHaveAttribute('aria-disabled', 'true');
+    expect(nextPageButton).toHaveFocus();
 
     resolvePage2({
       items: [],

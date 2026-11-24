@@ -158,6 +158,9 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
     requireSameSession(token);
     if (!response.ok) {
       const apiResp = data as ApiResponse | null;
+      if (response.status === 409 && apiResp?.code === 'MODE_UNAVAILABLE' && typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('ipc:mode-unavailable'));
+      }
       throw new ApiError(response.status, apiResp?.message || response.statusText || 'Yêu cầu không thành công', apiResp?.errors, apiResp?.code, apiResp?.lockedDates);
     }
     if (data && typeof data === 'object' && 'success' in data && 'data' in data) return (data as ApiResponse<T>).data;

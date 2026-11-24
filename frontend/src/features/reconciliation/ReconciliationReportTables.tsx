@@ -98,9 +98,9 @@ export function ReconciliationReportTables({
       emptyTitle="Chưa có dữ liệu báo cáo"
       emptyDescription="Không có bản ghi báo cáo nào khả dụng cho lô đối soát đã chọn."
     >
-      <div aria-busy={isReportLoading || undefined} inert={isReportLoading || undefined} className="relative flex-1 min-h-0 flex flex-col">
+      <div className="relative flex-1 min-h-0 flex flex-col">
       {isReportLoading && <span role="status" className="sr-only">Đang tải trang báo cáo</span>}
-      {activeTab === 'variances' && <ReconciliationVariancesBranch batchId={batchId} report={variancesReport} />}
+      {activeTab === 'variances' && <ReconciliationVariancesBranch batchId={batchId} report={variancesReport} pending={isReportLoading} />}
       {activeTab === 'transactions' && (
         <ReconciliationTransactionsBranch
           batchId={batchId}

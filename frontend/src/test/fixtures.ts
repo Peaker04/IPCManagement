@@ -5,6 +5,7 @@ import type { ChefDashboardData } from '../api/chefApi';
 import type { PurchaseOrderItem, SupplierItem } from '../api/purchasingApi';
 import type { WarehouseItem, InventoryReceiptItem, InventoryIssueItem } from '../api/warehouseApi';
 import type { ApprovalInboxItem } from '../api/approvalsApi';
+import type { ReportPage } from '../api/reportsApi';
 import {
   type MrxBatch,
   type ReconciliationBatchSummary,
@@ -140,6 +141,11 @@ export const MOCK_WEEKLY_MENU_DATA: WeeklyMenuData = {
     { materialId: 'i-6', materialCode: 'NL-RAU-03', materialName: 'Bầu sao tươi', unit: 'Kilogram', totalQuantity: 120.0, estimatedAmount: 1800000 },
   ],
 };
+
+export function fixturePage<T>(items: T[]): ReportPage<T> {
+  return { items, totalCount: items.length, pageNumber: 1, pageSize: 20,
+    totalPages: items.length ? 1 : 0, hasPrev: false, hasNext: false };
+}
 
 export const MOCK_DASHBOARD_DATA: DashboardData = {
   metrics: [

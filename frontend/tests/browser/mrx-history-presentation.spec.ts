@@ -64,7 +64,8 @@ test('keeps frozen BOM dialog bounds stable after quick reconciliation navigatio
     await page.setViewportSize({ width: 1366, height: 768 });
     await quickOpen.click();
     await expect(page.getByRole('navigation', { name: 'Tra cứu hồ sơ lô' })).toHaveCount(0);
-    await expect(page.getByRole('textbox', { name: 'Ngày đối soát' })).toHaveValue('21/09/2026');
+    await expect(page.getByRole('group', { name: 'Ngày đối soát' })
+      .getByRole('button', { name: /21\/09\/2026/ })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'Chốt đối soát tuần', exact: true })).toHaveCount(0);
     await page.screenshot({ path: test.info().outputPath('archived-profile-desktop.png') });
     for (const viewport of [{ width: 1366, height: 768 }, { width: 600, height: 480 }]) {

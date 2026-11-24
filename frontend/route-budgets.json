@@ -8,7 +8,7 @@
     },
     {
       "id": "weekly-menu",
-      "entry": "index.html",
+      "entry": "src/features/weekly-menu/WeeklyMenuPage.tsx",
       "gzipBytes": 281600
     },
     {
@@ -23,7 +23,7 @@
     },
     {
       "id": "chef-dashboard",
-      "entry": "index.html",
+      "entry": "src/features/chef/ChefDashboardPage.tsx",
       "gzipBytes": 269312
     },
     {
@@ -38,17 +38,17 @@
     },
     {
       "id": "warehouse",
-      "entry": "index.html",
+      "entry": "src/features/warehouse/WarehousePage.tsx",
       "gzipBytes": 263168
     },
     {
       "id": "admin-data",
-      "entry": "index.html",
+      "entry": "src/features/admin/AdminDataPage.tsx",
       "gzipBytes": 265216
     },
     {
       "id": "approval-rules",
-      "entry": "index.html",
+      "entry": "src/features/admin/ApprovalRulesPage.tsx",
       "gzipBytes": 246784
     }
   ]

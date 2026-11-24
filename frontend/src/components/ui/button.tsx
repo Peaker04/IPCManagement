@@ -51,6 +51,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     });
 
     const isNonInteractive = interactionState === 'disabled' || interactionState === 'loading';
+    const isLoading = interactionState === 'loading';
     const spinnerSize = size === 'xs' || size === 'sm' ? 12 : 14;
 
     return (
@@ -68,17 +69,30 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             // When loading or disabled, kill all hover/active pointer interactions
             isNonInteractive && 'pointer-events-none cursor-not-allowed active:scale-100',
             interactionState === 'disabled' && 'opacity-50 shadow-none',
-            interactionState === 'loading' && 'opacity-85 shadow-none',
+            isLoading && 'opacity-85 shadow-none',
+            isLoading && !loadingText && 'relative',
             interactionState === 'active' && 'ring-2 ring-slate-400 ring-offset-1',
             className
           )
         )}
         {...props}
       >
-        {interactionState === 'loading' && (
-          <Loader2 size={spinnerSize} className="animate-spin shrink-0" aria-hidden="true" />
-        )}
-        {interactionState === 'loading' && loadingText ? loadingText : children}
+        {loadingText ? (
+          <span className="inline-grid items-center justify-items-center">
+            <span aria-hidden={isLoading || undefined} className={clsx('col-start-1 row-start-1 inline-flex items-center gap-1.5', isLoading && 'invisible')}>{children}</span>
+            <span aria-hidden={!isLoading || undefined} className={clsx('col-start-1 row-start-1 inline-flex items-center gap-1.5', !isLoading && 'invisible')}>
+              <Loader2 size={spinnerSize} className={clsx('shrink-0', isLoading && 'motion-safe:animate-spin')} aria-hidden="true" />
+              {loadingText}
+            </span>
+          </span>
+        ) : isLoading ? (
+          <>
+            <span className="inline-flex items-center gap-1.5 opacity-0">{children}</span>
+            <span className="pointer-events-none absolute inset-0 grid place-items-center" aria-hidden="true">
+              <Loader2 size={spinnerSize} className="motion-safe:animate-spin" />
+            </span>
+          </>
+        ) : children}
       </button>
     );
   }

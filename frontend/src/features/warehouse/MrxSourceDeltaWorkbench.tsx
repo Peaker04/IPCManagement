@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { mrxApi, type MrxSourceHistoryEvent } from '../../api/mrxApi';
 import { PaginationBar } from '../../components/workbench/PaginationBar';
@@ -30,18 +30,24 @@ export function MrxSourceDeltaWorkbench() {
     setAppliedUrl(params.toString()); setDraftFilters(next); setFilters(next); setPage(1);
   }
   const filterKey = JSON.stringify(filters);
+  const queryKey = `mrx_source_history_events_v2_${filterKey}_${page}`;
+  const scrollRegion = useRef<HTMLDivElement>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const sourceHistoryQuery = useWorkbenchQuery({
-    scopeKey: 'mrx_source_history', cacheKey: `mrx_source_history_events_${filterKey}_${page}`,
-    snapshotKey: `snapshot:mrx_source_history_events_${filterKey}_${page}`,
-    queryFn: () => mrxApi.getSourceHistory(page, 25, filters),
-    isDatasetEmpty: result => result.items.length === 0,
+    scopeKey: 'mrx_source_history', cacheKey: queryKey,
+    snapshotKey: `snapshot:${queryKey}`,
+    queryFn: async (_, signal) => ({ filterKey, result: await mrxApi.getSourceHistory(page, 25, filters, signal) }),
+    isDatasetEmpty: ({ result }) => result.items.length === 0,
     emptyTitle: 'Chưa có lịch sử thay đổi nguồn',
   });
   const { data, stateProps, refetch } = sourceHistoryQuery;
-  const current = data?.pageNumber === page ? data : null;
-  const displayed = stateProps.error ? current : data;
-  const pending = !stateProps.error && (stateProps.isFetching || stateProps.isPreviousData);
+  const matchingFilter = data?.filterKey === filterKey ? data.result : null;
+  const displayed = stateProps.error ? matchingFilter : data?.result;
+  const settledPage = matchingFilter?.pageNumber === page ? page : null;
+  const pending = stateProps.isFetching || (!stateProps.error && stateProps.isPreviousData);
+  useEffect(() => {
+    if (settledPage !== null && scrollRegion.current) scrollRegion.current.scrollTop = 0;
+  }, [filterKey, settledPage]);
   const applyFilters = (next: typeof filters) => {
     setPage(1); setDraftFilters(next); setFilters(next);
     setParams(current => {
@@ -70,15 +76,18 @@ export function MrxSourceDeltaWorkbench() {
     </form>} />
     <WorkspaceFrame.Body>
       <StateBoundary {...stateProps} isLoading={!displayed && !stateProps.error} hasExistingData={Boolean(displayed)}
-        isEmpty={!pending && displayed?.items.length === 0}
+        isEmpty={!stateProps.error && !pending && displayed?.items.length === 0}
         emptyTitle={Object.values(filters).some(Boolean) ? 'Không tìm thấy thay đổi phù hợp' : 'Chưa có lịch sử thay đổi nguồn'}
         emptyDescription={Object.values(filters).some(Boolean) ? 'Thử đổi khách hàng, ngày hoặc mã lô.' : 'Các lần cập nhật định lượng nguồn sẽ hiển thị tại đây.'}
         onRetry={() => void refetch(true)} onResolveConflict={() => void refetch(true)}>
-        <MrxDeltaTableBranch items={displayed?.items ?? []} onOpen={setSelected} />
+        <div ref={scrollRegion} className="mrx-history-scroll" role="region" tabIndex={0} aria-label="Danh sách thay đổi nguồn">
+          <MrxDeltaTableBranch items={displayed?.items ?? []} onOpen={setSelected} />
+        </div>
       </StateBoundary>
-      <PaginationBar label="Phân trang lịch sử thay đổi nguồn" hideVisibleLabel page={displayed?.pageNumber ?? page} pageSize={25}
-        totalCount={displayed?.totalCount} totalPages={displayed?.totalPages} hasPrev={displayed?.hasPrev ?? false}
-        hasNext={displayed?.hasNext ?? false} pending={pending} onPageChange={setPage} />
+      <PaginationBar label="Phân trang lịch sử thay đổi nguồn" hideVisibleLabel page={stateProps.error ? page : displayed?.pageNumber ?? page} pageSize={25}
+        totalCount={matchingFilter?.totalCount} totalPages={matchingFilter?.totalPages}
+        hasPrev={page > 1} hasNext={settledPage !== null && Boolean(matchingFilter?.hasNext)}
+        pending={pending} retainButtonFocus onPageChange={setPage} />
     </WorkspaceFrame.Body>
     <MrxSourceHistoryDetail event={selected} onClose={() => setSelected(null)} />
   </WorkspaceFrame.Root>;

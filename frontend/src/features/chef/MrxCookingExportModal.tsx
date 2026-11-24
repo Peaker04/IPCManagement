@@ -30,17 +30,23 @@ export function MrxCookingExportModal({ batchId, weekStartDate, initialShift, on
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    let active = true;
-    void mrxApi.getBatchPage({ weekStartDate, pageNumber: page, pageSize: 50 })
+    const controller = new AbortController();
+    void mrxApi.getBatchPage({ weekStartDate, pageNumber: page, pageSize: 50 }, controller.signal)
       .then(result => {
-        if (active) setCatalog(result);
+        if (!controller.signal.aborted) setCatalog(result);
       })
       .catch(cause => {
-        if (active) setCatalogError(cause instanceof Error ? cause.message : 'Không thể tải danh sách lô.');
+        if (!controller.signal.aborted) setCatalogError(cause instanceof Error ? cause.message : 'Không thể tải danh sách lô.');
       })
-      .finally(() => { if (active) setPending(false); });
-    return () => { active = false; };
+      .finally(() => { if (!controller.signal.aborted) setPending(false); });
+    return () => controller.abort();
   }, [weekStartDate, page, retry]);
+  const requestCatalogPage = (next: number) => {
+    setPending(true);
+    setCatalogError(null);
+    if (next === page) setRetry(value => value + 1);
+    else setPage(next);
+  };
   const canDownload = !pending && !catalogError && selected.length > 0 && !downloading;
   const days = WEEKDAYS.map((label, offset) => {
     const date = new Date(`${weekStartDate}T00:00:00Z`);
@@ -82,11 +88,12 @@ export function MrxCookingExportModal({ batchId, weekStartDate, initialShift, on
             options={[{ value: 'ALL', label: 'Tất cả ca' }, { value: 'MORNING', label: 'Ca sáng' }, { value: 'AFTERNOON', label: 'Ca chiều' }]} />
         </label>
       </div>
-      <fieldset className="min-w-0 space-y-1" disabled={pending || downloading}>
+      <fieldset className="min-w-0 space-y-1" disabled={pending || downloading || Boolean(catalogError)} aria-busy={pending || undefined}>
         <legend className="text-sm font-medium">Lô cần xuất</legend>
         {pending && <p role="status" className="text-sm">Đang tải danh sách lô…</p>}
         {!pending && !catalogError && catalog?.items.length === 0 && <p className="text-sm">Không có thêm lô trong tuần này.</p>}
-        {!pending && !catalogError && catalog?.items.map(batch => <label key={batch.batchId}
+        {catalog && catalog.items.length > 0 && <div key={catalog.pageNumber} className="mrx-cooking-export-lots"
+          role="region" aria-label="Danh sách lô để xuất Excel" tabIndex={pending || downloading || catalogError ? -1 : 0}>{catalog.items.map(batch => <label key={batch.batchId}
           className="flex min-h-9 items-center gap-2 break-words text-sm">
           <input type="checkbox" checked={selected.includes(batch.batchId)} className="shrink-0"
             disabled={selected.length >= 100 && !selected.includes(batch.batchId)}
@@ -96,13 +103,13 @@ export function MrxCookingExportModal({ batchId, weekStartDate, initialShift, on
               setDownloadError(null);
             }} />
           <span className="min-w-0">{batch.customerCode} · {batch.customerName}{batch.batchId === batchId ? ' (lô đang xem)' : ` (phiên bản ${batch.version})`}</span>
-        </label>)}
+        </label>)}</div>}
       </fieldset>
-      {catalog && catalog.totalPages > 1 && <PaginationBar label="Phân trang lô trong tuần" page={catalog.pageNumber} pageSize={50}
+      {catalog && catalog.totalPages > 1 && <PaginationBar label="Phân trang lô trong tuần" placement="toolbar" page={catalog.pageNumber} pageSize={50}
         totalPages={catalog.totalPages} totalCount={catalog.totalCount} hasPrev={catalog.hasPrev} hasNext={catalog.hasNext}
-        pending={pending || downloading} onPageChange={next => { setPending(true); setPage(next); }} />}
+        pending={pending || downloading} retainButtonFocus onPageChange={requestCatalogPage} />}
       {catalogError && <InlineBanner variant="error" actionLabel="Thử lại"
-        onAction={() => { setPending(true); setCatalogError(null); setRetry(value => value + 1); }}>{catalogError}</InlineBanner>}
+        onAction={() => requestCatalogPage(page)}>{catalogError}</InlineBanner>}
       {downloadError && <InlineBanner variant="error">{downloadError}</InlineBanner>}
     </div>
   </Modal>;

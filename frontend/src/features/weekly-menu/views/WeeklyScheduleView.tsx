@@ -4,6 +4,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Num } from '../../../components/ui/num';
 import type { WeeklyMenuData } from '../../../api/weeklyMenuApi';
 import { clsx } from 'clsx';
+import { toIsoDate } from '../../../utils/dates';
 
 export interface WeeklyScheduleViewProps {
   data: WeeklyMenuData;
@@ -81,7 +82,7 @@ export function WeeklyScheduleView({ data, showSubbar = true }: WeeklyScheduleVi
               </th>
               {data.scheduleDays.map((day) => (
                 <th
-                  key={day.dayName}
+                  key={day.dateStr}
                   className="h-10 px-3 text-xs font-semibold text-slate-800 whitespace-nowrap border-l border-slate-200"
                 >
                   <div className="flex items-center justify-between">
@@ -122,13 +123,13 @@ export function WeeklyScheduleView({ data, showSubbar = true }: WeeklyScheduleVi
                         <span className="text-xs text-slate-700">{row.slotLabel}</span>
                       </td>
 
-                      {data.scheduleDays.map((day, dIdx) => {
-                        const isoDate = Object.keys(row.days)[dIdx] || '';
-                        const dishName = row.days[isoDate] || Object.values(row.days)[dIdx] || '';
+                      {data.scheduleDays.map(day => {
+                        const isoDate = toIsoDate(day.dateStr);
+                        const dishName = row.days[isoDate];
 
                         return (
                           <td
-                            key={day.dayName}
+                            key={isoDate}
                             className="px-3 py-2 border-l border-slate-100 align-middle hover:bg-blue-50/30 transition-colors"
                           >
                             {dishName ? (

@@ -508,9 +508,12 @@ describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification',
 
   it('PurchasingPage: Render #1 synchronously mounts cached POs and suppliers without skeleton flash', () => {
     localStorage.setItem('ipc_v3_mode', 'DEFAULT');
-    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValue(MOCK_PURCHASE_ORDERS);
+    const orderPage = { items: MOCK_PURCHASE_ORDERS, totalCount: MOCK_PURCHASE_ORDERS.length,
+      pageNumber: 1, pageSize: 20, totalPages: 1, hasPrev: false, hasNext: false };
+    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValue(orderPage);
     vi.spyOn(purchasingApi, 'getSuppliers').mockResolvedValue(MOCK_SUPPLIERS);
-    serverStateCache.set('purchasing_data', { pos: MOCK_PURCHASE_ORDERS, sups: MOCK_SUPPLIERS });
+    serverStateCache.set('purchase_order_page_{"supplierId":"ALL","status":"ALL","pageNumber":1}', orderPage);
+    serverStateCache.set('purchasing_suppliers', MOCK_SUPPLIERS);
 
     render(
       <AuthProvider>

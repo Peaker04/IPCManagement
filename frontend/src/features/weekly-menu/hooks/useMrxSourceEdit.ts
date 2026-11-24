@@ -58,31 +58,37 @@ export function useMrxSourceEdit(scope: { customerId: string; weekStartDate: str
   );
   const editScope = scope.enabled !== false && (loadedScopeKey === scopeKey || isTransitioningScope) ? rawEditScope : null;
 
-  const loadRequestId = useRef(0);
+  const readController = useRef<AbortController | null>(null);
   const verifiedScopeKey = useRef('');
   const load = useCallback(async (knownDishes: DishItem[] = []) => {
     if (scope.enabled === false || scope.isParentTransitioning || !scope.customerId || !scope.weekStartDate) return false;
-    const requestId = ++loadRequestId.current;
+    readController.current?.abort();
+    const controller = new AbortController();
+    readController.current = controller;
+    const { signal } = controller;
     verifiedScopeKey.current = '';
     setIsLoading(true);
     try {
       const editScopeCacheKey = `mrx_edit_scope_${scope.customerId}_${scope.weekStartDate}_${scope.sourceVersionKey ?? ''}`;
       // Cache serves the first paint; another actor may have added dishes since it was filled.
       const loadDishes = async (): Promise<DishItem[]> => {
-        const dishes = await adminApi.getDishes({ pageSize: 100 });
+        const dishes = await adminApi.getDishes({ pageSize: 100 }, signal);
+        signal.throwIfAborted();
         const allDishes = [...dishes.items];
         const remainingPages = await Promise.all(
           Array.from({ length: Math.max(0, dishes.totalPages - 1) }, (_, index) =>
-            adminApi.getDishes({ pageNumber: index + 2, pageSize: 100 })
+            adminApi.getDishes({ pageNumber: index + 2, pageSize: 100 }, signal)
           )
         );
+        signal.throwIfAborted();
         allDishes.push(...remainingPages.flatMap((page) => page.items));
         serverStateCache.set(DISH_CATALOG_CACHE_KEY, allDishes);
         return allDishes;
       };
       // Cached source can predate a batch created by another actor; it is display data, not command authority.
       const loadEditScope = async (): Promise<MrxEditScope> => {
-        const fetched = await mrxApi.getEditScope(scope.customerId, scope.weekStartDate);
+        const fetched = await mrxApi.getEditScope(scope.customerId, scope.weekStartDate, signal);
+        signal.throwIfAborted();
         serverStateCache.set(editScopeCacheKey, fetched);
         return fetched;
       };
@@ -94,10 +100,11 @@ export function useMrxSourceEdit(scope: { customerId: string; weekStartDate: str
       for (const dishId of referenced) {
         if (!available.some((dish) => dish.dishId === dishId)) {
           const known = knownDishes.find((dish) => dish.dishId === dishId);
-          available.push(known ?? await adminApi.getDish(dishId));
+          signal.throwIfAborted();
+          available.push(known ?? await adminApi.getDish(dishId, signal));
         }
       }
-      if (requestId !== loadRequestId.current) return false;
+      if (signal.aborted) return false;
       verifiedScopeKey.current = scopeKey;
       setEditScope(nextScope);
       setLoadedScopeKey(scopeKey);
@@ -109,12 +116,15 @@ export function useMrxSourceEdit(scope: { customerId: string; weekStartDate: str
       setReloadRequired(false);
       return true;
     } catch (cause) {
-      if (requestId !== loadRequestId.current) return false;
+      if (signal.aborted) return false;
       const translated = toMrxErrorMessage(cause);
       setError(new Error(translated.message));
       return false;
     } finally {
-      if (requestId === loadRequestId.current) setIsLoading(false);
+      if (readController.current === controller) {
+        readController.current = null;
+        setIsLoading(false);
+      }
     }
   }, [scope.customerId, scope.enabled, scope.isParentTransitioning, scope.sourceVersionKey, scope.weekStartDate, scopeKey]);
 
@@ -125,7 +135,8 @@ export function useMrxSourceEdit(scope: { customerId: string; weekStartDate: str
     });
     return () => {
       ignore = true;
-      loadRequestId.current += 1;
+      readController.current?.abort();
+      readController.current = null;
     };
   }, [load, scope.sourceVersionKey]);
 

@@ -369,6 +369,19 @@ public class WarehousePurchaseReceivingTests
             warehouseInspectorId);
         await selfPost.Should().ThrowAsync<BusinessRuleException>().WithMessage("*kiểm tra*không được tự ghi sổ*");
 
+        var sourceOrder = await fixture.Context.Purchaseorders.SingleAsync();
+        sourceOrder.Status = "CANCELLED";
+        await fixture.Context.SaveChangesAsync();
+        var cancelledPost = () => InvokePostAsync(service, draft.ReceiptId,
+            new ReceiptPostRequest { CommandId = "receipt-post-cancelled-order", ExpectedVersion = 2 },
+            Guid.NewGuid().ToString());
+        await cancelledPost.Should().ThrowAsync<BusinessRuleException>().WithMessage("*đã hủy*");
+        fixture.Context.Stockmovements.Should().BeEmpty();
+        sourceOrder.Status.Should().Be("CANCELLED");
+        fixture.Context.Inventoryreceipts.Single().Status.Should().Be("APPROVED");
+
+        sourceOrder.Status = "ORDERED";
+        await fixture.Context.SaveChangesAsync();
         var postRequest = new ReceiptPostRequest { CommandId = "receipt-post-command-1", ExpectedVersion = 2 };
         var posted = await InvokePostAsync(service, draft.ReceiptId, postRequest, Guid.NewGuid().ToString());
         var replay = await InvokePostAsync(service, draft.ReceiptId, postRequest, Guid.NewGuid().ToString());
