@@ -25,6 +25,25 @@ function jsonResponse(data: unknown): Response {
   });
 }
 
+it('signals a server mode conflict without replaying the write', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    success: false, code: 'MODE_UNAVAILABLE', message: 'Chế độ đã thay đổi',
+  }), { status: 409 }));
+  vi.stubGlobal('fetch', fetchMock);
+  const notice = vi.fn();
+  window.addEventListener('ipc:mode-unavailable', notice);
+  try {
+    await expect(apiClient('/inventory-issues', { method: 'POST', body: '{}' })).rejects.toMatchObject({
+      status: 409, code: 'MODE_UNAVAILABLE',
+    });
+    expect(notice).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  } finally {
+    window.removeEventListener('ipc:mode-unavailable', notice);
+    vi.unstubAllGlobals();
+  }
+});
+
 describe('Frontend API contracts against backend DTOs', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -139,9 +158,11 @@ describe('Frontend API contracts against backend DTOs', () => {
     const userId = '11111111-1111-1111-1111-111111111111';
     localStorage.setItem('ipc_v3_user', JSON.stringify(identified ? { userId } : {}));
     const draftKey = getDraftStorageKey('mrx_initial_batch_day', userId);
+    const supplementalKey = getDraftStorageKey('mrx_supplemental_command_batch_day', userId);
     const unrelatedKeys = [getDraftStorageKey('mrx_initial_batch_day', '22222222-2222-2222-2222-222222222222'), getDraftStorageKey('purchase', userId)];
     const draft = JSON.stringify({ version: 1, quantities: { line: '2.75' }, reasons: {} });
     localStorage.setItem(draftKey, draft);
+    localStorage.setItem(supplementalKey, draft);
     for (const unrelated of unrelatedKeys) localStorage.setItem(unrelated, draft);
     offlineMutationQueue.enqueue({ url: '/auth/revoke', method: 'POST', payload: null, idempotencyKey: 'expired-session-revoke' });
     expect(localStorage.getItem(draftKey)).not.toBeNull();
@@ -153,6 +174,7 @@ describe('Frontend API contracts against backend DTOs', () => {
     await expect(apiClient('/workflow-reports/current-stock/page')).rejects.toMatchObject({ status: 401 });
     expect(localStorage.getItem('ipc_v3_token')).toBeNull();
     expect(localStorage.getItem(draftKey)).toBe(retain ? draft : null);
+    expect(localStorage.getItem(supplementalKey)).toBe(retain ? draft : null);
     for (const unrelated of unrelatedKeys) expect(localStorage.getItem(unrelated)).toBeNull();
     expect(offlineMutationQueue.getAll()).toEqual([]);
     expect(serverStateCache.get('mrx_report_expired')).toBeNull();
@@ -162,6 +184,7 @@ describe('Frontend API contracts against backend DTOs', () => {
     expect(localStorage.getItem(draftKey)).toBe(retain ? draft : null);
     clearSessionState(); // Explicit logout must purge even an expired-session draft.
     expect(localStorage.getItem(draftKey)).toBeNull();
+    expect(localStorage.getItem(supplementalKey)).toBeNull();
   });
 
   it('rejects a response from an old session without clearing the replacement session', async () => {
@@ -256,7 +279,7 @@ describe('Frontend API contracts against backend DTOs', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
-        jsonResponse([
+        jsonResponse({ items: [
           {
             issueId: '22222222-2222-2222-2222-222222222222',
             issueCode: 'PX-001',
@@ -276,11 +299,11 @@ describe('Frontend API contracts against backend DTOs', () => {
               },
             ],
           },
-        ])
+        ], totalCount: 1, pageNumber: 1, pageSize: 20, totalPages: 1, hasPrev: false, hasNext: false })
       );
     vi.stubGlobal('fetch', fetchMock);
 
-    const [issue] = await warehouseApi.getIssues();
+    const { items: [issue] } = await warehouseApi.getIssues();
 
     expect(issue).toMatchObject({
       issueId: '22222222-2222-2222-2222-222222222222',
@@ -456,16 +479,17 @@ describe('Frontend API contracts against backend DTOs', () => {
     const batchId = '66666666-6666-6666-6666-666666666666';
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
     vi.stubGlobal('fetch', fetchMock);
+    const { signal } = new AbortController();
 
     await mrxApi.getSourceChangeInbox();
-    await mrxApi.getBatchPage({ customerId: 'customer-1', weekStartDate: '2026-10-19', status: 'READY', pageNumber: 2, pageSize: 25 });
+    await mrxApi.getBatchPage({ customerId: 'customer-1', weekStartDate: '2026-10-19', status: 'READY', pageNumber: 2, pageSize: 25 }, signal);
     await mrxApi.getDraftSources();
-    await mrxApi.getWeeklySource('customer-1', '2026-10-19');
-    await mrxApi.getBatch(batchId);
-    await mrxApi.getWarehouseDaily(batchId);
-    await mrxApi.getIssues(batchId, 2, 25);
+    await mrxApi.getWeeklySource('customer-1', '2026-10-19', signal);
+    await mrxApi.getBatch(batchId, signal);
+    await mrxApi.getWarehouseDaily(batchId, signal);
+    await mrxApi.getIssues(batchId, 2, 25, signal);
     await mrxApi.getDispositionCategories();
-    await mrxApi.getKitchenCooking(batchId);
+    await mrxApi.getKitchenCooking(batchId, signal);
 
     const urls = fetchMock.mock.calls.map(([url]) => String(url));
     expect(urls).toEqual(expect.arrayContaining([
@@ -479,6 +503,12 @@ describe('Frontend API contracts against backend DTOs', () => {
       expect.stringMatching(/\/api\/reconciliation\/lines\/disposition-categories$/),
       expect.stringMatching(new RegExp(`/api/reconciliation/batches/${batchId}/kitchen-cooking$`)),
     ]));
+    for (const path of [
+      '/api/reconciliation/batches', '/api/reconciliation/weekly-menu', `/api/reconciliation/batches/${batchId}`,
+      `/api/reconciliation/batches/${batchId}/warehouse-daily`, `/api/reconciliation/batches/${batchId}/kitchen-cooking`, '/api/inventory-issues',
+    ]) {
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`${path}(?:\\?|$)`)), expect.objectContaining({ signal }));
+    }
   });
 
   it('retrieves ingredients with server pagination metadata and without fabricated categoryName', async () => {

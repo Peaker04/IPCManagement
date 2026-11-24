@@ -64,33 +64,21 @@ export function useMrxBatchWorkspace() {
     snapshotKey: `snapshot:mrx_batch_${customerId}_${weekStartDate}`,
     scopeId: customerId,
     isCatalogLoading: !cachedCustomers && customers.length === 0,
-    queryFn: async () => {
+    queryFn: async (_, signal) => {
       const [sourceResult, batchPage] = await Promise.all([
-        mrxApi.getWeeklySource(customerId, weekStartDate).catch((cause: unknown) => {
+        mrxApi.getWeeklySource(customerId, weekStartDate, signal).catch((cause: unknown) => {
           const is404 = (cause && typeof cause === 'object' && 'status' in cause && Number((cause as { status?: unknown }).status) === 404) ||
             (cause instanceof Error && cause.message.includes('404'));
           if (is404) return null;
           throw cause;
         }),
-        mrxApi.getBatchPage({ customerId, weekStartDate, pageSize: 1 }),
+        mrxApi.getBatchPage({ customerId, weekStartDate, pageSize: 1 }, signal),
       ]);
-        serverStateCache.set(`mrx_inspection_source_${customerId}_${weekStartDate}`, sourceResult);
-        let loadedBatch: MrxBatch | null = null;
-        if (batchPage && batchPage.items.length > 0) {
-          loadedBatch = await mrxApi.getBatch(batchPage.items[0].batchId);
-        }
-        const isPub = sourceResult?.menuVersionStatus === 'PUBLISHED' || sourceResult?.menuVersionStatus === 'ACTIVE';
-        const nextPreviewKey = `mrx_preview_${customerId}_${weekStartDate}`;
-        if (isPub && sourceResult?.menuVersionId && loadedBatch?.batchId && loadedBatch.status === 'DRAFT' && !serverStateCache.get<MrxQuantityPreview>(nextPreviewKey)?.data) {
-          const previewData = await mrxApi.previewQuantityImport({
-            menuVersionId: sourceResult.menuVersionId,
-            sourceLabel: `Tuần ${sourceResult.weekStartDate ?? weekStartDate}`,
-          }).catch(() => null);
-          if (previewData) {
-            serverStateCache.set(nextPreviewKey, previewData);
-          }
-        }
-        return { customerId, weekStartDate, source: sourceResult, batch: loadedBatch };
+      signal?.throwIfAborted();
+      serverStateCache.set(`mrx_inspection_source_${customerId}_${weekStartDate}`, sourceResult);
+      const batchId = batchPage?.items[0]?.batchId;
+      const loadedBatch = batchId ? await mrxApi.getBatch(batchId, signal) : null;
+      return { customerId, weekStartDate, source: sourceResult, batch: loadedBatch };
     },
     isDatasetEmpty: (res) => !res || (!res.source && !res.batch),
     emptyTitle: 'Chưa có nguồn thực đơn đã phát hành',
@@ -177,24 +165,24 @@ export function useMrxBatchWorkspace() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    if (!isCurrentScope || !source?.menuVersionId || !batch?.batchId || batch.status !== 'DRAFT' || cachedPreview) {
+    if (!isCurrentScope || queryStateProps.isFetching || !source?.menuVersionId || !batch?.batchId || batch.status !== 'DRAFT' || cachedPreview) {
       return;
     }
     const isPub = source.menuVersionStatus === 'PUBLISHED' || source.menuVersionStatus === 'ACTIVE';
     if (isPub) {
-      let ignore = false;
+      const controller = new AbortController();
       mrxApi.previewQuantityImport({
         menuVersionId: source.menuVersionId,
         sourceLabel: `Tuần ${source.weekStartDate ?? weekStartDate}`,
-      }).then((previewData) => {
-        if (!ignore && previewData) {
+      }, controller.signal).then((previewData) => {
+        if (!controller.signal.aborted && previewData) {
           setPreviewState({ key: previewCacheKey, value: previewData });
           serverStateCache.set(previewCacheKey, previewData);
         }
       }).catch(() => {});
-      return () => { ignore = true; };
+      return () => controller.abort();
     }
-  }, [isCurrentScope, source?.menuVersionId, source?.menuVersionStatus, source?.weekStartDate, weekStartDate, batch?.batchId, batch?.status, cachedPreview, previewCacheKey]);
+  }, [isCurrentScope, queryStateProps.isFetching, source?.menuVersionId, source?.menuVersionStatus, source?.weekStartDate, weekStartDate, batch?.batchId, batch?.status, cachedPreview, previewCacheKey]);
 
   const invalidateQuantityPreview = () => {
     setPreviewState({ key: previewCacheKey, value: null });

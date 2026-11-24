@@ -155,6 +155,10 @@ internal sealed class ReceiptLifecycleWorkflow(
                 {
                     throw new BusinessRuleException("Chỉ phiếu nhập đã duyệt và có kết quả chất lượng hợp lệ mới được ghi sổ kho.");
                 }
+                if (order.Status == "CANCELLED")
+                {
+                    throw new BusinessRuleException("Đơn mua hàng đã hủy, không thể ghi sổ phiếu nhập.");
+                }
                 if (receipt.ConcurrencyVersion != request.ExpectedVersion)
                 {
                     throw new BusinessRuleException("Phiếu nhập đã thay đổi; hãy tải lại trước khi ghi sổ kho.");

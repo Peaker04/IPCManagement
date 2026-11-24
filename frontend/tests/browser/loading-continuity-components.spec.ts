@@ -14,6 +14,7 @@ test.beforeEach(async ({ page }) => {
     const { default: ReactDOM } = await import(reactDomPath);
     const { flushSync } = ReactDOM;
     import { StateBoundary } from '/src/components/workbench/StateBoundary.tsx';
+    import { Button } from '/src/components/ui/button.tsx';
     import { LocalizedBoundary } from '/src/components/workbench/LocalizedBoundary.tsx';
     import { WorkbenchSkeleton } from '/src/components/workbench/WorkbenchSkeleton.tsx';
     import { ReconciliationBlockerStrip } from '/src/features/reconciliation/ReconciliationBlockerStrip.tsx';
@@ -27,6 +28,8 @@ test.beforeEach(async ({ page }) => {
     import { ReconciliationAuditBranch } from '/src/features/reconciliation/branches/ReconciliationAuditBranch.tsx';
     import { ReconciliationReportTables } from '/src/features/reconciliation/ReconciliationReportTables.tsx';
     import { AppShell } from '/src/components/workbench/AppShell.tsx';
+    import { RouteWorkbenchLoadingFallback } from '/src/routes/RouteWorkbenchLoadingFallback.tsx';
+    import { MrxDailyIssueWorkbench } from '/src/features/warehouse/MrxDailyIssueWorkbench.tsx';
     import { AuthContext } from '/src/store/useAuth.ts';
     import { DirtyNavigationProvider } from '/src/components/workbench/DirtyNavigation.tsx';
     const transformed = await (await fetch('/src/hooks/useHistoricalScope.ts')).text();
@@ -36,6 +39,9 @@ test.beforeEach(async ({ page }) => {
     const root = DOM.createRoot(host), ready = h('button', null, 'Ready content');
     const auditProps = { auditReport: { rows: [], totalCount: 0 }, sourceChanges: null };
     window.loadingHost = host;
+    window.renderPendingButton = pending => flushSync(() => root.render(h('div', { className: 'flex items-start gap-2' },
+      h(Button, { loading: pending, loadingText: 'Đang ghi phiếu xuất kho…' }, 'Ghi phiếu'),
+      h(Button, null, 'Thao tác khác'))));
     window.renderUnmarkedSkeleton = pending => flushSync(() => root.render(h(StateBoundary, { isLoading: pending, customSkeleton: h('div', { 'data-probe-skeleton': true, className: 'h-32 border-b border-slate-200 bg-slate-100' }, 'Unmarked loading decoration') }, ready)));
     window.renderBlocker = pending => root.render(h(ReconciliationBlockerStrip, { isPending: pending, isBlocked: true, needsReviewCount: 2, onFilterNeedsReview: () => {} }));
     window.renderFrozen = () => { mrxApi.getBatchDishes = () => new Promise(() => {}); root.render(h(MrxBatchDishesModal, { isOpen: true, batchId: 'fixture-cold', onClose: () => {} })); };
@@ -43,7 +49,7 @@ test.beforeEach(async ({ page }) => {
     window.renderBom = () => {
       bomApi.getSupportedPriceTiers = () => new Promise(resolve => { window.releaseBomTiers = () => resolve([25000, 30000, 34000]); });
       bomApi.getDishBomLines = () => new Promise(resolve => { window.releaseBomLines = () => resolve([]); });
-      root.render(h(DishBomEditorModal, { isOpen: true, dish: { dishId: 'fixture-bom', dishCode: 'MON-1', dishName: 'Món kiểm tra' }, readOnly: true, onClose: () => {} }));
+      flushSync(() => root.render(h(DishBomEditorModal, { isOpen: true, dish: { dishId: 'fixture-bom', dishCode: 'MON-1', dishName: 'Món kiểm tra' }, readOnly: true, onClose: () => {} })));
     };
     window.renderImportHistory = () => {
       bomApi.getSupportedPriceTiers = async () => [25000];
@@ -56,7 +62,7 @@ test.beforeEach(async ({ page }) => {
     window.renderLoading = (kind, pending) => {
       if (kind === 'history') return root.render(h(RR.MemoryRouter, { initialEntries: ['/?period=YEAR&year=2024'] }, h(HistoricalScopeFilter)));
       if (kind === 'audit') return root.render(h(ReconciliationAuditBranch, { ...auditProps, auditReport: pending ? null : auditProps.auditReport, pending }));
-      if (kind === 'report') return root.render(h(ReconciliationReportTables, { activeTab: 'audit', batchId: 'ui-scope', isReportLoading: pending, hasExactReport: true,
+      if (kind === 'report') return root.render(h(ReconciliationReportTables, { activeTab: 'audit', batchId: 'ui-scope', isReportLoading: pending, hasExactReport: true, onAuditSearchChange: () => {},
         ...auditProps, variancesReport: null, transactionsReport: null, transactionPage: 1, onTransactionPageChange: () => {} }));
       if (kind === 'localized') return root.render(h(LocalizedBoundary, { isLoading: pending }, ready));
       if (kind === 'widget') return root.render(h(StateBoundary, { scope: 'widget', isLoading: pending }, ready));
@@ -65,8 +71,14 @@ test.beforeEach(async ({ page }) => {
     };
     const lazyPage = React.lazy(() => new Promise(resolve => { window.releaseLoadingModule = () => resolve({ default: () => h('h1', null, 'Module ready') }); }));
     const auth = { user: { userId: 'ui-fixture', fullName: 'UI verification' }, logout: async () => {}, operationalMode: 'MATERIAL_RECONCILIATION', hasRole: () => true, canNavigate: () => true };
+    window.renderDailyIssue = (batchId, serviceDate = '2026-10-19') => root.render(h(AuthContext.Provider, { value: auth }, h(RR.MemoryRouter, {
+      key: serviceDate, initialEntries: ['/warehouse?view=mrx-daily&batchId=' + batchId + '&date=' + serviceDate],
+    }, h(DirtyNavigationProvider, null, h(MrxDailyIssueWorkbench)))));
     window.renderLoadingShell = () => root.render(h(AuthContext.Provider, { value: auth }, h(RR.MemoryRouter, { initialEntries: ['/reconciliation?view=audit'] },
-      h(DirtyNavigationProvider, null, h(AppShell, { navigation: [] }, h(lazyPage))))));
+      h(DirtyNavigationProvider, null, h(RR.Routes, null,
+        h(RR.Route, { element: h(AppShell, { navigation: [], loadingFallback: h(RouteWorkbenchLoadingFallback) }) },
+          h(RR.Route, { path: '/reconciliation', element: h(lazyPage) }),
+          h(RR.Route, { path: '/', element: h('h1', null, 'Bàn điều hành') })))))));
     window.sampleLoading = async (kind, duration) => {
       window.renderLoading('warm', false); await new Promise(resolve => setTimeout(resolve, 25));
       window.renderLoading(kind, true);
@@ -85,6 +97,114 @@ test.beforeEach(async ({ page }) => {
   ` });
   await page.waitForFunction('window.loadingReady');
 });
+
+test('pending action keeps its width and the adjacent action in place', async ({ page }) => {
+  await page.evaluate('window.renderPendingButton(false)');
+  const idle = page.getByRole('button', { name: 'Ghi phiếu' });
+  const adjacent = page.getByRole('button', { name: 'Thao tác khác' });
+  await expect(idle).toBeVisible();
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  const buttonBefore = await idle.boundingBox();
+  const adjacentBefore = await adjacent.boundingBox();
+  await page.evaluate('window.renderPendingButton(true)');
+  const pending = page.getByRole('button', { name: 'Đang ghi phiếu xuất kho…' });
+  await expect(pending).toBeDisabled();
+  expect(await pending.boundingBox()).toEqual(buttonBefore);
+  expect(await adjacent.boundingBox()).toEqual(adjacentBefore);
+  await expect(adjacent).toBeEnabled();
+});
+
+for (const width of [834, 1440]) {
+  test(`daily issue keeps history geometry, focus and modal background at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const batchId = '10000000-0000-0000-0000-000000000001';
+    const serviceDate = '2026-10-19';
+    const batch = { batchId, customerId: '10000000-0000-0000-0000-000000000002', customerCode: 'KA', customerName: 'Khách A', weekStartDate: serviceDate, weekEndDate: '2026-10-25', status: 'IN_PROGRESS', version: 2, createdAt: '2026-10-18T00:00:00Z' };
+    let dailyReads = 0;
+    let releaseHistory = () => {};
+    const historyGate = new Promise<void>(resolve => { releaseHistory = resolve; });
+    await page.route(url => url.pathname === '/api/reconciliation/batches', route => route.fulfill({
+      json: { success: true, data: { items: [batch], totalCount: 1, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false } },
+    }));
+    await page.route(url => url.pathname.endsWith('/warehouse-daily'), async route => {
+      dailyReads += 1;
+      await route.fulfill({ json: { success: true, data: {
+        batchId, batchStatus: batch.status, sourceVersion: 2, weeklyStatus: batch.status,
+        compatibility: { canRead: true, canIssueByDate: true },
+        dates: [{ serviceDate, status: 'PARTIAL', isApplicable: true, requiredQuantity: 4, issuedQuantity: 1, returnedQuantity: 0, remainingQuantity: 3,
+          lines: [{ dailyLineId: '10000000-0000-0000-0000-000000000003', batchLineId: '10000000-0000-0000-0000-000000000004',
+            ingredientId: '10000000-0000-0000-0000-000000000005', ingredientCode: 'NL-GAO', ingredientName: 'Gạo',
+            canonicalUnitId: '10000000-0000-0000-0000-000000000006', canonicalUnitName: 'kg', quantityStatus: 'UNDER_ISSUED',
+            requiredQuantity: 4, issuedQuantity: 1, returnedQuantity: 0, remainingQuantity: 3, hasValidDisposition: false }] }],
+      } } });
+    });
+    await page.route(url => url.pathname === '/api/inventory-issues', async route => {
+      const number = Number(new URL(route.request().url()).searchParams.get('PageNumber'));
+      if (number === 2) await historyGate;
+      await route.fulfill({ json: { success: true, data: {
+        items: [{ issueId: `20000000-0000-0000-0000-00000000000${number}`, issueCode: number === 1 ? 'PX-NEW' : 'PX-OLD',
+          issueDate: serviceDate, issuedBy: 'ui-fixture', issuedByName: 'Thủ kho', sourceFamily: 'MATERIAL_RECONCILIATION',
+          warehouseId: '10000000-0000-0000-0000-000000000007', createdAt: '2026-10-19T05:00:00Z', provisions: [], lines: [] }],
+        totalCount: 26, totalPages: 2, hasNext: number === 1, hasPrev: number === 2, pageNumber: number, pageSize: 25,
+      } } });
+    });
+
+    await page.evaluate(id => (window as unknown as { renderDailyIssue: (id: string) => void }).renderDailyIssue(id), batchId);
+    await page.getByRole('button', { name: /Lịch sử phiếu \(\s*26\s*\)/ }).click();
+    await expect(page.getByText('PX-NEW', { exact: true })).toBeVisible();
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+
+    const filter = page.getByRole('searchbox', { name: 'Tìm kiếm trong lịch sử phiếu xuất' });
+    const filterNode = await filter.elementHandle();
+    const tableHead = page.getByRole('columnheader', { name: 'Mã phiếu xuất' });
+    const before = await tableHead.boundingBox();
+    const next = page.getByRole('button', { name: 'Trang sau' });
+    try {
+      await next.click();
+      await expect(next).toBeFocused();
+      await expect(next).toBeDisabled();
+      await expect(filter).toBeEditable();
+      await expect(page.getByText('PX-NEW', { exact: true })).toBeVisible();
+      const staleRecord = page.getByRole('button', { name: 'PX-NEW', exact: true });
+      expect(await staleRecord.evaluate(node => {
+        node.focus();
+        return document.activeElement === node;
+      })).toBe(false);
+      await expect(next).toBeFocused();
+      await expect(page.locator('thead th').first()).toBeVisible();
+      expect(await page.locator('thead th').first().boundingBox()).toEqual(before);
+    } finally {
+      releaseHistory();
+    }
+    await expect(page.getByText('PX-OLD', { exact: true })).toBeVisible();
+    expect(await filter.evaluate((node, original) => node === original, filterNode)).toBe(true);
+    expect(await tableHead.boundingBox()).toEqual(before);
+    await expect(next).toBeFocused();
+    expect(dailyReads).toBe(1);
+    await page.screenshot({ path: test.info().outputPath('mrx-daily-history.png') });
+
+    await page.getByRole('button', { name: 'Định lượng xuất ca' }).click();
+    const open = page.getByRole('button', { name: 'Xuất bổ sung ca' });
+    const beforeModal = await open.boundingBox();
+    await open.click();
+    const modal = page.getByRole('dialog', { name: 'Xuất kho bổ sung trong ca' });
+    await expect(modal).toBeVisible();
+    expect(await open.boundingBox()).toEqual(beforeModal);
+    await page.keyboard.press('Escape');
+    await expect(modal).toHaveCount(0);
+    await expect(open).toBeFocused();
+    expect(await open.boundingBox()).toEqual(beforeModal);
+
+    await page.evaluate(id => (window as unknown as { renderDailyIssue: (id: string, date: string) => void }).renderDailyIssue(id, '2026-11-07'), batchId);
+    const emptyDay = page.getByRole('heading', { name: 'Không có định lượng cần xuất cho ngày đã chọn' });
+    const wholeWeek = page.getByRole('button', { name: 'Cả tuần (Tổng hợp)' });
+    await expect(emptyDay).toBeVisible();
+    expect((await emptyDay.boundingBox())!.y - (await wholeWeek.boundingBox())!.y).toBeLessThan(160);
+    await page.getByRole('button', { name: 'Xem cả tuần của lô' }).click();
+    await expect(wholeWeek).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByText('Gạo', { exact: true })).toBeVisible();
+  });
+}
 
 for (const width of [960, 1920]) {
   test(`shared policy owns unmarked custom paint and resets each read at ${width}px`, async ({ page }, info) => {
@@ -116,10 +236,14 @@ for (const width of [960, 1920]) {
   });
   test(`BOM cold read reserves controls and frozen dish buttons are independent at ${width}px`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.evaluate('window.renderBom()');
+    const firstFrame = await page.evaluate(() => {
+      (window as unknown as { renderBom: () => void }).renderBom();
+      const skeleton = document.querySelector('[data-skeleton-kind]');
+      const header = skeleton?.querySelector('[data-skeleton-header]');
+      return { phase: skeleton?.getAttribute('data-loading-phase'), visibility: header ? getComputedStyle(header).visibility : null };
+    });
+    expect(firstFrame).toEqual({ phase: 'reserved', visibility: 'hidden' });
     const placeholder = page.getByRole('status', { name: 'Đang tải nội dung' });
-    await expect(placeholder).toHaveAttribute('data-loading-phase', 'reserved');
-    expect(await placeholder.locator('[data-skeleton-header]').evaluate(node => getComputedStyle(node).visibility)).toBe('hidden');
     const tiers = page.getByRole('radiogroup', { name: 'Mốc giá BOM' });
     const height = await tiers.evaluate(node => node.getBoundingClientRect().height);
     const title = page.getByRole('heading', { name: 'Định mức BOM: Món kiểm tra' });
@@ -220,10 +344,26 @@ test('applying a year preserves form and input nodes and the clicked button focu
   expect(await apply!.evaluate(node => node === document.activeElement)).toBe(true);
 });
 
+test('audit report keeps its search field focused while its table is refreshing', async ({ page }) => {
+  await page.evaluate('window.renderLoading("report", false)');
+  const filter = page.getByRole('searchbox', { name: 'Tìm trong nhật ký kiểm toán kho' });
+  await filter.focus();
+  const original = await filter.elementHandle();
+  await page.evaluate('window.renderLoading("report", true)');
+  await expect(page.getByRole('status').filter({ hasText: 'Đang tải trang báo cáo' })).toHaveCount(1);
+  await expect(filter).toBeFocused();
+  expect(await filter.evaluate((node, previous) => node === previous, original)).toBe(true);
+});
+
 test('a pending page module has a canonical visible title and no fake business action', async ({ page }) => {
   await page.evaluate('window.renderLoadingShell()');
   await expect(page.getByRole('heading', { name: 'Nhật ký kiểm toán' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Xác nhận xuất kho/ })).toHaveCount(0);
+  const sidebar = page.getByRole('complementary', { name: 'Thanh điều hướng chính' });
+  const sidebarBefore = await sidebar.elementHandle();
   await page.evaluate('window.releaseLoadingModule()');
   await expect(page.getByRole('heading', { name: 'Module ready' })).toBeVisible();
+  await sidebar.locator('a[href="/"]').click();
+  await expect(page.getByRole('heading', { name: 'Bàn điều hành' })).toBeVisible();
+  expect(await sidebar.evaluate((node, before) => node === before, sidebarBefore)).toBe(true);
 });

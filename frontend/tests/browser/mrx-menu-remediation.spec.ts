@@ -494,7 +494,7 @@ test('BROWSER_FIXTURE: preparation scope at desktop/tablet and verified native b
     const search = page.getByRole('searchbox', { name: 'Tìm nguyên liệu chuẩn bị' });
     await expect(search).toBeVisible();
     await expect(page.getByText('Tuần chuẩn bị', { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('columnheader')).toHaveCount(2);
+    await expect(page.getByRole('columnheader')).toHaveText(['Nguyên liệu', 'ĐVT', 'Tổng cần chuẩn bị', 'Khách hàng', 'Thao tác']);
     const selectionBounds = await selection.boundingBox();
     const searchBounds = await search.boundingBox();
     expect(selectionBounds).not.toBeNull();
@@ -511,7 +511,7 @@ test('BROWSER_FIXTURE: preparation scope at desktop/tablet and verified native b
     await page.screenshot({ path: test.info().outputPath(`BROWSER_FIXTURE-preparation-${viewport.width}.png`) });
     await page.getByRole('button', { name: 'T4 (18/11)', exact: true }).click();
     const date = page.getByRole('textbox', { name: 'Tuần chuẩn bị' });
-    await expect(page.getByRole('cell', { name: '2 kg', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('row', { name: /Gạo tẻ.*kg/ }).getByRole('cell', { name: '2', exact: true })).toBeVisible();
     await expect(date).toHaveValue('16/11/2026');
     await expect(page.getByRole('button', { name: 'T4 (18/11)', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'Xuất nhu cầu theo NCC' })).toBeEnabled();
@@ -552,7 +552,7 @@ test('BROWSER_FIXTURE: preparation scope at desktop/tablet and verified native b
     await expect(page.getByRole('button', { name: 'T4 (18/11)', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('textbox', { name: 'Tuần chuẩn bị' })).toHaveValue('16/11/2026');
     await page.getByRole('button', { name: 'Cả tuần (Tổng hợp)', exact: true }).click();
-    await expect(page.getByRole('cell', { name: '5 kg', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('row', { name: /Gạo tẻ.*kg/ }).getByRole('cell', { name: '5', exact: true })).toBeVisible();
   }
   await page.getByRole('button', { name: /Khách hàng:/ }).click();
   await expect(page.getByRole('searchbox', { name: 'Tìm khách hàng hoặc mã' })).toBeFocused();
@@ -576,12 +576,17 @@ test('BROWSER_FIXTURE: preparation scope at desktop/tablet and verified native b
   };
   for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }]) {
     await page.setViewportSize(viewport);
+    await page.evaluate(() => {
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith('ipc_l2_cache:mrx_preparation_') || key.startsWith('ipc_snapshot:snapshot:mrx_preparation_')) {
+          sessionStorage.removeItem(key);
+        }
+      }
+    });
     await page.reload();
     const trigger = page.getByRole('button', { name: 'Khách hàng: 4 lô đã chọn', exact: true });
     await trigger.click();
-    await expect(page.getByRole('columnheader')).toHaveCount(6);
-    await expect(page.getByRole('columnheader', { name: /Lô 1/ })).toHaveCount(1);
-    await expect(page.getByRole('columnheader', { name: /Lô 2/ })).toHaveCount(1);
+    await expect(page.getByRole('columnheader')).toHaveText(['Nguyên liệu', 'ĐVT', 'Tổng cần chuẩn bị', 'Khách hàng', 'Thao tác']);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const first = page.getByRole('checkbox', { name: /Lô 1/ });
     const second = page.getByRole('checkbox', { name: /Lô 2/ });
@@ -604,6 +609,11 @@ test('BROWSER_FIXTURE: preparation scope at desktop/tablet and verified native b
     await page.screenshot({ path: test.info().outputPath(`BROWSER_FIXTURE-preparation-many-${viewport.width}.png`) });
     await page.keyboard.press('Escape');
     await expect(trigger).toBeFocused();
+    await page.getByRole('button', { name: 'Phân bổ Gạo tẻ' }).click();
+    const allocations = page.getByRole('table', { name: 'Phân bổ theo khách hàng và lô' });
+    await expect(allocations.getByRole('row', { name: /batch-1/ })).toBeVisible();
+    await expect(allocations.getByRole('row', { name: /batch-2/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Đóng', exact: true }).last().click();
     expect(await page.getByRole('columnheader').evaluateAll(headers => headers.every(header => header.getBoundingClientRect().height <= 40))).toBe(true);
     await page.screenshot({ path: test.info().outputPath(`BROWSER_FIXTURE-preparation-many-table-${viewport.width}.png`) });
     const firstHeader = page.getByRole('columnheader', { name: 'Nguyên liệu', exact: true });
@@ -618,7 +628,7 @@ test('BROWSER_FIXTURE: preparation scope at desktop/tablet and verified native b
   }
   // Real Chrome zoom: normal native window, OS-owned Ctrl+NumAdd; never deviceScaleFactor/pageScaleFactor.
   await page.close();
-  const zoomContext = await browser.newContext({ viewport: null });
+  const zoomContext = await browser.newContext({ viewport: null, deviceScaleFactor: undefined, isMobile: false });
   const zoomPage = await zoomContext.newPage();
   const chrome = await browser.newBrowserCDPSession();
   let ownedPid: number | undefined;
@@ -696,8 +706,8 @@ test('BROWSER_FIXTURE: frozen daily hierarchy retains each date/rate and returns
   const dishes: MrxBatchDishSummary[] = [{ dishId: 'dish-1', dishCode: 'MON01', dishName: 'Canh rau có định mức nguồn khác nhau theo ngày phục vụ',
     scopes: [{ serviceDate: '2026-10-19', shiftName: 'MORNING', frozenServings: 100, currentServings: 100, additionalServings: 0 },
       { serviceDate: '2026-10-20', shiftName: 'AFTERNOON', frozenServings: 80, currentServings: 80, additionalServings: 0 }],
-    materials: [{ batchLineId: 'line-1', dailyLineId: 'daily-1', serviceDate: '2026-10-19', ingredientId: 'ingredient-1', ingredientCode: line.ingredientCode, ingredientName: line.ingredientName, canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', grossQtyPerServing: 0.002586 },
-      { batchLineId: 'line-1', dailyLineId: 'daily-2', serviceDate: '2026-10-20', ingredientId: 'ingredient-1', ingredientCode: line.ingredientCode, ingredientName: line.ingredientName, canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', grossQtyPerServing: 0.003 }] }];
+    materials: [{ batchLineId: 'line-1', dailyLineId: 'daily-1', serviceDate: '2026-10-19', ingredientId: 'ingredient-1', ingredientCode: line.ingredientCode, ingredientName: line.ingredientName, canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', grossQtyPerServing: 0.002586, canonicalQtyPerServing: 0.002586 },
+      { batchLineId: 'line-1', dailyLineId: 'daily-2', serviceDate: '2026-10-20', ingredientId: 'ingredient-1', ingredientCode: line.ingredientCode, ingredientName: line.ingredientName, canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', grossQtyPerServing: 0.003, canonicalQtyPerServing: 0.003 }] }];
   const unexpected: string[] = [];
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const request = route.request();
@@ -1192,9 +1202,15 @@ test('BROWSER_FIXTURE: follow-through same-mounted A/B Back/Forward and nonzero 
   };
 
   const unexpected: string[] = [];
+  const issuePosts: string[] = [];
   await page.route((url) => url.pathname.startsWith('/api/'), async (route) => {
     const request = route.request();
     const { pathname } = new URL(request.url());
+    if (pathname === '/api/inventory-issues' && request.method() === 'POST') {
+      issuePosts.push(request.postData()!);
+      if (issuePosts.length === 1) return route.abort('connectionreset');
+      return route.fulfill({ status: 201, json: { success: true, data: { issueId: 'issue-a', issueCode: 'PX-A', concurrencyVersion: 2, provisions: [] } } });
+    }
     const data = pathname === '/api/Auth/me' ? actor
       : pathname === '/api/system-operation-mode' ? { mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát MRX', version: 9, updatedAt: '2026-10-19T00:00:00Z', reasonRequired: true, capabilities: { navigation: [], pageTabs: {} } }
       : pathname === '/api/coordination/customers' ? [
@@ -1212,7 +1228,13 @@ test('BROWSER_FIXTURE: follow-through same-mounted A/B Back/Forward and nonzero 
       }
       : pathname === '/api/reconciliation/batches/batch-a' ? batchA
       : pathname === '/api/reconciliation/batches/batch-b' ? batchB
-      : pathname === '/api/reconciliation/batches/batch-a/warehouse-daily' ? dailyA
+      : pathname === '/api/reconciliation/batches/batch-a/warehouse-daily' ? (issuePosts.length ? {
+        ...dailyA, batchStatus: 'IN_PROGRESS', sourceVersion: 2,
+        dates: dailyA.dates.map(day => ({
+          ...day, issuedQuantity: day.requiredQuantity, remainingQuantity: 0,
+          lines: day.lines.map(line => ({ ...line, issuedQuantity: line.requiredQuantity, remainingQuantity: 0 })),
+        })),
+      } : dailyA)
       : pathname === '/api/reconciliation/batches/batch-b/warehouse-daily' ? dailyB
       : pathname === '/api/reconciliation/batches/batch-a/dishes' ? dishesA
       : pathname === '/api/reconciliation/batches/batch-a/kitchen-cooking' ? cookingA
@@ -1235,7 +1257,7 @@ test('BROWSER_FIXTURE: follow-through same-mounted A/B Back/Forward and nonzero 
     const batchSelect = page.getByRole('combobox', { name: 'Chọn lô đối soát xuất kho' });
     await expect(batchSelect).toHaveValue('batch-a');
 
-    const qtyInputA = page.getByRole('spinbutton', { name: /Số lượng thực xuất Gạo lô A/i });
+    const qtyInputA = page.getByRole('textbox', { name: /Số lượng thực xuất Gạo lô A/i });
     await qtyInputA.fill('5');
     await expect(qtyInputA).toHaveValue('5');
     await batchSelect.selectOption('batch-b');
@@ -1284,5 +1306,22 @@ test('BROWSER_FIXTURE: follow-through same-mounted A/B Back/Forward and nonzero 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: test.info().outputPath(`BROWSER_FIXTURE-followthrough-chef-tiny-rate-${viewport.width}.png`) });
   }
+  await page.goto('/warehouse?view=mrx-daily&batchId=batch-a&date=2026-10-19');
+  await page.getByRole('button', { name: 'Điền đủ toàn bộ' }).click();
+  await page.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Chưa xác nhận được kết quả xuất kho');
+  await page.reload();
+  await expect(page.getByRole('combobox', { name: 'Chọn lô đối soát xuất kho' })).toBeDisabled();
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(page.getByRole('button', { name: 'Xuất bổ sung ca', exact: true })).toBeDisabled();
+  await expect.poll(() => issuePosts.length).toBe(1);
+  await page.getByRole('button', { name: 'Gửi lại cùng mã lệnh', exact: true }).click();
+  await expect(page.getByText('Xuất kho thành công.', { exact: true })).toBeVisible();
+  expect(issuePosts).toHaveLength(2);
+  expect(issuePosts[1]).toBe(issuePosts[0]);
+  expect(JSON.parse(issuePosts[1])).toMatchObject({ reconciliationBatchId: 'batch-a', issueDate: '2026-10-19', expectedVersion: 1, isSupplemental: false });
+  await page.reload();
+  await expect(page.getByRole('cell', { name: /Gạo lô A/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Gửi lại cùng mã lệnh', exact: true })).toHaveCount(0);
   expect(unexpected).toEqual([]);
 });

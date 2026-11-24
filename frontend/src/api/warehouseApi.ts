@@ -1,4 +1,16 @@
 import { apiClient } from './client';
+import type { ReportPage } from './reportsApi';
+
+interface WarehousePageQuery {
+  warehouseId?: string;
+  pageNumber: number;
+}
+
+function warehousePageParams({ warehouseId, pageNumber }: WarehousePageQuery) {
+  const params = new URLSearchParams({ pageNumber: String(pageNumber) });
+  if (warehouseId && warehouseId !== 'ALL') params.set('warehouseId', warehouseId);
+  return params;
+}
 
 export interface WarehouseItem {
   warehouseId: string;
@@ -24,7 +36,7 @@ export interface InventoryReceiptItem {
   supplierName: string;
   warehouseName: string;
   purchaseOrderCode?: string;
-  status: 'DRAFT' | 'APPROVED' | 'POSTED';
+  status: string;
   itemsCount: number;
   lines: InventoryReceiptLineItem[];
 }
@@ -86,9 +98,29 @@ export interface RawIssue {
   }>;
 }
 
+function mapReceipt(receipt: RawReceipt): InventoryReceiptItem {
+  return {
+    receiptId: receipt.receiptId,
+    receiptCode: receipt.receiptCode,
+    receiptDate: receipt.receiptDate,
+    supplierName: receipt.supplierName || '—',
+    warehouseName: receipt.warehouseName || '—',
+    status: receipt.status.toUpperCase(),
+    itemsCount: receipt.lines.length,
+    lines: receipt.lines.map(line => ({
+      lineId: line.receiptLineId,
+      ingredientCode: line.ingredientId,
+      ingredientName: line.ingredientName || '—',
+      unit: line.unitName || '—',
+      receivedQty: line.quantity,
+      unitPrice: line.unitPrice,
+    })),
+  };
+}
+
 export const warehouseApi = {
-  async getWarehouses(): Promise<WarehouseItem[]> {
-    const resp = await apiClient<{ items?: WarehouseItem[] } | WarehouseItem[]>('/warehouses');
+  async getWarehouses(signal?: AbortSignal): Promise<WarehouseItem[]> {
+    const resp = await apiClient<{ items?: WarehouseItem[] } | WarehouseItem[]>('/warehouses', { signal });
     const items = Array.isArray(resp) ? resp : resp?.items || [];
     return items.map((w) => ({
       warehouseId: w.warehouseId,
@@ -99,34 +131,18 @@ export const warehouseApi = {
     }));
   },
 
-  async getReceipts(): Promise<InventoryReceiptItem[]> {
-    const resp = await apiClient<{ items: RawReceipt[] } | RawReceipt[]>('/inventory-receipts');
-    const items = Array.isArray(resp) ? resp : resp?.items || [];
-
-    return items.map((r) => ({
-      receiptId: r.receiptId,
-      receiptCode: r.receiptCode,
-      receiptDate: r.receiptDate,
-      supplierName: r.supplierName || '—',
-      warehouseName: r.warehouseName || '—',
-      status: r.status.toUpperCase() as InventoryReceiptItem['status'],
-      itemsCount: r.lines.length,
-      lines: r.lines.map((line) => ({
-        lineId: line.receiptLineId,
-        ingredientCode: line.ingredientId,
-        ingredientName: line.ingredientName || '—',
-        unit: line.unitName || '—',
-        receivedQty: line.quantity,
-        unitPrice: line.unitPrice,
-      })),
-    }));
+  async getReceipts(signal?: AbortSignal, query: WarehousePageQuery = { pageNumber: 1 }): Promise<ReportPage<InventoryReceiptItem>> {
+    const page = await apiClient<ReportPage<RawReceipt>>(`/inventory-receipts?${warehousePageParams(query)}`, { signal });
+    return { ...page, items: page.items.map(mapReceipt) };
   },
 
-  async getIssues(): Promise<InventoryIssueItem[]> {
-    const resp = await apiClient<{ items: RawIssue[] } | RawIssue[]>('/inventory-issues');
-    const items = Array.isArray(resp) ? resp : resp?.items || [];
+  async getReceipt(receiptId: string, signal?: AbortSignal): Promise<InventoryReceiptItem> {
+    return mapReceipt(await apiClient<RawReceipt>(`/inventory-receipts/${encodeURIComponent(receiptId)}`, { signal }));
+  },
 
-    return items.map((i) => ({
+  async getIssues(signal?: AbortSignal, query: WarehousePageQuery = { pageNumber: 1 }): Promise<ReportPage<InventoryIssueItem>> {
+    const page = await apiClient<ReportPage<RawIssue>>(`/inventory-issues?${warehousePageParams(query)}`, { signal });
+    return { ...page, items: page.items.map((i) => ({
       issueId: i.issueId,
       issueCode: i.issueCode,
       issueDate: i.issueDate,
@@ -142,6 +158,6 @@ export const warehouseApi = {
         requestedQty: line.requestedQty,
         issuedQty: line.issuedQty,
       })),
-    }));
+    })) };
   },
 };

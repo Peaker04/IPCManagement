@@ -33,8 +33,15 @@ public class InventoryReceiptRepository : GenericRepository<InventoryReceipt>, I
                 ?? throw new ArgumentException("PurchaseOrderId không hợp lệ.", nameof(request));
             query = query.Where(receipt => receipt.PurchaseOrderId == purchaseOrderId);
         }
+        if (!string.IsNullOrWhiteSpace(request.WarehouseId))
+        {
+            var warehouseId = GuidHelper.ParseGuidString(request.WarehouseId);
+            if (warehouseId is null)
+                return ([], 0);
+            query = query.Where(receipt => receipt.WarehouseId == warehouseId);
+        }
 
-        query = query.OrderByDescending(receipt => receipt.CreatedAt);
+        query = query.OrderByDescending(receipt => receipt.CreatedAt).ThenBy(receipt => receipt.ReceiptId);
 
         var totalCount = await query.CountAsync();
         var items = await query

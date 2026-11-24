@@ -36,8 +36,8 @@ export interface RawDashboardPlan {
 }
 
 export const dashboardApi = {
-  async getDashboardData(): Promise<DashboardData> {
-    const kpis = await apiClient<OperationalKpiResponse>('/workflow-reports/operational-kpis');
+  async getDashboardData(options?: { signal?: AbortSignal }): Promise<DashboardData> {
+    const kpis = await apiClient<OperationalKpiResponse>('/workflow-reports/operational-kpis', options);
 
     const metrics: MetricCardItem[] = [
       {

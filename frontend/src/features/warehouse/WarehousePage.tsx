@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../../store/useAuth';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
@@ -11,7 +11,10 @@ import { Badge } from '../../components/ui/badge';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Modal } from '../../components/ui/modal';
 import { Num } from '../../components/ui/num';
-import { serverStateCache } from '../../store/serverStateCache';
+import { useWorkbenchQuery } from '../../hooks/useWorkbenchQuery';
+import { useUrlWorkbenchState } from '../../hooks/useUrlWorkbenchState';
+import { PaginationBar } from '../../components/workbench/PaginationBar';
+import type { ReportPage } from '../../api/reportsApi';
 import {
   warehouseApi,
   type WarehouseItem,
@@ -53,81 +56,80 @@ export function WarehousePage() {
   return <DefaultWarehousePage />;
 }
 
-interface WarehouseSnapshot {
-  warehouses: WarehouseItem[];
-  issues: InventoryIssueItem[];
-  receipts: InventoryReceiptItem[];
-  selectedWarehouseId: string;
-}
+type WarehouseDocumentPage =
+  | { view: 'issues'; page: ReportPage<InventoryIssueItem> }
+  | { view: 'receipts'; page: ReportPage<InventoryReceiptItem> };
+
+const receiptStatuses: Record<string, string> = {
+  DRAFT: 'Dự thảo',
+  PENDING_APPROVAL: 'Chờ duyệt',
+  APPROVED: 'Đã duyệt',
+  REJECTED: 'Bị từ chối',
+  VOIDED: 'Đã hủy',
+  POSTED: 'Đã nhập kho',
+};
 
 function DefaultWarehousePage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const requestedView = searchParams.get('view');
   const activeView: 'issues' | 'receipts' | 'stock' =
     requestedView === 'receipts' || requestedView === 'stock' ? requestedView : 'issues';
 
-  const snapshot = serverStateCache.get<WarehouseSnapshot>('snapshot:warehouse')?.data;
-  const cachedWh = snapshot ? { warehouses: snapshot.warehouses, issues: snapshot.issues, receipts: snapshot.receipts } : serverStateCache.get<{ warehouses: WarehouseItem[]; issues: InventoryIssueItem[]; receipts: InventoryReceiptItem[] }>('default_warehouse_data')?.data;
-  const [warehouses, setWarehouses] = useState<WarehouseItem[]>(() => cachedWh?.warehouses || []);
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState(() => snapshot?.selectedWarehouseId || 'ALL');
-  const [issues, setIssues] = useState<InventoryIssueItem[]>(() => cachedWh?.issues || []);
-  const [receipts, setReceipts] = useState<InventoryReceiptItem[]>(() => cachedWh?.receipts || []);
+  const { page, setPage } = useUrlWorkbenchState();
+  const selectedWarehouseId = searchParams.get('warehouseId') || 'ALL';
+  const setSelectedWarehouseId = (warehouseId: string) => setSearchParams(previous => {
+    const next = new URLSearchParams(previous);
+    if (warehouseId === 'ALL') next.delete('warehouseId');
+    else next.set('warehouseId', warehouseId);
+    next.delete('page');
+    return next;
+  }, { replace: true });
   const [selectedIssue, setSelectedIssue] = useState<InventoryIssueItem | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<InventoryReceiptItem | null>(null);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(() => Boolean(cachedWh));
-  const [isLoading, setIsLoading] = useState(!cachedWh);
-  const [error, setError] = useState<Error | null>(null);
-
-  const loadData = async () => {
-    if (!cachedWh && !hasLoadedOnce) setIsLoading(true);
-    setError(null);
-    try {
-      const [whs, iss, rcp] = await Promise.all([
-        warehouseApi.getWarehouses(),
-        warehouseApi.getIssues(),
-        warehouseApi.getReceipts(),
-      ]);
-      setWarehouses(whs);
-      setIssues(iss);
-      setReceipts(rcp);
-      setHasLoadedOnce(true);
-      serverStateCache.set('default_warehouse_data', { warehouses: whs, issues: iss, receipts: rcp });
-      serverStateCache.set('snapshot:warehouse', { warehouses: whs, issues: iss, receipts: rcp, selectedWarehouseId });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err : new Error('Không thể tải dữ liệu kho vận.'));
-    } finally {
-      setIsLoading(false);
-    }
+  const receiptDetail = useWorkbenchQuery<InventoryReceiptItem>({
+    scopeKey: 'default_receipt_detail',
+    cacheKey: `default_receipt_detail_${selectedReceipt?.receiptId ?? ''}`,
+    snapshotKey: '',
+    scopeId: activeView === 'receipts' ? selectedReceipt?.receiptId ?? null : null,
+    queryFn: (_, signal) => warehouseApi.getReceipt(selectedReceipt!.receiptId, signal),
+  });
+  const receiptLines = receiptDetail.data?.receiptId === selectedReceipt?.receiptId
+    ? receiptDetail.data?.lines : undefined;
+  const catalog = useWorkbenchQuery<WarehouseItem[]>({
+    scopeKey: 'default_warehouse_catalog',
+    cacheKey: 'default_warehouse_catalog',
+    snapshotKey: '',
+    queryFn: (_, signal) => warehouseApi.getWarehouses(signal),
+  });
+  const documents = useWorkbenchQuery<WarehouseDocumentPage>({
+    scopeKey: 'default_warehouse_documents',
+    cacheKey: JSON.stringify(['default_warehouse_documents', activeView, selectedWarehouseId, page]),
+    snapshotKey: '',
+    enabled: activeView !== 'stock',
+    queryFn: async (_, signal) => {
+      const query = { warehouseId: selectedWarehouseId, pageNumber: page };
+      return activeView === 'receipts'
+        ? { view: 'receipts', page: await warehouseApi.getReceipts(signal, query) }
+        : { view: 'issues', page: await warehouseApi.getIssues(signal, query) };
+    },
+    isDatasetEmpty: result => result.page.items.length === 0,
+  });
+  const { isLoading, isFetching, error, isPreviousData } = documents.stateProps;
+  const currentPage = documents.data?.view === activeView ? documents.data.page : null;
+  const issues = activeView === 'issues' && documents.data?.view === 'issues' ? documents.data.page.items : [];
+  const receipts = activeView === 'receipts' && documents.data?.view === 'receipts' ? documents.data.page.items : [];
+  const loadData = () => {
+    if (catalog.stateProps.error || activeView === 'stock') void catalog.refetch(true);
+    if (activeView !== 'stock') void documents.refetch(true);
   };
-
-  useEffect(() => {
-    let ignore = false;
-    Promise.all([
-      warehouseApi.getWarehouses(),
-      warehouseApi.getIssues(),
-      warehouseApi.getReceipts(),
-    ]).then(([whs, iss, rcp]) => {
-      if (ignore) return;
-      setWarehouses(whs);
-      setIssues(iss);
-      setReceipts(rcp);
-      setHasLoadedOnce(true);
-      serverStateCache.set('default_warehouse_data', { warehouses: whs, issues: iss, receipts: rcp });
-    }).catch((cause: unknown) => {
-      if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu kho vận.'));
-    }).finally(() => {
-      if (!ignore) setIsLoading(false);
-    });
-    return () => { ignore = true; };
-  }, []);
 
   const warehouseOptions = useMemo(() => {
     return [
       { value: 'ALL', label: 'Tất cả các kho' },
-      ...warehouses.map((w) => ({ value: w.warehouseId, label: `${w.warehouseCode} - ${w.warehouseName}` })),
+      ...(catalog.data ?? []).map((w) => ({ value: w.warehouseId, label: `${w.warehouseCode} - ${w.warehouseName}` })),
     ];
-  }, [warehouses]);
+  }, [catalog.data]);
 
   const activeViewLabel =
     activeView === 'receipts' ? 'Phiếu nhập kho' : activeView === 'stock' ? 'Tồn kho hiện tại' : 'Phiếu xuất kho';
@@ -236,7 +238,7 @@ function DefaultWarehousePage() {
       header: 'Số dòng',
       width: '10%',
       align: 'center',
-      cell: (row) => <span className="font-mono text-xs">{row.itemsCount} dòng</span>,
+      cell: (row) => <span className="font-mono text-xs">{row.itemsCount > 0 ? `${row.itemsCount} dòng` : '—'}</span>,
     },
     {
       id: 'status',
@@ -248,7 +250,7 @@ function DefaultWarehousePage() {
           variant={row.status === 'POSTED' ? 'success' : row.status === 'APPROVED' ? 'info' : 'neutral'}
           size="sm"
         >
-          {row.status === 'POSTED' ? 'Đã nhập kho' : row.status === 'APPROVED' ? 'Đã duyệt' : 'Dự thảo'}
+          {receiptStatuses[row.status] ?? 'Chưa xác định'}
         </Badge>
       ),
     },
@@ -295,6 +297,7 @@ function DefaultWarehousePage() {
             variant="outline"
             size="default"
             onClick={loadData}
+            disabled={activeView !== 'stock' && (isLoading || isFetching)}
             className="h-9 text-sm font-medium"
           >
             Làm mới
@@ -311,12 +314,12 @@ function DefaultWarehousePage() {
           <>
             <span className="inline-flex items-center gap-1">
               <span className="text-slate-500">Tổng phiếu:</span>
-              <strong className="text-slate-900 font-mono font-bold">{issues.length + receipts.length} chứng từ</strong>
+              <strong className="text-slate-900 font-mono font-bold"><Num value={currentPage?.totalCount} /> chứng từ</strong>
             </span>
             <span className="text-slate-300">·</span>
             <span className="inline-flex items-center gap-1">
               <span className="text-slate-500">Kho vận hành:</span>
-              <strong className="text-slate-900 font-semibold">{warehouses.length} kho</strong>
+              <strong className="text-slate-900 font-semibold"><Num value={catalog.data?.length} /> kho</strong>
             </span>
             <span className="text-slate-300">·</span>
             <Badge variant="neutral" size="sm">
@@ -333,17 +336,13 @@ function DefaultWarehousePage() {
 
       {/* Zone 3: DataGrid */}
       <StateBoundary
-        isLoading={isLoading && !hasLoadedOnce}
-        isFetching={isLoading && hasLoadedOnce}
-        hasExistingData={hasLoadedOnce || Boolean(cachedWh)}
-        error={error}
+        isLoading={activeView !== 'stock' && !currentPage && (isLoading || isFetching)}
+        isFetching={activeView !== 'stock' && isFetching}
+        isPreviousData={activeView !== 'stock' && isPreviousData}
+        hasExistingData={Boolean(currentPage)}
+        error={activeView === 'stock' ? null : error}
         onRetry={loadData}
-        isEmpty={
-          !isLoading &&
-          !error &&
-          ((activeView === 'issues' && issues.length === 0) ||
-            (activeView === 'receipts' && receipts.length === 0))
-        }
+        isEmpty={activeView !== 'stock' && documents.stateProps.isEmpty && page === 1}
         emptyScenario={selectedWarehouseId !== 'ALL' ? 'filter-empty' : 'true-empty'}
         onResetFilters={() => setSelectedWarehouseId('ALL')}
         actionLabel={selectedWarehouseId !== 'ALL' ? 'Xem tất cả kho' : 'Làm mới danh sách'}
@@ -385,6 +384,13 @@ function DefaultWarehousePage() {
           </StateBoundary>
         )}
       </StateBoundary>
+
+      {activeView !== 'stock' && currentPage && (
+        <PaginationBar label={`Phân trang ${activeViewLabel.toLowerCase()}`} page={currentPage.pageNumber}
+          pageSize={currentPage.pageSize} totalCount={currentPage.totalCount} totalPages={currentPage.totalPages}
+          hasPrev={currentPage.hasPrev} hasNext={currentPage.hasNext} pending={isFetching || isPreviousData || Boolean(error)}
+          retainButtonFocus onPageChange={setPage} />
+      )}
 
       {/* Issue Detail Modal */}
       <Modal
@@ -434,13 +440,16 @@ function DefaultWarehousePage() {
 
       {/* Receipt Detail Modal */}
       <Modal
-        isOpen={Boolean(selectedReceipt)}
+        isOpen={activeView === 'receipts' && Boolean(selectedReceipt)}
         onClose={() => setSelectedReceipt(null)}
         title={`Chi tiết phiếu nhập: ${selectedReceipt?.receiptCode ?? ''}`}
         description={`Nhà cung cấp: ${selectedReceipt?.supplierName ?? ''} · Ngày nhập: ${selectedReceipt ? formatVietnameseDate(selectedReceipt.receiptDate) : ''} · Kho: ${selectedReceipt?.warehouseName ?? ''}`}
         footer={<Button variant="outline" size="sm" onClick={() => setSelectedReceipt(null)}>Đóng</Button>}
       >
-        {selectedReceipt && (
+        {selectedReceipt && <StateBoundary {...receiptDetail.stateProps}
+          isLoading={!receiptLines && (receiptDetail.stateProps.isLoading || receiptDetail.stateProps.isFetching)}
+          hasExistingData={Boolean(receiptLines)} onRetry={() => void receiptDetail.refetch(true)}>
+        {receiptLines && (
           <div className="space-y-3">
             <div className="border border-slate-200 rounded overflow-hidden max-h-72 overflow-y-auto">
               <table className="w-full text-left text-sm border-collapse">
@@ -454,14 +463,14 @@ function DefaultWarehousePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
-                  {selectedReceipt.lines.length === 0 ? (
+                  {receiptLines.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="p-4 text-center text-slate-500 italic">
                         Phiếu nhập không có dòng chi tiết.
                       </td>
                     </tr>
                   ) : (
-                    selectedReceipt.lines.map((l) => (
+                    receiptLines.map((l) => (
                       <tr key={l.lineId} className="hover:bg-slate-50/50">
                         <td className="p-2.5 font-mono text-slate-600"><IdentifierText value={l.ingredientCode} /></td>
                         <td className="p-2.5 font-medium text-slate-900">{l.ingredientName}</td>
@@ -476,6 +485,7 @@ function DefaultWarehousePage() {
             </div>
           </div>
         )}
+        </StateBoundary>}
       </Modal>
     </div>
   );

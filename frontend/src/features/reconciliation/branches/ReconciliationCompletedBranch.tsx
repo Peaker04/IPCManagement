@@ -98,6 +98,7 @@ export function ReconciliationCompletedBranch({ report, page = 1, onPageChange, 
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
       <DataGrid
         data={report?.rows ?? []}
+        pending={pending}
         hideHeaderWhenEmpty
         columns={completedColumns}
         minWidth="min-w-[1000px]"
@@ -107,7 +108,7 @@ export function ReconciliationCompletedBranch({ report, page = 1, onPageChange, 
       {onPageChange && <PaginationBar label="Phân trang hồ sơ hoàn tất" page={page} pageSize={50}
         totalCount={report?.totalCount} totalPages={report ? Math.ceil(report.totalCount / 50) : undefined}
         hasPrev={Boolean(report && page > 1)} hasNext={Boolean(report && page < totalPages)}
-        pending={pending} onPageChange={onPageChange} />}
+        pending={pending} retainButtonFocus onPageChange={onPageChange} />}
     </div>
   );
 }

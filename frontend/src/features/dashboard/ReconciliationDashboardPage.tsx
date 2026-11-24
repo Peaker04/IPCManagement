@@ -84,7 +84,7 @@ export function ReconciliationDashboardPage() {
   if (cachedEntry && !cachedEntry.isStale && state?.key !== cacheKey) {
     setState({ key: cacheKey, data: cachedEntry.data, error: null, refreshing: false });
   }
-  const requestId = useRef(0);
+  const readController = useRef<AbortController | null>(null);
   const lastReadScope = useRef<string | null>(null);
   const current = state?.key === cacheKey ? state : null;
   const exactData = current?.data ?? cachedEntry?.data ?? null;
@@ -93,53 +93,60 @@ export function ReconciliationDashboardPage() {
   const customers = data?.customers ?? getCachedArray<CustomerOption>(customersKey) ?? [];
 
   const refreshing = isTransitioning || (current?.refreshing ?? Boolean(exactData));
-  const read = useCallback(async (id: number, forceSummary = false): Promise<DashboardData> => {
+  const read = useCallback(async (forceSummary: boolean, signal: AbortSignal): Promise<DashboardData> => {
     if (historicalScope.error) throw new Error(historicalScope.error);
     const summaryKey = `mrx_dashboard_summary_${scope}_${queuePage}`;
     const cachedSummary = serverStateCache.get<MrxOperationalSummary>(summaryKey);
     const summaryRequest = !forceSummary && cachedSummary && !cachedSummary.isStale
       ? Promise.resolve(cachedSummary.data)
-      : mrxApi.getOperationalSummary(queuePage > 1 ? { ...filters, queuePage } : filters).then(summary => { if (id === requestId.current) serverStateCache.set(summaryKey, summary); return summary; });
+      : mrxApi.getOperationalSummary(queuePage > 1 ? { ...filters, queuePage } : filters, signal).then(summary => {
+        signal.throwIfAborted();
+        serverStateCache.set(summaryKey, summary);
+        return summary;
+      });
     const batchKey = `mrx_dashboard_batches_${scope}_${page}`;
     const cachedBatches = serverStateCache.get<MrxBatchPage>(batchKey);
     const [summary, batches] = await Promise.all([
       summaryRequest,
       !forceSummary && cachedBatches && !cachedBatches.isStale ? Promise.resolve(cachedBatches.data)
-        : mrxApi.getBatchPage({ ...filters, pageNumber: page, pageSize: 20 }).then(batches => { if (id === requestId.current) serverStateCache.set(batchKey, batches); return batches; }),
+        : mrxApi.getBatchPage({ ...filters, pageNumber: page, pageSize: 20 }, signal).then(batches => {
+          signal.throwIfAborted();
+          serverStateCache.set(batchKey, batches);
+          return batches;
+        }),
     ]);
     return { summary, customers: summary.customerOptions, batches };
   }, [filters, page, scope, historicalScope.error, queuePage]);
 
-  useEffect(() => {
-    const id = ++requestId.current;
-    const revalidateScope = lastReadScope.current !== scope;
-    lastReadScope.current = scope;
-    read(id, revalidateScope).then((result) => {
-      if (id !== requestId.current) return;
-      serverStateCache.set(cacheKey, result);
-      serverStateCache.set(customersKey, result.customers);
-      setState({ key: cacheKey, data: result, error: null, refreshing: false });
-    }).catch((cause: unknown) => {
-      if (id !== requestId.current) return;
-      setState({ key: cacheKey, data: serverStateCache.get<DashboardData>(cacheKey)?.data ?? null, error: cause instanceof Error ? cause : new Error('Không thể tải tổng quan đối soát.'), refreshing: false });
-    });
-    return () => { requestId.current += 1; };
-  }, [cacheKey, customersKey, read, scope]);
-
-  const refresh = useCallback(async () => {
-    const id = ++requestId.current;
-    setState({ key: cacheKey, data, error: null, refreshing: true });
+  const fetchDashboard = useCallback(async (force: boolean, retained: DashboardData | null) => {
+    readController.current?.abort();
+    const controller = new AbortController();
+    readController.current = controller;
     try {
-      const result = await read(id, true);
-      if (id !== requestId.current) return;
+      const result = await read(force, controller.signal);
+      if (controller.signal.aborted) return;
       serverStateCache.set(cacheKey, result);
       serverStateCache.set(customersKey, result.customers);
       setState({ key: cacheKey, data: result, error: null, refreshing: false });
     } catch (cause) {
-      if (id !== requestId.current) return;
-      setState({ key: cacheKey, data, error: cause instanceof Error ? cause : new Error('Không thể tải tổng quan đối soát.'), refreshing: false });
+      if (controller.signal.aborted) return;
+      setState({ key: cacheKey, data: retained, error: cause instanceof Error ? cause : new Error('Không thể tải tổng quan đối soát.'), refreshing: false });
+    } finally {
+      if (readController.current === controller) readController.current = null;
     }
-  }, [cacheKey, customersKey, data, read]);
+  }, [cacheKey, customersKey, read]);
+
+  useEffect(() => {
+    const revalidateScope = lastReadScope.current !== scope;
+    lastReadScope.current = scope;
+    void fetchDashboard(revalidateScope, serverStateCache.get<DashboardData>(cacheKey)?.data ?? null);
+    return () => readController.current?.abort();
+  }, [cacheKey, fetchDashboard, scope]);
+
+  const refresh = useCallback(() => {
+    setState({ key: cacheKey, data: exactData, error: null, refreshing: true });
+    return fetchDashboard(true, exactData);
+  }, [cacheKey, exactData, fetchDashboard]);
 
   useEffect(() => {
     if (operationalMode !== 'MATERIAL_RECONCILIATION') return;

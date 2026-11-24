@@ -86,6 +86,7 @@ export function ReconciliationTransactionsBranch({ report, page, onPageChange, p
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
       <DataGrid
         data={report?.items ?? []}
+        pending={pending}
         hideHeaderWhenEmpty
         minWidth="min-w-[1100px]"
         columns={transactionColumns}
@@ -95,7 +96,7 @@ export function ReconciliationTransactionsBranch({ report, page, onPageChange, p
       <PaginationBar label="Phân trang giao dịch kho" page={report?.pageNumber ?? page} pageSize={25}
         totalCount={report?.totalCount} totalPages={report?.totalPages}
         hasPrev={report?.hasPrev ?? false} hasNext={report?.hasNext ?? false}
-        pending={pending} onPageChange={onPageChange} />
+        pending={pending} retainButtonFocus onPageChange={onPageChange} />
       <ReconciliationIssueDetailModal
         isOpen={Boolean(inspectedIssueId)}
         onClose={() => setInspectedIssueId(null)}

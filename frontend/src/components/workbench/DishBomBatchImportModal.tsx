@@ -287,7 +287,7 @@ export function DishBomBatchImportModal({
                       disabled={isCommitting || (mrxShared && isCurrentMrxScope)}
                       onClick={() => { if (isCommitting) return; setSelectedPriceTier(tier); invalidatePreview(); }}
                       className={clsx(
-                        'px-3 py-1.5 rounded border text-center transition-all cursor-pointer font-mono font-semibold',
+                        'px-3 py-1.5 rounded border text-center transition-colors cursor-pointer font-mono font-semibold',
                         isSelected
                           ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
                           : 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'

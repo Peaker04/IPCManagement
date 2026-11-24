@@ -514,7 +514,7 @@ export function WeeklyMenuImportModal({
                   aria-checked={isSelected}
                   disabled={imports.isCommitting || isRollingBack || isLoadingTiers || Boolean(tierError)}
                   onClick={() => imports.updateItem(item.id, { priceTierAmount: tier })}
-                  className={`p-2 rounded border text-center transition-all cursor-pointer ${
+                  className={`p-2 rounded border text-center transition-colors cursor-pointer ${
                     isSelected
                       ? 'border-slate-900 bg-slate-900 text-white font-bold shadow-xs'
                       : 'border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50'

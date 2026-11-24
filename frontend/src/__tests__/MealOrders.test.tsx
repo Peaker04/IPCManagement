@@ -65,7 +65,8 @@ describe('Meal Orders Feature (FR-COORD — Behavioral Audit)', () => {
     expect(getOrdersSpy).toHaveBeenCalledWith(
       expect.any(String),
       'AFTERNOON',
-      'DAV'
+      'DAV',
+      expect.any(AbortSignal)
     );
   });
 

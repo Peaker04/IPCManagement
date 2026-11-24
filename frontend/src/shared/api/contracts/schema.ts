@@ -4979,6 +4979,7 @@ export interface paths {
                     readonly SearchKeyword?: string;
                     readonly SortBy?: string;
                     readonly SortDesc?: boolean;
+                    readonly WarehouseId?: string;
                 };
                 readonly header?: never;
                 readonly path?: never;
@@ -6337,6 +6338,7 @@ export interface paths {
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
                     readonly Status?: string;
+                    readonly SupplierId?: string;
                 };
                 readonly header?: never;
                 readonly path?: never;

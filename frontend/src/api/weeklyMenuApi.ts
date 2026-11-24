@@ -35,6 +35,7 @@ export interface WeeklyMenuData {
   productionPlans: ProductionPlanItem[];
   dishCosts: DishCostSummaryItem[];
   dailyMaterials: DailyMaterialSummaryItem[];
+  viewErrors?: Partial<Record<'demand' | 'production-plan', Error>>;
 }
 
 export interface RawWeeklyMenuImportRow {
@@ -101,7 +102,7 @@ interface RawDemandAggregatePage {
   pendingKitchenReceiptCount: number;
 }
 
-const DAY_NAMES = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
+const DAY_NAMES = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
 function addDays(date: string, days: number): string {
   const value = new Date(`${date}T00:00:00Z`);
@@ -169,24 +170,24 @@ export interface WeeklyMenuImportSnapshot {
 }
 
 export const weeklyMenuApi = {
-  async getCustomers(): Promise<CustomerOption[]> {
-    return apiClient<CustomerOption[]>('/coordination/customers');
+  async getCustomers(signal?: AbortSignal): Promise<CustomerOption[]> {
+    return apiClient<CustomerOption[]>('/coordination/customers', { signal });
   },
 
-  async getWeeklyMenu(customerId: string, weekStartDate: string): Promise<RawWeeklyMenuResponse> {
+  async getWeeklyMenu(customerId: string, weekStartDate: string, signal?: AbortSignal): Promise<RawWeeklyMenuResponse> {
     const mode = (typeof localStorage !== 'undefined' ? localStorage.getItem('ipc_v3_mode') : null) || 'DEFAULT';
     const endpoint = mode === 'MATERIAL_RECONCILIATION'
       ? `/reconciliation/weekly-menu?customerId=${encodeURIComponent(customerId)}&weekStartDate=${encodeURIComponent(weekStartDate)}`
       : `/coordination/weekly-menu?customerId=${encodeURIComponent(customerId)}&weekStartDate=${encodeURIComponent(weekStartDate)}`;
-    return apiClient<RawWeeklyMenuResponse>(endpoint);
+    return apiClient<RawWeeklyMenuResponse>(endpoint, { signal });
   },
 
-  async getProductionPlans(dateFrom: string, dateTo: string, customerId: string): Promise<RawProductionPlan[]> {
+  async getProductionPlans(dateFrom: string, dateTo: string, customerId: string, signal?: AbortSignal): Promise<RawProductionPlan[]> {
     const query = new URLSearchParams({ dateFrom, dateTo, customerId });
-    return apiClient<RawProductionPlan[]>(`/production-plans/filter?${query.toString()}`);
+    return apiClient<RawProductionPlan[]>(`/production-plans/filter?${query.toString()}`, { signal });
   },
 
-  async getDemandPage(dateFrom: string, dateTo: string, customerId: string, pageNumber = 1, pageSize = 100): Promise<RawDemandAggregatePage> {
+  async getDemandPage(dateFrom: string, dateTo: string, customerId: string, pageNumber = 1, pageSize = 100, signal?: AbortSignal): Promise<RawDemandAggregatePage> {
     const query = new URLSearchParams({
       dateFrom,
       dateTo,
@@ -195,16 +196,17 @@ export const weeklyMenuApi = {
       pageSize: String(pageSize),
     });
     return apiClient<RawDemandAggregatePage>(
-      `/workflow-reports/ingredient-demand/aggregate/page?${query.toString()}`
+      `/workflow-reports/ingredient-demand/aggregate/page?${query.toString()}`, { signal }
     );
   },
 
-  async getAllDemand(dateFrom: string, dateTo: string, customerId: string, pageSize = 100): Promise<RawDemandAggregatePage> {
-    const firstPage = await this.getDemandPage(dateFrom, dateTo, customerId, 1, pageSize);
+  async getAllDemand(dateFrom: string, dateTo: string, customerId: string, pageSize = 100, signal?: AbortSignal): Promise<RawDemandAggregatePage> {
+    const firstPage = await this.getDemandPage(dateFrom, dateTo, customerId, 1, pageSize, signal);
     const items = [...firstPage.items];
     let pageNumber = 2;
     while (items.length < firstPage.totalCount) {
-      const page = await this.getDemandPage(dateFrom, dateTo, customerId, pageNumber, pageSize);
+      signal?.throwIfAborted();
+      const page = await this.getDemandPage(dateFrom, dateTo, customerId, pageNumber, pageSize, signal);
       if (page.items.length === 0) break;
       items.push(...page.items);
       pageNumber += 1;
@@ -226,9 +228,10 @@ export const weeklyMenuApi = {
     });
   },
 
-  async getWeeklyMenuData(customerCode: string, weekStartDate: string): Promise<WeeklyMenuData> {
-    const customers = await this.getCustomers();
-    const matchedCustomer = customers.find((customer) => customer.customerCode === customerCode);
+  async getWeeklyMenuData(customerCode: string, weekStartDate: string, { signal, customer }: { signal?: AbortSignal; customer?: CustomerOption } = {}): Promise<WeeklyMenuData> {
+    const matchedCustomer = customer?.customerCode === customerCode ? customer
+      : (await this.getCustomers(signal)).find(item => item.customerCode === customerCode);
+    signal?.throwIfAborted();
     if (!matchedCustomer) {
       throw new Error(`Không tìm thấy khách hàng với mã ${customerCode}.`);
     }
@@ -237,20 +240,34 @@ export const weeklyMenuApi = {
     const mode = (typeof localStorage !== 'undefined' ? localStorage.getItem('ipc_v3_mode') : null) || 'DEFAULT';
     const isMrx = mode === 'MATERIAL_RECONCILIATION';
 
-    const [menuResponse, rawPlans, demandPage] = await Promise.all([
-      this.getWeeklyMenu(matchedCustomer.customerId, weekStartDate),
+    const [menuResult, plansResult, demandResult] = await Promise.allSettled([
+      this.getWeeklyMenu(matchedCustomer.customerId, weekStartDate, signal),
       isMrx
         ? Promise.resolve([])
-        : this.getProductionPlans(weekStartDate, weekEndDate, matchedCustomer.customerId).catch(() => []),
+        : this.getProductionPlans(weekStartDate, weekEndDate, matchedCustomer.customerId, signal),
       isMrx
-        ? Promise.resolve({ items: [], totalCount: 0, pageNumber: 1, pageSize: 100, remainingToIssueCount: 0, pendingKitchenReceiptCount: 0 })
-        : this.getAllDemand(weekStartDate, weekEndDate, matchedCustomer.customerId).catch(() => ({ items: [], totalCount: 0, pageNumber: 1, pageSize: 100, remainingToIssueCount: 0, pendingKitchenReceiptCount: 0 })),
+        ? Promise.resolve(null)
+        : this.getAllDemand(weekStartDate, weekEndDate, matchedCustomer.customerId, 100, signal),
     ]);
+    signal?.throwIfAborted();
+    if (menuResult.status === 'rejected') throw menuResult.reason;
+    const menuResponse = menuResult.value;
+    const rawPlans = plansResult.status === 'fulfilled' ? plansResult.value : [];
+    const demandPage = demandResult.status === 'fulfilled' ? demandResult.value : null;
+    const viewErrors: NonNullable<WeeklyMenuData['viewErrors']> = {};
+    if (plansResult.status === 'rejected') {
+      viewErrors['production-plan'] = plansResult.reason instanceof Error
+        ? plansResult.reason : new Error('Không thể tải kế hoạch sản xuất.');
+    }
+    if (demandResult.status === 'rejected') {
+      viewErrors.demand = demandResult.reason instanceof Error
+        ? demandResult.reason : new Error('Không thể tải nhu cầu nguyên liệu.');
+    }
 
     const rows = menuResponse?.rows || [];
     const dates = Array.from(new Set(rows.map((row) => row.serviceDate))).sort();
-    const scheduleDays: ScheduleDayColumn[] = dates.map((date, index) => ({
-      dayName: DAY_NAMES[index] || `Ngày ${index + 1}`,
+    const scheduleDays: ScheduleDayColumn[] = dates.map(date => ({
+      dayName: DAY_NAMES[new Date(`${date}T00:00:00Z`).getUTCDay()] ?? date,
       dateStr: formatVietnameseDate(date),
       cells: [],
     }));
@@ -284,7 +301,7 @@ export const weeklyMenuApi = {
       }))
     );
 
-    const demandRows = demandPage.items.map((item): MaterialDemandItem => ({
+    const demandRows = (demandPage?.items ?? []).map((item): MaterialDemandItem => ({
       materialId: `${item.requestDate}:${item.customerId}:${item.ingredientId}:${item.unitId}`,
       materialCode: item.ingredientId,
       materialName: item.ingredientName || '—',
@@ -312,6 +329,7 @@ export const weeklyMenuApi = {
       productionPlans,
       dishCosts: [],
       dailyMaterials: [],
+      viewErrors: Object.keys(viewErrors).length ? viewErrors : undefined,
     };
   },
 

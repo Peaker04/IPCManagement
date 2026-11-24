@@ -123,10 +123,28 @@ function activeParentKeyForPath(pathname: string): string | null {
  * Right Frame: flex-1 min-w-0 h-dvh flex flex-col overflow-hidden bg-slate-50/40
  */
 export function AppShell({ children, navigation, homePath = '/', loadingFallback }: AppShellProps) {
-  const { user, logout, operationalMode, hasRole, idleWarning } = useAuth();
+  const { user, logout, operationalMode, hasRole, idleWarning, reloadOperationalMode } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { requestNavigation } = useDirtyNavigation();
+  const [modeNotice, setModeNotice] = useState(false);
+  const [modeRefresh, setModeRefresh] = useState<'idle' | 'loading' | 'failed'>('idle');
+  useEffect(() => {
+    const showModeNotice = () => setModeNotice(true);
+    window.addEventListener('ipc:mode-unavailable', showModeNotice);
+    return () => window.removeEventListener('ipc:mode-unavailable', showModeNotice);
+  }, []);
+  const refreshMode = async () => {
+    if (modeRefresh === 'loading') return;
+    setModeRefresh('loading');
+    try {
+      await reloadOperationalMode();
+      setModeNotice(false);
+      setModeRefresh('idle');
+    } catch {
+      setModeRefresh('failed');
+    }
+  };
   const { density, sidebarOpen, updateConfig } = useWorkspaceUiState({
     tableKey: 'global_app_shell',
     userId: user?.userId,
@@ -222,7 +240,7 @@ export function AppShell({ children, navigation, homePath = '/', loadingFallback
       {/* Left Sidebar (w-60 / 240px shrink-0 or collapsed w-16) */}
       <aside
         className={clsx(
-          'shrink-0 border-r border-slate-200 bg-white flex flex-col h-dvh select-none z-30 transition-all duration-150 ease-out',
+          'shrink-0 border-r border-slate-200 bg-white flex flex-col h-dvh select-none z-30 motion-safe:transition-[width,transform] duration-150 ease-out',
           isSidebarCollapsed ? 'w-16 max-md:hidden' : 'w-60',
           !isSidebarCollapsed && 'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:shadow-2xl'
         )}
@@ -435,6 +453,13 @@ export function AppShell({ children, navigation, homePath = '/', loadingFallback
       <main className="flex-1 min-w-0 h-dvh flex flex-col overflow-hidden bg-slate-50/40">
         {idleWarning && <InlineBanner variant="warning">Phiên sắp kết thúc do không hoạt động. Hãy thao tác để tiếp tục làm việc.</InlineBanner>}
         <NetworkConnectivityBanner />
+        {modeNotice && <InlineBanner variant="warning"
+          actionLabel={modeRefresh === 'loading' ? undefined : 'Tải chế độ hiện tại'}
+          onAction={() => { if (requestNavigation(() => void refreshMode())) void refreshMode(); }}>
+          {modeRefresh === 'loading' ? 'Đang kiểm tra chế độ vận hành…'
+            : modeRefresh === 'failed' ? 'Chưa đọc được chế độ vận hành. Hãy thử lại.'
+              : 'Chế độ vận hành đã thay đổi trên máy chủ.'}
+        </InlineBanner>}
         <Suspense
           fallback={loadingFallback}
         >

@@ -337,7 +337,7 @@ describe('MRX direct source edit', () => {
       : Promise.resolve(nextScope));
     const { result, rerender } = renderHook(({ customerId }) => useMrxSourceEdit({ customerId, weekStartDate: '2026-06-15' }),
       { initialProps: { customerId: 'customer-1' } });
-    await waitFor(() => expect(mrxApi.getEditScope).toHaveBeenCalledWith('customer-1', '2026-06-15'));
+    await waitFor(() => expect(mrxApi.getEditScope).toHaveBeenCalledWith('customer-1', '2026-06-15', expect.any(AbortSignal)));
     rerender({ customerId: 'customer-2' });
     await waitFor(() => expect(result.current.editScope?.batchId).toBe('batch-2'));
     act(() => result.current.setServings('2026-06-16', 'MORNING', 'savory', 125));
@@ -722,7 +722,7 @@ describe('MRX direct source edit', () => {
     expect(fetchBatch).toHaveBeenLastCalledWith(expect.stringMatching(/\/coordination\/weekly-menu\/import\/commit-batch$/), expect.objectContaining({ method: 'POST', body: commit.mock.calls[1][0] }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(router.state.location.search).toContain('customerId=customer-2&weekStartDate=2026-06-22');
-    await waitFor(() => expect(getSource).toHaveBeenLastCalledWith('customer-2', '2026-06-22'));
+    await waitFor(() => expect(getSource).toHaveBeenLastCalledWith('customer-2', '2026-06-22', expect.any(AbortSignal)));
     expect(workspaceSessionStore.getScope()).toMatchObject({ customerId: 'customer-2', weekStartDate: '2026-06-22' });
     expect(single).not.toHaveBeenCalled();
     expect(publish).not.toHaveBeenCalled();
@@ -884,7 +884,7 @@ describe('MRX direct source edit', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(router.state.location.search).toContain('customerId=customer-2');
     expect(router.state.location.search).toContain('weekStartDate=2026-06-22');
-    await waitFor(() => expect(getSource).toHaveBeenLastCalledWith('customer-2', '2026-06-22'));
+    await waitFor(() => expect(getSource).toHaveBeenLastCalledWith('customer-2', '2026-06-22', expect.any(AbortSignal)));
     expect(screen.getByRole('combobox', { name: 'Chọn khách hàng MRX' })).toHaveValue('customer-2');
     expect(screen.getByRole('textbox', { name: 'Tuần MRX bắt đầu' })).toHaveValue('22/06/2026');
     expect(workspaceSessionStore.getScope()).toMatchObject({ customerId: 'customer-2', weekStartDate: '2026-06-22', batchId: '' });

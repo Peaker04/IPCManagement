@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOperationalRecovery, executeSafeMutation } from '../../hooks/useOperationalRecovery';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
@@ -53,9 +53,10 @@ export function MealOrdersPage() {
   const [lockSuccess, setLockSuccess] = useState<string | null>(null);
   const [lockError, setLockError] = useState<Error | null>(null);
 
-  const fetcher = useCallback(async (f: { customerCode: string; serviceDate: string; shiftName: 'MORNING' | 'AFTERNOON' }) => {
+  const fetcher = useCallback(async (f: { customerCode: string; serviceDate: string; shiftName: 'MORNING' | 'AFTERNOON' }, signal: AbortSignal) => {
     if (!f.customerCode) return null;
-    const summary = await coordinationApi.getOrders(f.serviceDate, f.shiftName, f.customerCode);
+    const summary = await coordinationApi.getOrders(f.serviceDate, f.shiftName, f.customerCode, signal);
+    signal.throwIfAborted();
     serverStateCache.set('snapshot:meal_orders', {
       customerCode: f.customerCode,
       serviceDate: f.serviceDate,
@@ -65,30 +66,27 @@ export function MealOrdersPage() {
     return summary;
   }, []);
 
+  const orderFilters = useMemo(() => ({ customerCode, serviceDate, shiftName }), [customerCode, serviceDate, shiftName]);
   const recovery = useOperationalRecovery<CoordinationShiftSummary | null, { customerCode: string; serviceDate: string; shiftName: 'MORNING' | 'AFTERNOON' }>({
     queryKey: `meal_orders_${customerCode}_${serviceDate}_${shiftName}`,
     fetcher,
-    initialFilters: { customerCode, serviceDate, shiftName },
+    initialFilters: orderFilters,
+    activeFilters: orderFilters,
     defaultFilters: { customerCode: customers[0]?.customerCode || '', serviceDate: todayInBusinessTimezone(), shiftName: 'MORNING' },
     prerequisiteRoute: CUSTOMERS_ROUTE,
     prerequisiteLabel: 'Khách hàng & Hợp đồng',
   });
 
-  const { setFilters } = recovery;
-  useEffect(() => {
-    if (customerCode) {
-      setFilters({ customerCode, serviceDate, shiftName });
-    }
-  }, [customerCode, serviceDate, shiftName, setFilters]);
-
-  const data = recovery.data || cachedOrders || null;
+  const data = recovery.data || (recovery.isLoading ? cachedOrders : null);
   const isLoading = recovery.isLoading && !data;
   const isFetching = recovery.isFetching;
   const error = customerError || recovery.error;
   const loadOrders = recovery.refetch;
+  const canLock = Boolean(data?.orders.length && data.customerCode === customerCode
+    && data.serviceDate === serviceDate && data.shiftName === shiftName && !isFetching && !error);
 
   const handleLock = async () => {
-    if (!data || data.orders.length === 0) return;
+    if (!data || !canLock || isLocking) return;
     setIsLocking(true);
     setLockError(null);
 
@@ -244,7 +242,7 @@ export function MealOrdersPage() {
               <Button
                 variant="default"
                 size="default"
-                disabled={isLocking}
+                disabled={isLocking || !canLock}
                 onClick={() => setIsLockModalOpen(true)}
                 className="h-9 text-sm font-medium bg-slate-900 text-white hover:bg-slate-800"
               >
@@ -286,6 +284,7 @@ export function MealOrdersPage() {
       <StateBoundary
         isLoading={isLoading && !data}
         isFetching={isFetching || (isLoading && Boolean(data))}
+        isPreviousData={recovery.isPreviousData}
         hasExistingData={Boolean(data || snapshot?.data)}
         error={error}
         onRetry={loadOrders}
@@ -320,8 +319,8 @@ export function MealOrdersPage() {
             <Button variant="outline" size="sm" disabled={isLocking} onClick={() => { setIsLockModalOpen(false); setLockError(null); }}>
               Hủy
             </Button>
-            <Button variant="default" size="sm" disabled={isLocking} onClick={() => void handleLock()}>
-              {isLocking ? 'Đang chốt…' : 'Xác nhận chốt đơn'}
+            <Button variant="default" size="sm" disabled={!canLock && !isLocking} loading={isLocking} loadingText="Đang chốt…" onClick={() => void handleLock()}>
+              Xác nhận chốt đơn
             </Button>
           </>
         }

@@ -68,7 +68,7 @@ export function MrxDailyHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
-      className="mrx-scope-header"
+      className="mrx-scope-header mrx-daily-issue-header"
       title="Xuất kho nguyên liệu theo ngày"
       breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
       contextSelectors={
@@ -149,9 +149,11 @@ export function MrxDailyHeaderBranch({
                 variant="default"
                 size="default"
                 onClick={() => void onSubmit()}
-                disabled={!canSubmit}
+                disabled={!canSubmit && !saving}
+                loading={saving}
+                loadingText="Đang ghi…"
               >
-                {saving ? 'Đang ghi…' : 'Xác nhận xuất kho'}
+                Xác nhận xuất kho
               </Button>
             </>
           )}

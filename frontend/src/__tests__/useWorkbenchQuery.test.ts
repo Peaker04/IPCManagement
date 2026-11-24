@@ -74,22 +74,30 @@ describe('useWorkbenchQuery — Canonical 5-Layer State Engine Unit Test', () =>
     expect(signals[1]?.aborted).toBe(false);
   });
 
-  it('does not publish an old manual refresh into a new scope or its snapshot', async () => {
+  it('aborts a manual refresh when moving to a cached scope and ignores late results', async () => {
     let resolveOld!: (data: { id: string }) => void;
     const oldRefresh = new Promise<{ id: string }>((resolve) => { resolveOld = resolve; });
     let callsA = 0;
+    let refreshSignal: AbortSignal | undefined;
     const { result, rerender } = renderHook(({ key }) => useWorkbenchQuery({
       scopeKey: 'refresh-race', cacheKey: key, snapshotKey: 'snapshot:refresh-race', scopeId: key,
-      queryFn: () => key === 'a' && ++callsA > 1 ? oldRefresh : Promise.resolve({ id: key }),
-    }), { initialProps: { key: 'a' } });
-    await waitFor(() => expect(result.current.data).toEqual({ id: 'a' }));
+      queryFn: (_params, signal) => {
+        if (key !== 'mrx_a' || ++callsA === 1) return Promise.resolve({ id: key });
+        refreshSignal = signal;
+        return oldRefresh;
+      },
+    }), { initialProps: { key: 'mrx_a' } });
+    await waitFor(() => expect(result.current.data).toEqual({ id: 'mrx_a' }));
+    serverStateCache.set('mrx_b', { id: 'mrx_b' });
     let pending!: Promise<void>;
     act(() => { pending = result.current.refetch(true); });
-    rerender({ key: 'b' });
-    await waitFor(() => expect(result.current.data).toEqual({ id: 'b' }));
+    rerender({ key: 'mrx_b' });
+    expect(refreshSignal?.aborted).toBe(true);
+    expect(result.current.stateProps.isFetching).toBe(false);
+    await waitFor(() => expect(result.current.data).toEqual({ id: 'mrx_b' }));
     await act(async () => { resolveOld({ id: 'old-a' }); await pending; });
-    expect(result.current.data).toEqual({ id: 'b' });
-    expect(serverStateCache.get('snapshot:refresh-race')?.data).toMatchObject({ data: { id: 'b' } });
+    expect(result.current.data).toEqual({ id: 'mrx_b' });
+    expect(serverStateCache.get('snapshot:refresh-race')?.data).toMatchObject({ data: { id: 'mrx_b' } });
   });
 
   // --------------------------------------------------------------------------

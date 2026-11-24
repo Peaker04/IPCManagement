@@ -1,10 +1,10 @@
+import { invalidateMrxCaches } from '../../api/mrxCacheInvalidation';
 import { getMrxShiftLabel } from '../../constants/mrxConstants';
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { Boxes } from 'lucide-react';
 import { ApiError } from '../../api/client';
-import { invalidateMrxCaches } from '../../api/mrxCacheInvalidation';
 import { Button } from '../../components/ui/button';
 import { ActionGuard } from '../../components/ui/action-guard';
 import { Num } from '../../components/ui/num';
@@ -67,6 +67,9 @@ export function MrxDailyIssueWorkbench({
     daily,
     day,
     history,
+    historyState,
+    isHistoryPageStale,
+    refetchHistory,
     historyPage,
     setHistoryPage,
     lines,
@@ -364,7 +367,9 @@ export function MrxDailyIssueWorkbench({
           onClose={isIssueOutcomeUnknown ? undefined : () => setMutationError(null)}
           className="shrink-0 rounded-none border-x-0"
         >
-          {isIssueOutcomeUnknown ? 'Kết nối bị gián đoạn; phiếu có thể đã được ghi. Hãy tải lại để kiểm tra lịch sử trước khi xuất thêm.' : mutationError.message}
+          {isIssueOutcomeUnknown
+            ? 'Phiếu có thể đã được ghi. Gửi lại cùng mã lệnh để nhận phiếu đã ghi hoặc hoàn tất lần gửi trước.'
+            : mutationError?.message}
         </InlineBanner>
       )}
 
@@ -389,10 +394,11 @@ export function MrxDailyIssueWorkbench({
       <WorkspaceFrame.Body>
         <StateBoundary
           {...stateProps}
+          className={activeTab === 'demand' && isOutsideBatchDate ? 'justify-start! py-5!' : undefined}
           onRetry={() => { if (!activeBatchId && catalogError) retryCatalog(); else void load(true); }}
           error={stateProps.error || (!activeBatchId ? catalogError : null)}
           hasExistingData={Boolean(daily || history)}
-          isPreviousData={stateProps.isPreviousData || Boolean(activeTab === 'history' && !history && daily && !stateProps.error)}
+          isPreviousData={stateProps.isPreviousData}
           isLoading={stateProps.isLoading || Boolean(!stateProps.error && activeBatchId && !daily && !history)}
           onResolveConflict={() => load(true)}
           loadingVariant="table"
@@ -400,7 +406,7 @@ export function MrxDailyIssueWorkbench({
             {activeTab === 'demand' && <div aria-hidden="true" className="px-4 py-2 border-b border-slate-200 bg-slate-50 shrink-0"><div className="h-8 w-60 rounded bg-slate-200" /></div>}
             <WorkbenchSkeleton geometry={{ kind: 'table', columns: 5, rows: 10,
               columnWidths: activeTab === 'history' ? ['24%', '18%', '16%', '18%', '24%']
-                : isWeeklyAll ? ['34%', '10%', '18%', '18%', '20%'] : ['30%', '16%', '20%', '20%', '14%'],
+                : isWeeklyAll ? ['26%', '12%', '20%', '20%', '22%'] : ['26%', '21%', '17%', '18%', '18%'],
             }} />
           </div>}
           emptyIcon={Boxes}
@@ -416,7 +422,7 @@ export function MrxDailyIssueWorkbench({
           } : (!activeBatchId || batches.length === 0 ? () => navigate('/') : undefined)}
         >
           {activeTab === 'demand' ? (
-            <fieldset disabled={scopeLocked} className="flex-1 min-h-0 flex flex-col bg-white">
+            <fieldset disabled={scopeLocked} className="flex-1 min-h-0 min-w-0 flex flex-col bg-white">
               <MrxDailyLinesBranch
                 isWeeklyAll={isWeeklyAll}
                 weeklyAggregateLines={weeklyAggregateLines}
@@ -443,16 +449,26 @@ export function MrxDailyIssueWorkbench({
                 clearLabel="Xóa tìm trong lịch sử phiếu"
                 scope="Tìm trong trang lịch sử phiếu xuất hiện tại."
               />
-              <DataGrid
-                data={filteredHistoryItems}
-                columns={historyColumns}
-                keyExtractor={(row) => row.issueId}
-                emptyMessage={historyQuery ? "Không tìm thấy phiếu xuất nào khớp với từ khóa." : "Chưa có phiếu xuất kho nào cho lô này."}
-              />
+              <StateBoundary
+                isPreviousData={historyState.isFetching || historyState.isLoading}
+                isFetching={historyState.isFetching}
+                lockContent={isHistoryPageStale}
+                hasExistingData={Boolean(history)}
+                error={historyState.error}
+                onRetry={() => void refetchHistory(true)}
+              >
+                <DataGrid
+                  data={filteredHistoryItems}
+                  columns={historyColumns}
+                  keyExtractor={(row) => row.issueId}
+                  emptyMessage={history ? (historyQuery ? "Không tìm thấy phiếu xuất nào khớp với từ khóa." : "Chưa có phiếu xuất kho nào cho lô này.") : undefined}
+                />
+              </StateBoundary>
               <PaginationBar label="Phân trang phiếu xuất MRX" page={history?.pageNumber ?? historyPage} pageSize={25}
                 totalCount={history?.totalCount} totalPages={history?.totalPages}
                 hasPrev={history?.hasPrev ?? false} hasNext={history?.hasNext ?? false}
-                pending={stateProps.isFetching || stateProps.isPreviousData || scopeLocked} onPageChange={setHistoryPage} />
+                pending={historyState.isFetching || historyState.isLoading || isHistoryPageStale || stateProps.isPreviousData || scopeLocked}
+                retainButtonFocus onPageChange={setHistoryPage} />
             </div>
           )}
         </StateBoundary>

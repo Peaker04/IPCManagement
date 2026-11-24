@@ -35,8 +35,8 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
   ])('sends historical boundaries from %s to both summary and batch reads', async (url, weekFrom, weekTo) => {
     const read = vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue(summary);
     renderDashboard(url);
-    await waitFor(() => expect(read).toHaveBeenCalledWith({ weekFrom, weekTo }));
-    expect(mrxApi.getBatchPage).toHaveBeenCalledWith({ weekFrom, weekTo, pageNumber: 1, pageSize: 20 });
+    await waitFor(() => expect(read).toHaveBeenCalledWith({ weekFrom, weekTo }, expect.any(AbortSignal)));
+    expect(mrxApi.getBatchPage).toHaveBeenCalledWith({ weekFrom, weekTo, pageNumber: 1, pageSize: 20 }, expect.any(AbortSignal));
   });
 
   it('pages batches without repeating the operational summary read', async () => {
@@ -47,7 +47,7 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     const pager = await screen.findByRole('navigation', { name: 'Phân trang lô đối soát' });
     await waitFor(() => expect(within(pager).getByRole('button', { name: 'Trang sau' })).toBeEnabled());
     await userEvent.click(within(pager).getByRole('button', { name: 'Trang sau' }));
-    await waitFor(() => expect(mrxApi.getBatchPage).toHaveBeenCalledWith({ pageNumber: 2, pageSize: 20 }));
+    await waitFor(() => expect(mrxApi.getBatchPage).toHaveBeenCalledWith({ pageNumber: 2, pageSize: 20 }, expect.any(AbortSignal)));
     expect(read).toHaveBeenCalledTimes(1);
   });
 
@@ -61,7 +61,7 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     await userEvent.type(year, '2024');
     expect(read).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole('button', { name: 'Áp dụng kỳ' }));
-    await waitFor(() => expect(read).toHaveBeenLastCalledWith({ weekFrom: '2024-01-01', weekTo: '2024-12-31' }));
+    await waitFor(() => expect(read).toHaveBeenLastCalledWith({ weekFrom: '2024-01-01', weekTo: '2024-12-31' }, expect.any(AbortSignal)));
     expect(read).toHaveBeenCalledTimes(2);
   });
   beforeEach(() => {
@@ -149,7 +149,7 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Làm mới' }));
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Lọc theo khách hàng' }), 'customer-1');
     await waitFor(() => expect(screen.getByText('Lô chờ Kho xuất').parentElement).toHaveTextContent('2'));
-    expect(read).toHaveBeenLastCalledWith('/reconciliation/reports/operational-summary?customerId=customer-1');
+    expect(read).toHaveBeenLastCalledWith('/reconciliation/reports/operational-summary?customerId=customer-1', { signal: expect.any(AbortSignal) });
     await act(async () => resolveOld({ ...summary, awaitingWarehouseBatchesCount: 99 }));
     expect(screen.getByText('Lô chờ Kho xuất').parentElement).toHaveTextContent('2');
   });
@@ -172,7 +172,7 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     expect(screen.getByRole('button', { name: 'Mở trạm làm việc' })).toBeVisible();
     expect(screen.queryByRole('button', { name: /Kho xuất định lượng ngày/ })).not.toBeInTheDocument();
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Lọc theo khách hàng' }), 'customer-1');
-    await waitFor(() => expect(getSummary).toHaveBeenLastCalledWith({ customerId: 'customer-1' }));
+    await waitFor(() => expect(getSummary).toHaveBeenLastCalledWith({ customerId: 'customer-1' }, expect.any(AbortSignal)));
     await userEvent.click(screen.getByRole('button', { name: 'Mở trạm làm việc' }));
     expect(workspaceSessionStore.getScope()).toMatchObject({ customerId: 'customer-1', batchId: 'batch-1', weekStartDate: '2026-10-19' });
   });
@@ -200,9 +200,9 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Mở trạm làm việc' }));
     expect(workspaceSessionStore.getScope().batchId).toBe('batch-2');
     await act(async () => { await router.navigate('/chef?view=mrx-cooking'); });
-    await waitFor(() => expect(cooking).toHaveBeenCalledWith('batch-2'));
+    await waitFor(() => expect(cooking).toHaveBeenCalledWith('batch-2', expect.any(AbortSignal)));
     expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' })).toHaveValue('batch-2');
-    expect(cooking).not.toHaveBeenCalledWith('batch-1');
+    expect(cooking).not.toHaveBeenCalledWith('batch-1', expect.any(AbortSignal));
   });
 
   it('loads Chef facts and MRX customer filters without requiring Coordination access', async () => {

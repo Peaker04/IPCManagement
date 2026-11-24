@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../../store/useAuth';
@@ -6,6 +6,7 @@ import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
+import { PaginationBar } from '../../components/workbench/PaginationBar';
 import { Select } from '../../components/ui/select';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -74,7 +75,12 @@ function DefaultChefDashboardPage() {
   const [isLoading, setIsLoading] = useState<boolean>(() => !cachedChef);
   const [isFetching, setIsFetching] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
-  const requestSequence = useRef(0);
+  const key = `chef_${customerId}_${serviceDate}_${shiftName}_${issuePageNumber}`;
+  const [dataKey, setDataKey] = useState(chefKey);
+  const [pendingReceipts, setPendingReceipts] = useState<Set<string>>(() => new Set());
+  const read = useRef<AbortController | null>(null);
+  const activeReadKey = useRef(key);
+  const isPreviousData = Boolean(data && !error && dataKey !== key);
 
   useEffect(() => {
     let ignore = false;
@@ -99,64 +105,74 @@ function DefaultChefDashboardPage() {
     return () => { ignore = true; };
   }, []);
 
-  useEffect(() => {
+  const load = useCallback((refresh = false) => {
     if (!customerId) return;
-    const key = `chef_${customerId}_${serviceDate}_${shiftName}_${issuePageNumber}`;
-    const sequence = ++requestSequence.current;
-    chefApi.getChefDashboardData(serviceDate, shiftName, customerId, issuePageNumber, ISSUE_PAGE_SIZE)
+    read.current?.abort();
+    const controller = new AbortController();
+    read.current = controller;
+    if (refresh) {
+      setIsLoading(true);
+      setIsFetching(true);
+      setError(null);
+    }
+    return chefApi.getChefDashboardData(serviceDate, shiftName, customerId, issuePageNumber, ISSUE_PAGE_SIZE, controller.signal)
       .then((result) => {
-        if (sequence === requestSequence.current) {
+        if (!controller.signal.aborted) {
           setData(result);
+          setDataKey(key);
+          setError(null);
           serverStateCache.set(key, result);
           serverStateCache.set('snapshot:chef', { customerId, serviceDate, shiftName, issuePageNumber, data: result });
         }
       })
       .catch((cause: unknown) => {
-        if (sequence === requestSequence.current) {
-          setData(null);
+        if (!controller.signal.aborted) {
+          if (!refresh) setData(null);
           setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu bàn giao Bếp.'));
         }
       })
       .finally(() => {
-        if (sequence === requestSequence.current) {
+        if (read.current === controller) {
+          read.current = null;
           setIsLoading(false);
           setIsFetching(false);
         }
       });
-  }, [serviceDate, shiftName, customerId, issuePageNumber]);
+  }, [key, serviceDate, shiftName, customerId, issuePageNumber]);
 
-  const reload = () => {
-    if (!customerId) return;
-    const key = `chef_${customerId}_${serviceDate}_${shiftName}_${issuePageNumber}`;
-    serverStateCache.delete(key);
-    const sequence = ++requestSequence.current;
-    setIsLoading(true);
-    setError(null);
-    chefApi.getChefDashboardData(serviceDate, shiftName, customerId, issuePageNumber, ISSUE_PAGE_SIZE)
-      .then((result) => {
-        if (sequence === requestSequence.current) {
-          setData(result);
-          serverStateCache.set(key, result);
-          serverStateCache.set('snapshot:chef', { customerId, serviceDate, shiftName, issuePageNumber, data: result });
-        }
-      })
-      .catch((cause: unknown) => {
-        if (sequence === requestSequence.current) {
-          setData(null);
-          setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu bàn giao Bếp.'));
-        }
-      })
-      .finally(() => {
-        if (sequence === requestSequence.current) setIsLoading(false);
-      });
-  };
+  useEffect(() => {
+    activeReadKey.current = key;
+    let active = true;
+    queueMicrotask(() => { if (active) void load(); });
+    return () => {
+      active = false;
+      activeReadKey.current = '';
+      read.current?.abort();
+      read.current = null;
+    };
+  }, [key, load]);
+
+  const reload = () => load(true);
 
   const handleConfirmReceipt = async (issueId: string) => {
+    if (pendingReceipts.has(issueId) || dataKey !== key || isFetching || error) return;
+    setPendingReceipts(previous => new Set(previous).add(issueId));
     try {
       await chefApi.confirmIssueReceipt(issueId, false);
-      reload();
+      serverStateCache.delete(key);
+      const saved = serverStateCache.get<ChefSnapshot>('snapshot:chef')?.data;
+      if (saved?.customerId === customerId && saved.serviceDate === serviceDate && saved.shiftName === shiftName && saved.issuePageNumber === issuePageNumber) {
+        serverStateCache.delete('snapshot:chef');
+      }
+      if (activeReadKey.current === key) await reload();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err : new Error('Không thể xác nhận nhận hàng tại bếp.'));
+      if (activeReadKey.current === key) setError(err instanceof Error ? err : new Error('Không thể xác nhận nhận hàng tại bếp.'));
+    } finally {
+      setPendingReceipts(previous => {
+        const next = new Set(previous);
+        next.delete(issueId);
+        return next;
+      });
     }
   };
 
@@ -192,6 +208,9 @@ function DefaultChefDashboardPage() {
             variant="outline"
             size="xs"
             onClick={() => void handleConfirmReceipt(row.issueId)}
+            loading={pendingReceipts.has(row.issueId)}
+            loadingText="Đang xác nhận…"
+            disabled={!pendingReceipts.has(row.issueId) && (isFetching || Boolean(error))}
             className="h-6 px-2 text-xs"
           >
             Nhận hàng
@@ -240,6 +259,7 @@ function DefaultChefDashboardPage() {
       <StateBoundary
         isLoading={isLoading && !data}
         isFetching={isFetching || (isLoading && Boolean(data))}
+        isPreviousData={isPreviousData}
         hasExistingData={Boolean(data || snapshot?.data)}
         error={error}
         onRetry={reload}
@@ -259,11 +279,11 @@ function DefaultChefDashboardPage() {
         {data && activeView === 'issues' && <DataGrid data={data.issues} columns={issueColumns} keyExtractor={(row) => row.issueId} />}
       </StateBoundary>
       {data && activeView === 'issues' && data.issuePage.totalPages > 1 && (
-        <nav aria-label="Phân trang phiếu xuất" className="flex items-center justify-end gap-2 border-t border-slate-200 px-4 py-2">
-          <span className="text-xs text-slate-500">Trang {data.issuePage.pageNumber}/{data.issuePage.totalPages}</span>
-          <Button variant="outline" size="xs" disabled={!data.issuePage.hasPrev || isLoading} onClick={() => { setIsLoading(true); setError(null); setIssuePageNumber((page) => page - 1); }}>Trang trước</Button>
-          <Button variant="outline" size="xs" disabled={!data.issuePage.hasNext || isLoading} onClick={() => { setIsLoading(true); setError(null); setIssuePageNumber((page) => page + 1); }}>Trang sau</Button>
-        </nav>
+        <PaginationBar label="Phân trang phiếu xuất" page={data.issuePage.pageNumber} pageSize={ISSUE_PAGE_SIZE}
+          totalPages={data.issuePage.totalPages} totalCount={data.issuePage.totalCount}
+          hasPrev={data.issuePage.hasPrev} hasNext={data.issuePage.hasNext}
+          pending={isLoading || isFetching || isPreviousData} retainButtonFocus
+          onPageChange={page => { setIsLoading(true); setError(null); setIssuePageNumber(page); }} />
       )}
     </div>
   );
