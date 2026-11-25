@@ -118,22 +118,22 @@ export function MrxQuantityInspectionPage({ view }: { view: 'materials' | 'plans
   if (customerId) preparationParams.set('customerId', customerId);
   if (weekStartDate) preparationParams.set('weekStartDate', weekStartDate);
   const title = view === 'materials' ? 'Định lượng nguyên liệu' : 'Kế hoạch theo ca';
+  const canSearch = workspace.source?.menuVersionStatus === 'PUBLISHED' || workspace.source?.menuVersionStatus === 'ACTIVE';
   return <div className="flex-1 min-h-0 flex flex-col bg-white">
     <WorkspaceHeader title={title} breadcrumb="Thực đơn tuần · MRX" responsive
       contextSelectors={<><div className="w-full sm:w-72 shrink-0"><Select aria-label="Chọn khách hàng MRX" value={customerId} onChange={event => update({ customerId: event.target.value })} options={[{ value: '', label: 'Chọn khách hàng' }, ...(workspace.customers.data ?? []).map(customer => ({ value: customer.customerId, label: `${customer.customerCode} - ${customer.customerName}` }))]} /></div>
         <VietnameseDateInput className="w-40" aria-label="Tuần MRX bắt đầu" value={weekStartDate} onChange={value => update({ weekStartDate: value })} isDateAllowed={isWeekStartDate} validationMessage="Ngày bắt đầu tuần phải là Thứ Hai." /></>}
       actions={<Button variant="outline" onClick={() => void workspace.refresh()} disabled={workspace.stateProps.isFetching}>Làm mới</Button>} />
     <div className="min-h-11 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-1.5 border-b border-slate-200 bg-slate-50/80 text-xs shrink-0">
-      <dl aria-label="Nguồn định lượng" className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <div className="flex items-baseline gap-1"><dt className="text-slate-500">Nguồn:</dt><dd className="font-medium text-slate-900">{workspace.stateProps.isPreviousData ? (workspace.stateProps.isFetching ? 'Phạm vi trước · đang tải' : 'Phạm vi trước · chỉ xem') : 'Hiện hành'}</dd></div>
-        <div className="flex items-baseline gap-1"><dt className="text-slate-500">Tính chất:</dt><dd className="font-medium text-slate-900">Dự kiến</dd></div>
-        <div className="flex items-baseline gap-1"><dt className="text-slate-500">Phiên bản:</dt><dd className="font-medium text-slate-900 min-w-[2ch] font-mono tabular-nums">{workspace.source ? <Num value={workspace.source.menuVersionNo} /> : '—'}</dd></div>
-      </dl>
+      <div role="status" aria-label="Nguồn định lượng" className="text-slate-600">
+        Nguồn dự kiến{workspace.source?.menuVersionNo != null && <>: <strong className="font-mono tabular-nums">v<Num value={workspace.source.menuVersionNo} /></strong></>}
+        {workspace.stateProps.isPreviousData && ' · Bản trước'}
+      </div>
       <Link className="inline-flex h-8 items-center rounded border border-slate-300 px-3 font-medium text-slate-700 underline-offset-2 hover:bg-slate-50 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400" to={`/weekly-menu?${preparationParams}`}>Chuẩn bị lô đối soát</Link>
-      <Input aria-label={view === 'materials' ? 'Tìm nguyên liệu' : 'Tìm kế hoạch, thực đơn hoặc món'} placeholder={view === 'materials' ? 'Tìm tên, mã nguyên liệu…' : 'Tìm kế hoạch, thực đơn hoặc món…'} value={searchInput} onChange={event => setSearchDraft({ base: searchKeyword, value: event.target.value })} className="w-full sm:w-72 sm:ml-auto" />
+      <Input aria-label={view === 'materials' ? 'Tìm nguyên liệu' : 'Tìm kế hoạch, thực đơn hoặc món'} placeholder={view === 'materials' ? 'Tìm tên, mã nguyên liệu…' : 'Tìm kế hoạch, thực đơn hoặc món…'} value={searchInput} disabled={!canSearch} onChange={event => setSearchDraft({ base: searchKeyword, value: event.target.value })} className="w-full sm:w-72 sm:ml-auto" />
     </div>
     {revisionNotice && <InlineBanner variant="info" title="Nguồn đã thay đổi. Danh sách được nạp lại từ phiên bản hiện hành." />}
-    <StateBoundary {...workspace.stateProps} notFoundAsEmpty={false} loadingGeometry={loadingGeometry} error={workspace.customers.stateProps.error ?? workspace.stateProps.error}
+    <StateBoundary {...workspace.stateProps} recoverableNoticePlacement="bottom" notFoundAsEmpty={false} loadingGeometry={loadingGeometry} error={workspace.customers.stateProps.error ?? workspace.stateProps.error}
       onRetry={() => void (workspace.customers.stateProps.error ? workspace.customers.refetch(true) : workspace.retry())}>
       {result && <div className="flex-1 min-h-0 flex flex-col">
         {result.view === 'materials' ? <MaterialsTable rows={result.data.page.items} /> : <PlansTable rows={result.data.page.items} />}

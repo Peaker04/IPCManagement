@@ -84,6 +84,16 @@ public sealed class ReconciliationSourceHistoryTests
         Assert.All(applied.Materials.Items, item => Assert.True(item.IsApplied));
         Assert.Equal(2, applied.Revisions.Count);
         Assert.Equal(2, applied.Materials.TotalCount);
+        const int farPage = 1_073_741_825;
+        var pastHistory = await service.GetPageAsync(new ReconciliationSourceHistoryPageQuery { PageNumber = farPage, PageSize = 2 });
+        var pastApplied = await service.GetDetailAsync(applied.Event.EventId, farPage, 2);
+        var pastPending = await service.GetDetailAsync(pending.Event.EventId, farPage, 2);
+        Assert.Empty(pastHistory.Items);
+        Assert.Equal(3, pastHistory.TotalCount);
+        Assert.Empty(pastApplied!.Materials.Items);
+        Assert.Equal(2, pastApplied.Materials.TotalCount);
+        Assert.Empty(pastPending!.Materials.Items);
+        Assert.Equal(1, pastPending.Materials.TotalCount);
         var scoped = await service.GetPageAsync(new ReconciliationSourceHistoryPageQuery { BatchId = GuidHelper.ToGuidString(secondBatchId), PageSize = 1 });
         Assert.Equal(3, scoped.TotalCount);
         Assert.Single(scoped.Items);

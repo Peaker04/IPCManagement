@@ -95,7 +95,7 @@ test('keeps frozen BOM dialog bounds stable after quick reconciliation navigatio
     await page.goto(`/chef?view=mrx-cooking&batchId=${MOCK_RECONCILIATION_BATCH_DTO.batchId}`);
     await expect(page.getByText('Chưa đủ dữ liệu phiếu nấu', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Về Bàn điều hành', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'In phiếu nấu', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Tải / In', exact: true })).toBeDisabled();
     await page.screenshot({ path: test.info().outputPath('chef-short-guidance.png') });
   } finally {
     releaseDishes();

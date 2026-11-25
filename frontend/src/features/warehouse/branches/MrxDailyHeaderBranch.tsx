@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { WorkspaceHeader } from '../../../components/workbench/WorkspaceHeader';
 import { Select } from '../../../components/ui/select';
 import { VietnameseDateInput } from '../../../components/ui/vietnamese-date-input';
@@ -14,6 +14,7 @@ export interface MrxDailyHeaderBranchProps {
   activeBatchLabel?: string;
   scopeError?: boolean;
   isPending?: boolean;
+  retainPreviousPresentation?: boolean;
   batchStatus?: string;
   onSelectBatch: (id: string) => void;
   activeDate: string;
@@ -33,12 +34,15 @@ export interface MrxDailyHeaderBranchProps {
   catalogNavigation?: ReactNode;
 }
 
+type IssueAction = 'historical' | 'weekly' | 'empty' | 'readonly' | 'supplemental' | 'initial';
+
 export function MrxDailyHeaderBranch({
   batches,
   activeBatchId,
   activeBatchLabel,
   scopeError = false,
   isPending = false,
+  retainPreviousPresentation = true,
   batchStatus,
   onSelectBatch,
   activeDate,
@@ -64,6 +68,20 @@ export function MrxDailyHeaderBranch({
 
   const activeBatch = batches.find((b) => b.batchId === activeBatchId);
   const currentStatus = batchStatus ?? activeBatch?.status;
+  const action: IssueAction = isWeeklyAll ? 'weekly'
+    : !isServiceDate(activeDate) ? 'historical'
+    : linesCount === 0 ? 'empty'
+    : !canIssueBatch ? 'readonly'
+    : hasInitialIssue ? 'supplemental' : 'initial';
+  // This snapshot is presentation only. Pending commands stay disabled until the new scope resolves.
+  const [settled, setSettled] = useState<{ action: IssueAction; status?: string } | null>(null);
+  if (!isPending && !scopeError && activeBatchId && (settled?.action !== action || settled?.status !== currentStatus)) {
+    setSettled({ action, status: currentStatus });
+  }
+  const previousPresentation = retainPreviousPresentation ? settled : null;
+  const visibleAction = isPending ? previousPresentation?.action : action;
+  const visibleStatus = isPending ? previousPresentation?.status : currentStatus;
+  const commandsLocked = scopeLocked || isPending;
 
   return (
     <WorkspaceHeader
@@ -100,37 +118,34 @@ export function MrxDailyHeaderBranch({
             className="h-9 w-38 sm:w-40 min-w-[155px] shrink-0 font-mono text-xs sm:text-sm tracking-tight"
           />
           <WorkspaceHeader.BadgeSlot variant="status">
-            {isPending ? <span role="status" className="sr-only">Đang tải phạm vi mới</span> : currentStatus ? (
+            {isPending && <span role="status" className="sr-only">{previousPresentation ? 'Đang xác minh lô mới. Trạng thái và thao tác đang hiển thị thuộc lô trước.' : 'Đang tải phạm vi mới'}</span>}
+            {visibleStatus && (
               <Badge
-                variant={currentStatus === 'COMPLETED' ? 'neutral' : 'info'}
+                variant={visibleStatus === 'COMPLETED' ? 'neutral' : 'info'}
                 size="default"
                 className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap"
               >
-                {MRX_STATUS_LABELS[currentStatus] ?? 'Chưa xác định'}
+                {MRX_STATUS_LABELS[visibleStatus] ?? 'Chưa xác định'}
               </Badge>
-            ) : null}
+            )}
           </WorkspaceHeader.BadgeSlot>
         </>
       }
       actions={
         <WorkspaceHeader.Actions className="mrx-command-slot">
-          {scopeError ? <Badge variant="danger" size="default">Không xác minh được lô</Badge> : isPending ? <Badge variant="neutral" size="default">Đang xác minh lệnh xuất kho…</Badge> : !isWeeklyAll && !isServiceDate(activeDate) ? (
+          {scopeError ? <Badge variant="danger" size="default">Không xác minh được lô</Badge> : !visibleAction ? <Badge variant="neutral" size="default">Đang xác minh lệnh xuất kho…</Badge> : visibleAction === 'historical' ? (
             <Badge variant="neutral" size="default">Ngày lịch sử · Chỉ xem</Badge>
-          ) : isWeeklyAll ? (
+          ) : visibleAction === 'weekly' ? (
             <Badge variant="neutral" size="default" className="h-9 px-3 text-xs flex items-center">
               Chế độ xem tổng hợp tuần (Chỉ đọc)
             </Badge>
-          ) : linesCount === 0 ? (
-            <Badge variant="neutral" size="default" className="h-9 px-3 text-xs flex items-center text-slate-500">
-              Không có định lượng ca
-            </Badge>
-          ) : !canIssueBatch ? (
+          ) : visibleAction === 'empty' ? null : visibleAction === 'readonly' ? (
             <Badge variant="neutral" size="default">Chỉ xem</Badge>
-          ) : hasInitialIssue ? (
+          ) : visibleAction === 'supplemental' ? (
             <Button
               variant="default"
               size="default"
-              disabled={scopeLocked}
+              disabled={commandsLocked}
               onClick={onOpenSupplemental}
             >
               Xuất bổ sung ca
@@ -140,7 +155,7 @@ export function MrxDailyHeaderBranch({
               <Button
                 variant="outline"
                 size="default"
-                disabled={scopeLocked}
+                disabled={commandsLocked}
                 onClick={onFillAll}
               >
                 Điền đủ toàn bộ
@@ -149,7 +164,7 @@ export function MrxDailyHeaderBranch({
                 variant="default"
                 size="default"
                 onClick={() => void onSubmit()}
-                disabled={!canSubmit && !saving}
+                disabled={isPending || (!canSubmit && !saving)}
                 loading={saving}
                 loadingText="Đang ghi…"
               >

@@ -1,5 +1,210 @@
 # Current task — IDLE
 
+2026-11-25. FR-DASH và DOM-MODE-1. Khi chuẩn bị PR #64, bộ kiểm đối chiếu ngữ nghĩa phát hiện truy vấn tổng quan đọc phiếu theo lô MRX chưa có trong ma trận Phase 30. Đăng ký truy vấn đọc này với ca hiện có chạy 100 lô, kiểm đếm sai lệch, lô có thể chốt, phân trang và số truy vấn.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Finishing a Development Branch | Tích hợp MRX vào main | Ma trận Phase 30 thiếu một truy vấn có thật | IPC Debugging, IPC Test Audit, IPC Code Review, Verification Before Completion | Có, lỗi được xác nhận bằng discovery | Hai ca frontend cục bộ qua khi chạy riêng và job frontend GitHub đạt trên commit ban đầu | Ánh xạ vào ca nghiệp vụ hiện có, giữ kiểm tra một-một bắt buộc |
+
+2026-11-25. FR-MENU, FR-WH, FR-CHEF, FR-RECON. DOM-MODE-1, UXR-04, NFR-UI-01 và T7. Rà responsive MRX với Chromium, mở rộng kiểm tại 320 CSS px. Kiểm tiêu đề, thông tin lặp, cột bị che và điều khiển.
+
+### Scoped Pre-Code UI Gate Block
+
+- /weekly-menu?view=mrx-batch và /warehouse?view=mrx-daily. Workbench Chuẩn bị lô và bảng xuất kho ngày/tuần.
+- MATERIAL_RECONCILIATION, RoleGuard, ActionGuard, reconciliation.source.read và reconciliation.warehouse.read.
+- Loading, empty, error, permission-denied, partial và write-reconciliation.
+- WorkspaceHeader, TelemetrySubbar, ReconciliationLifecycleStrip và DataGrid. D6, D7, T7, T8, M1.2 và N6.
+
+### Các lớp kiểm thử responsive MRX
+
+| Lớp | Tiêu chí |
+| --- | --- |
+| Responsive layout / reflow | 320, 390, 834, 1440 CSS px cho danh mục route MRX và route dùng chung đủ điều kiện. Kiểm cả độ rộng sát breakpoint ở bảng có cột cố định. Không để tiêu đề, bộ lọc, modal hay phân trang mất dữ liệu hoặc thao tác. [WCAG 2.2 Reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html) |
+| Accessibility | Zoom 200%, ghi rõ ca dùng zoom thật, và khoảng cách chữ tùy chỉnh. Bảng cần bố cục hai chiều có vùng cuộn riêng, cột đầu cố định và cột cuối đọc được. [Resize Text](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html) · [Text Spacing](https://www.w3.org/WAI/WCAG22/Understanding/text-spacing.html) |
+| Functional UI regression | Ma trận route × vai trò × trạng thái × độ rộng. Kiểm tên từng cột, số và đơn vị, nút khả dụng, mở/đóng modal, retry, đổi lọc, phân trang và chuyển trạng thái. Kiểm số lượng mục theo ngữ cảnh để phát hiện hiển thị lặp. |
+| Visual regression và content QA | Ảnh sai khác phát hiện chồng lấn hoặc thay đổi bố cục. Assertion DOM và hình học kiểm thông tin bắt buộc còn đọc được. Rà nội dung theo vai trò để tìm hai câu truyền đạt cùng một ý. [Playwright Visual comparisons](https://playwright.dev/docs/test-snapshots) · [Playwright ARIA snapshots](https://playwright.dev/docs/aria-snapshots) |
+
+- Chuẩn bị lô chuyển tiêu đề, bộ chọn và nhóm nút sang ba hàng khi workbench hẹp. Bộ chọn khách hàng dùng hết chiều ngang để tên còn chỗ. Dải vòng đời có thể xuống hàng để đọc trạng thái.
+- Kho giảm bề rộng cột nguyên liệu cố định ở khung cực hẹp. Cột phụ hấp thụ khoảng trống của bảng để cột cố định không bị giãn trở lại. Bảng ngày/tuần giữ đủ cột, trạng thái và số lượng. Vùng cuộn chừa chỗ ở cuối trên di động để nút menu nổi không chặn thao tác sao chép mã.
+- Hồi quy ghi nhận lỗi trước sửa ở 320 px. Bổ sung 320 px vào bộ ca có tên nguyên liệu, tên món, đơn vị dài, cột cuối và modal Lịch sử nguồn. Dùng cùng fixture theo DTO.
+
+- **PASS** [84 lượt đo trên 21 màn hình](../.artifacts/mrx-reflow-20261125/route-after.json). Phép quét đọc tràn ngang tài liệu, tiêu đề/cảnh báo bị cắt và tiêu đề/cảnh báo trùng nguyên văn. Không báo thêm tín hiệu theo ba phép đo này.
+- **PASS** [34/34 ca Chrome](../.artifacts/mrx-reflow-20261125/workflows-final.json), gồm Chrome zoom thật 200% ở Chuẩn bị nguyên liệu Kho. Hai chỉnh sửa sau lượt này được chạy lại tại owner với [2/2 ca Chuẩn bị lô](../.artifacts/mrx-reflow-20261125/batch-final.json) và [4/4 ca Kho](../.artifacts/mrx-reflow-20261125/warehouse-final.json).
+- **PASS** [4/4 vai trò](../.artifacts/mrx-reflow-20261125/roles-after.json), gồm tiêu đề và thao tác chính khi giãn chữ ở 320 px, cùng guard cho route ngoài vai trò. [158/158 Vitest](../.artifacts/mrx-reflow-20261125/contracts.json), có contract BOM hiện hành. Build, lint, diff-check, dung lượng route và phụ thuộc đạt.
+- **NEEDS_EVIDENCE** Thiết bị thật, Firefox/WebKit, độ phủ WCAG toàn hệ thống và rà nội dung trùng ý theo toàn bộ tổ hợp nghiệp vụ. Kết quả hiện tại dùng Chrome với fixture API cục bộ.
+- Lượt zoom đầu mất tiêu điểm, script bảo vệ giữ nguyên và chạy lại riêng. Các ca đỏ 320 px ghi nhận riêng tiêu đề, bộ chọn, cột cuối và menu nổi che nút sao chép.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Audit/Adapt, TDD | Responsive MRX | Tiêu đề bị ép, tên khách bị cắt, cột cuối bị che, menu nổi chặn sao chép | IPC Debugging, IPC Test Audit, IPC UI Review, IPC Code Review, Verification Before Completion | Có, hồi quy đỏ rồi xanh ở 320 px | Zoom thật mất tiêu điểm khi chạy browser đồng thời | Dùng vùng cuộn riêng, giữ cột đầu, để phần hiển thị và thao tác có đủ chỗ |
+
+2026-11-25. FR-WH, FR-CHEF, UXR-04, DOM-MODE-1. Tinh gọn metadata chưa phát sinh trong modal Lịch sử nguồn và hướng dẫn rỗng lặp trong Phiếu nấu. Dùng fixture hiện hành, xác nhận tình huống đỏ rồi chạy hồi quy.
+
+### Scoped Pre-Code UI Gate Block
+
+- /warehouse?view=mrx-issues, /chef?view=mrx-cooking. Giữ workbench, Modal và SplitView hiện có.
+- MATERIAL_RECONCILIATION. RoleGuard và quyền reconciliation.warehouse.read, reconciliation.kitchen.read.
+- Loading, empty, error, permission-denied, partial, write-reconciliation.
+- Modal, Badge, PaginationBar và SplitView. D6, D7, T7, T8, M1.2 và N6.
+
+- Lịch sử nguồn ẩn mốc chưa có người hoặc thời điểm. Giữ lý do, trạng thái, định lượng trước và sau, phiên bản đã áp dụng cùng lời nhắc riêng khi yêu cầu đã thực hiện mà chưa ghi nhận cập nhật nguồn.
+- Phiếu nấu chỉ hướng dẫn đổi bộ lọc ở danh sách món. Khung nguyên liệu giữ tiêu đề và cột, nút Xem tất cả ca vẫn dùng khi ca đang chọn không có món.
+- **PASS** [97/97 Vitest và contract hiện có](../.artifacts/mrx-history-distill-20261125/contracts-final.json), [13/13 Chrome](../.artifacts/mrx-history-distill-20261125/browser-final.log), [4/4 kiểm theo vai trò](../.artifacts/mrx-history-distill-20261125/roles-final.json). Modal được kiểm ở 390, 768, 1024, 1440 và 1900 px. Build, lint, giới hạn dung lượng route và kiểm phụ thuộc đạt. Contract BOM hiện có đã chạy. `operationalPageContracts.test.ts` vắng trong cây ứng viên.
+- **NEEDS_EVIDENCE** Quyền ở môi trường triển khai và luồng ghi MySQL đầu cuối. Lượt này dùng các fixture cục bộ.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Distill, TDD | Tinh gọn Kho và Phiếu nấu trong MRX | Mốc trống lặp ý trạng thái, lời nhắc rỗng lặp hai bên | IPC UI Review, IPC Test Audit, IPC Code Review, Verification Before Completion | Có, ca đỏ trước sửa và hồi quy xác nhận cả ba mốc nghiệp vụ | Locator khớp riêng tên trong ô có cả thời điểm và assertion còn khớp tiêu đề cũ | Giữ dấu hiệu nguồn chưa được cập nhật sau khi yêu cầu đã thực hiện và giữ đúng một lối thoát bộ lọc |
+
+2026-11-25. FR-APPR và FR-RECON, UXR-02/04, DOM-MODE-1. Tinh gọn phục hồi hàng đợi MRX và số đếm sổ tra cứu. Dùng TDD với fixture hiện hành, rồi xác minh phân trang, quyền và luồng phục hồi.
+
+### Scoped Pre-Code UI Gate Block
+
+- /approvals, /reconciliation?view=transactions, /reconciliation?view=completed. Giữ SplitWorkbench Duyệt và bảng tra cứu hiện có.
+- MATERIAL_RECONCILIATION. RoleGuard, ActionGuard và quyền quyết định/đọc hiện hành.
+- Loading, empty, error, permission-denied, partial, write-reconciliation.
+- WorkspaceHeader, StateBoundary, InlineBanner, PaginationBar. D6, D7, T7, T8, M1.2 và N6.
+
+- Duyệt MRX gom các nguồn chưa tải vào một cảnh báo, giữ từng lý do và một nút tải lại trong header. Hồ sơ đọc được vẫn mở được. Thử lại tại trang đầu giữ hồ sơ đang xem, thử lại từ con trỏ quay về đầu đúng bộ lọc. Nhánh hoàn tất giữ hành động Mở đối soát.
+- Sổ giao dịch Kho và Hồ sơ đã chốt bỏ tổng trùng tại dải đầu bảng. Tổng và trang hiện tại lấy từ phân trang. Giữ nút xuất, hàng chứng từ và chi tiết đã chốt.
+- **PASS** [111/111 Vitest và contract hiện có](../.artifacts/mrx-queue-distill-20261125/verified-contracts.json), [24/24 Chrome luồng](../.artifacts/mrx-queue-distill-20261125/final-browser.json), [70/70 route và guard](../.artifacts/mrx-queue-distill-20261125/verified-routes.json), [4/4 ca theo vai trò](../.artifacts/mrx-queue-distill-20261125/roles.json). Build, lint, phụ thuộc, ngân sách route và diff-check đạt.
+- Lượt Chrome đầu có fixture bắt nhầm `/src/api/` của Vite. Sửa matcher của hai fixture để chỉ xử lý API thực và chạy lại toàn bộ. Vitest hồi quy kiểm tổng tại phân trang và giữ thao tác chuyển trang. **NEEDS_EVIDENCE** Quyền triển khai thực, thiết bị vật lý và ghi đầu cuối MySQL.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Distill, TDD | Tinh gọn Duyệt và sổ MRX | Nút phục hồi lặp mỗi nguồn, tổng kết quả lặp trên sổ | IPC Debugging, IPC UI Review, IPC Test Audit, IPC Code Review, Verification Before Completion | Có, test đỏ đúng chủ sở hữu và Chrome xác nhận | Fixture bắt nhầm import Vite, assertion cũ đọc tổng ở dải đầu | Một đường tải lại, giữ chi tiết đang xem, phân trang sở hữu tổng |
+
+2026-11-25. Tiếp tục tinh gọn MRX theo FR-WH, FR-MENU, UXR-02/04 và DOM-MODE-1. Tái hiện lối tắt chuẩn bị đổi sai phạm vi và dải nguồn báo quá mức, sửa tại owner và kiểm thao tác theo vai trò.
+
+### Scoped Pre-Code UI Gate Block
+
+- /warehouse?view=mrx-daily và mrx-preparation, /weekly-menu?view=mrx-materials và mrx-plans. Giữ workbench bảng, SplitView và màn kế hoạch hiện hành.
+- MATERIAL_RECONCILIATION. RoleGuard, ActionGuard và quyền đọc hiện hành. Giữ xác nhận rời bản nháp.
+- Loading, empty, error, permission-denied, partial và write-reconciliation. Giữ dữ liệu cũ có nhãn trong lúc xác minh.
+- WorkspaceHeader, TelemetrySubbar, StateBoundary và PaginationBar. D6, D7, T7, T8, M1.2, N6.
+
+- Thủ kho mở Chuẩn bị phối hợp với đúng ngày đang xem hoặc Thứ Hai của lô khi xem cả tuần. Chủ nhật lịch sử mở phạm vi tuần chuẩn bị và giữ nghiệp vụ chỉ đọc của ngày lịch sử. URL và API chỉ gửi một phạm vi. Xác nhận rời bản nháp vẫn áp dụng.
+- Điều phối thấy một dòng nguồn dự kiến và phiên bản ở Định lượng và Kế hoạch theo ca. Nhãn Bản trước gắn với dữ liệu đang giữ khi đổi phạm vi. Chưa có nguồn đã phát hành thì khóa tìm kiếm. Giữ nút mở Chuẩn bị lô, bộ lọc, phân trang, đơn vị và chi tiết đóng góp.
+- **PASS** [139/139 Vitest](../.artifacts/mrx-scope-distill-20261125/contracts-final.json), [7/7 Chrome](../.artifacts/mrx-scope-distill-20261125/browser-verified.json), [4/4 kiểm theo vai trò](../.artifacts/mrx-scope-distill-20261125/roles.json). Probe ngày/tuần kiểm tham số mạng ở lượt cache lạnh và giữ kiểm URL cả hai viewport. Build, lint, giới hạn dung lượng route, kiểm phụ thuộc và diff-check đạt. `operationalPageContracts.test.ts` không có trong cây mã ứng viên, contract BOM hiện có đã chạy.
+- **NEEDS_EVIDENCE** Ma trận quyền trên môi trường triển khai thực, thiết bị vật lý và các lệnh ghi đầu cuối MySQL. Lượt này kiểm bằng fixture theo DTO.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Distill, TDD | Tinh gọn thao tác và thông tin MRX | Lối tắt làm mất phạm vi, nhãn hiện hành khi chưa có nguồn, mô tả lặp | IPC Debugging, IPC Test Audit, IPC UI Review, IPC Code Review, Verification Before Completion | Có, ca đỏ trước sửa và xác nhận Chrome cuối | Một assertion nhầm phiên bản fixture, một lượt chờ mạng dù cache còn dùng được | Giữ đúng ngày/tuần, gộp metadata, giữ dấu bản cũ theo phạm vi |
+
+2026-11-25. Tinh gọn MRX theo FR-DASH, FR-RECON, FR-CHEF và FR-MENU, UXR-02/04, D7, DOM-MODE-1. Dùng test đỏ cho thao tác và dữ liệu lặp, sửa tại owner rồi chạy Chrome và hợp đồng FE.
+
+### Scoped Pre-Code UI Gate Block
+
+- /, /reconciliation, /reconciliation?view=audit, /chef?view=mrx-cooking, /weekly-menu?view=mrx-batch. Giữ workbench, bảng hoặc SplitView hiện hành của từng route.
+- MATERIAL_RECONCILIATION. RoleGuard, ActionGuard, canNavigate và quyền đọc/ghi hiện có.
+- Loading, empty, error, permission denied, partial, write reconciliation. Giữ thông báo chặn, rõ phạm vi xuất và trạng thái xác minh.
+- WorkspaceHeader, StateBoundary, PaginationBar, LocalFindBar. D6, D7, T7, T8, M1.2, N6.
+
+- Điều phối giữ bước hiện tại trong dải vòng đời. Bỏ vùng badge đã rỗng khỏi header, ở 834 px dải vòng đời nằm ngay dưới bộ lọc. Giữ phiên bản nguồn và nút xem món/BOM đã đóng băng.
+- Quản lý đọc lý do chưa chốt và lọc dòng ngay trong một dải. Nhật ký giữ tổng kết quả tại phân trang và dùng trạng thái được chọn cho hai nhánh Kho, Nguồn & BOM. Giữ xem, lọc, chốt và xuất theo quyền.
+- Bếp trưởng xóa tìm kiếm tại thanh lọc và dùng “Xem tất cả ca” khi ca không có món. Bỏ chỉ số số dòng nguyên liệu đang xem, giữ số món, số suất từng món, tổng suất trong ca và các phạm vi xuất/in. Thủ kho giữ định lượng ngày/tuần, số lượng và lối vào lịch sử phiếu. Tổng quan giữ dữ liệu có thể đọc sau lỗi tải, khóa nút mở việc và mở lô dựa trên dữ liệu đó.
+- **PASS** [70/70 route và guard Chrome](../.artifacts/mrx-distill-20261125/routes.json) trên 390/834/1440 px, [4/4 ca theo vai trò](../.artifacts/mrx-distill-20261125/verified-roles.json) và [6/6 ca luồng](../.artifacts/mrx-distill-20261125/workflows.json). Ca Thủ kho ở lượt đầu tìm sai tên truy cập vì số phiếu có khoảng trắng quanh số. Lượt xác nhận dùng tên DOM thực.
+- **PASS** 5 ca đỏ đúng triệu chứng trước khi sửa. [168/168 Vitest](../.artifacts/mrx-distill-20261125/verified-contracts.json), build, lint, giới hạn dung lượng route, kiểm phụ thuộc và diff-check đạt. **NEEDS_EVIDENCE** Chạy với dữ liệu và phân quyền triển khai thực, thiết bị vật lý và các lệnh ghi đầu cuối trên MySQL.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Distill (Operate), TDD | Tinh gọn MRX theo vai trò | Số đếm lặp, nút xóa tìm kiếm trùng, vùng badge rỗng, hành động còn mở với dữ liệu tải lỗi | IPC UI Review, IPC Test Audit, IPC Code Review, Verification Before Completion | Có, đối chiếu DOM và test đỏ/xanh | Locator Phiếu Kho sai khoảng trắng ở lượt đầu | Một nơi sở hữu số đếm/tác vụ, giữ đường phục hồi và kiểm quyền |
+
+2026-11-25. Duyệt sửa phát hiện audit MRX. FR-AUTH bảo toàn đích theo quyền sau đăng nhập, FR-WH sửa vùng chạm lịch, trạng thái rỗng và lỗi quyền của modal Lịch sử nguồn, FR-MENU và FR-APPR tinh gọn copy. Tái hiện trước, sửa tại owner, chạy Chrome và hợp đồng FE sau.
+
+### Scoped Pre-Code UI Gate Block
+
+- /login, /weekly-menu?view=mrx-batch, /warehouse?view=mrx-daily, /warehouse?view=mrx-issues, /approvals, /reconciliation. Form xác thực hoặc workbench hiện có là đối tượng chính. Modal giải trình giữ bản nháp trước thao tác thoát.
+- MATERIAL_RECONCILIATION. ProtectedRoute, RoleGuard, ActionGuard và quyền đọc/ghi hiện có theo DOM-MODE-1.
+- Loading, empty, error, permission-denied, partial và write-reconciliation.
+- WorkspaceHeader, StateBoundary, VietnameseDateInput, Modal và PaginationBar. D6, D7, T7, T8, M1.2, N6.
+
+- Đăng nhập MRX phục hồi pathname, query và fragment sau khi kiểm đích theo registry, mode và người dùng mới. Route không đủ quyền hoặc lệch mode đi về đích mặc định. Nút lịch nhận chạm trong vùng 32 × 32 px, biểu tượng giữ 16 px.
+- Kho, Duyệt, Lịch sử nguồn và Chuẩn bị lô bỏ thông báo trùng. StateBoundary cho phép chủ sở hữu bỏ mô tả rỗng có chủ đích. Giữ hướng xử lý theo điều kiện thật như ngày ngoài tuần và lọc lịch sử.
+- Điều tra sâu phát hiện modal giải trình mất bản nháp khi đóng. Escape, Quay lại và nút đóng dùng xác nhận chung, trả focus đúng chỗ. Modal Lịch sử nguồn phân biệt 403 với lỗi đọc tạm thời, bỏ trang cũ khi bị từ chối và giữ đường thử lại cho 500.
+- **PASS** [70/70 Chrome route](../.artifacts/mrx-impeccable-audit-20261125/verified-routes.json), [4/4 probe bản cuối](../.artifacts/mrx-impeccable-audit-20261125/verified-probes.json) và [73/73 hợp đồng trọng tâm](../.artifacts/mrx-impeccable-audit-20261125/final-focused-contracts.json). Build, lint, kiểm phụ thuộc, ngân sách route và diff-check đạt.
+- Vitest toàn FE đạt 773/775 trong lượt gom. Hai ca Weekly Menu đang chờ nhãn badge cũ. Cập nhật hai assertion để kiểm đúng bước Bàn giao kho có `aria-current="step"`; rerun cả tệp đạt 44/44. [Lượt toàn FE](../.artifacts/mrx-impeccable-audit-20261125/final-vitest.json) · [Weekly Menu](../.artifacts/mrx-impeccable-audit-20261125/verified-weekly-contracts.json).
+- Bộ Chrome thao tác đạt 32/34 ở lượt gom. Trace ghi nhận Vite HMR ngay lúc nhập từ khóa Định lượng và guard native zoom dừng do mất foreground. Hai ca đạt khi chạy riêng, gồm đo zoom 200%. [Lượt gom](../.artifacts/mrx-impeccable-audit-20261125/final-workflows.json) · [Định lượng](../.artifacts/mrx-impeccable-audit-20261125/isolated-unit.json) · [Zoom](../.artifacts/mrx-impeccable-audit-20261125/isolated-zoom.json).
+- **NEEDS_EVIDENCE** Ghi và đọc lại trên MySQL, thiết bị tablet thật và tổ hợp quyền đầy đủ cho các thao tác có điều kiện. Bằng chứng mới dùng browser fixture và hợp đồng FE.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, TDD | Sửa audit và điều tra sâu MRX | Mất đích sau đăng nhập, vùng chạm lịch, copy lặp, mất bản nháp và báo 403 như lỗi tạm thời | IPC Debugging, Impeccable Operate, IPC Test Audit, IPC UI Review, IPC Code Review, Verification Before Completion | Có, test đỏ và probe Chrome trên ứng viên | Locator zoom cũ, lần gián đoạn HMR và guard foreground được kiểm riêng | Giữ đích sau xác thực, sửa primitive chung, dùng đúng trạng thái UI và bảo vệ bản nháp |
+
+2026-11-25. Audit kỹ thuật và khả năng thao tác MRX bằng Using Superpowers, Impeccable Operate và IPC UI Review trên ứng viên `c34436a8` cùng các sửa đổi đang có. Phạm vi FR-DASH, FR-MENU, FR-APPR, FR-WH, FR-CHEF, FR-RECON, FR-CAT, FR-SYS và FR-AUTH, DOM-MODE-1, UXR-02/04/05 và NFR-UI-04/05.
+
+- **PASS** 70/70 Chrome gồm 21 route/view × 3 độ rộng và 7 probe; 42 bản kiểm kê DOM/axe với 336 lượt quan sát control; 6/6 phép đo chuyển lô Kho/Bếp; 337/337 Vitest. Chrome tương tác sâu 33/34, ca đỏ xác định locator cũ ghép `8 kg`; probe riêng theo đúng cột tới zoom 200% đạt. [Ma trận và bằng chứng](../.artifacts/mrx-impeccable-audit-20261125/REPORT.md).
+- **FAIL** Liên kết lô/ngày mất sau đăng nhập, vùng nhận con trỏ mở lịch 16 × 16 px trên tablet, copy và trạng thái lặp ở một số màn. **NEEDS_EVIDENCE** Các hộp thoại chỉ xuất hiện theo điều kiện ghi/quyền được ghi theo route, toàn bộ vai trò và vòng đời MySQL, thiết bị thật và hiệu năng production. Phạm vi thay đổi đợt này là bằng chứng audit và WORK.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Audit (Operate) | Kiểm kê route, nút, modal và trạng thái MRX | Đích sau đăng nhập, vùng bấm mở lịch, copy rỗng lặp | IPC UI Review, IPC Test Audit, Verification Before Completion | Có, đo DOM, axe, Chrome headed và hợp đồng FE | Selector zoom cũ và probe chạm lặp thao tác được kiểm riêng | Ưu tiên giữ ngữ cảnh, tăng vùng bấm và bỏ đúng chữ lặp |
+
+2026-11-25. Duyệt xử lý MRX. Dùng chung điều kiện hồ sơ đổi nguồn với Duyệt, đánh giá điều kiện chốt ở owner backend cho Tổng quan/Duyệt/Đối soát, tìm ngày chưa có phiếu theo lô và ngày. Đối chiếu test đỏ/xanh và độ tăng truy vấn trên fixture. Phạm vi FR-RECON, FR-WH, FR-APPR, FR-DASH; DOM-MODE-1 và BR-MRX-SD-4.
+
+
+- **PASS** Tổng quan lấy đúng hồ sơ `PENDING_REVIEW` thuộc phạm vi Duyệt MRX và mở thẳng chi tiết theo ID. Đối soát, Tổng quan, Duyệt và lệnh hoàn tất dùng cùng điều kiện BE, có lý do chặn ở giao diện. Kho mở ngày làm việc sớm nhất có định lượng dương và thiếu phiếu đầu tiên, kể cả lô đã `IN_PROGRESS`.
+- **PASS** Duyệt dùng mốc thời gian từ con trỏ để loại hồ sơ trước trang hiện tại ngay ở truy vấn. Ca 151 hồ sơ có hai mốc trùng giảm lượt đọc nguồn từ 2 xuống 1 ở trang cuối. Tổng quan đọc 22 truy vấn cả với một lô và 100 lô trong fixture SQLite.
+- **PASS** [API 532/532](../.artifacts/mrx-critique/mrx-workflow-final-verified.trx), [Application 49/49](../.artifacts/mrx-critique/mrx-workflow-application.trx), [OpenAPI runtime](../.artifacts/mrx-critique/mrx-workflow-openapi.trx), [Chrome 3/3 theo phạm vi](../.artifacts/mrx-critique/mrx-workflow-browser.json) và [Chrome hồi quy 6/6](../.artifacts/mrx-critique/mrx-workflow-regression-chrome.json). [Vitest 770/770 trên 69 tệp](../.artifacts/mrx-critique/mrx-workflow-fe-final.json). Build FE, lint, phụ thuộc và ngân sách route đạt.
+- **NEEDS_EVIDENCE** MySQL thật, độ trễ với lịch sử sản xuất lớn và đo nhiều tác nhân. Swagger CLI chưa có sẵn nên chưa chạy lệnh sinh lại toàn bộ hợp đồng. Hai trường mới đã đối chiếu bằng endpoint OpenAPI trên TestServer.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Ponytail Audit, Writing Plans, TDD | Sửa ba lỗi nghiệp vụ và giảm đọc trang Duyệt MRX | Hồ sơ sai hàng chờ, trạng thái sẵn sàng chốt sai, ngày Kho bị bỏ sót, đọc lại trang trước | IPC Debugging, IPC Codebase Design, IPC Test Audit, IPC UI Review, IPC Code Review, Verification Before Completion | Có, API đỏ trước sửa và xanh sau sửa, xác nhận ở Chrome và nguồn OpenAPI chạy cục bộ | Giới hạn chứng cứ SQLite/fixture | Một chủ sở hữu điều kiện chốt và một phạm vi hồ sơ đổi nguồn. |
+
+
+2026-11-25. Ponytail Audit các luồng MRX F1/F7/F8/F11 trên worktree ứng viên c34436a8, DOM-MODE-1 và BR-MRX-SD-4. Đọc chủ sở hữu luồng nhập nguồn, xuất và phiếu nấu, hàng đợi, điều kiện chốt. Lượt này đánh giá, chưa sửa mã ứng dụng.
+
+- **FAIL qua đối chiếu mã/hợp đồng** Tổng quan đếm yêu cầu đổi nguồn ngoài phạm vi Duyệt MRX, coi tình trạng đã xuất đủ là đủ điều kiện chốt, và bỏ lô còn ngày cần xuất sau phiếu đầu tiên. Trạm đối soát dùng điều kiện chốt rút gọn tương tự Tổng quan.
+- **PASS có phạm vi** 152/152 ca backend hiện có từ binary ứng viên chạy trên kho kiểm thử cục bộ, gồm nguồn, phiếu Kho, xuất Bếp, báo cáo, hoàn tất và Duyệt lô. [TRX](../.artifacts/mrx-critique/workflow-audit-mrx.trx).
+- **NEEDS_EVIDENCE** Luồng ghi xuyên vai trò trên MySQL thật, kiểm tải lịch sử và cấu hình triển khai. Đường đọc Duyệt quét lại theo offset ở mỗi trang được xác nhận từ mã, chưa có số đo độ trễ.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Ponytail Audit | Audit nghiệp vụ MRX | Lệch giữa điều kiện hiển thị và owner lệnh, bỏ sót ngày Kho, phạm vi hồ sơ | IPC Code Review, IPC Test Audit | Có, truy vết owner và đối chiếu ca hồi quy hiện có | 152 ca cục bộ không chứng minh nhất quán xuyên màn hay MySQL thật | Ưu tiên thống nhất phạm vi hồ sơ và điều kiện chốt, sau đó xác định việc Kho theo ngày. |
+
+
+2026-11-25. Đã duyệt triển khai đề xuất audit MRX. Ổn định trạng thái chờ Kho/Bếp và loại CTA lặp trước. Sau đó đưa hàng đợi lên trước bảng và số liệu, gom Tra cứu và Tải / In, làm rõ cấu hình. Kiểm lại bằng Chrome ở ba độ rộng, hợp đồng FE, lint và build. Phạm vi UI FR-DASH, FR-MENU, FR-APPR, FR-WH, FR-CHEF, FR-RECON, FR-CAT và FR-SYS. Lệnh ghi và quyền theo DOM-MODE-1.
+
+- **PASS** Kho giữ nút ở trạng thái khóa, dữ liệu và ngày hiển thị đúng lô cũ đến khi phản hồi mới về. Bếp giữ badge phiên bản và khóa Tải / In. Sáu probe ở 390/834/1440 px giữ tọa độ đo, dữ liệu cũ và số lần tải tài liệu. Ca đổi giữa hai tuần giữ hàng và focus.
+- **PASS** Bỏ CTA BOM và làm mới trùng, giảm trạng thái hồ sơ đã chốt còn một nhãn chỉ đọc. Tổng quan ưu tiên công việc theo vai trò. Sidebar nhóm Tra cứu, Bếp gom tải/in. Cấu hình giữ lý do, version và phản hồi xác nhận. Header responsive cho phép tiêu đề xuống dòng.
+- **PASS** [Chrome 52/52](../.artifacts/mrx-critique/approved-browser-verified.json), [69/69 gồm 63 lượt màn và sáu ca điều hướng, quyền, đổi chế độ](../.artifacts/mrx-critique/approved-matrix-verified.json), [6/6 probe đổi lô](../.artifacts/mrx-critique/approved-scope-verified.json), [Vitest 769/769 từ frontend trên 69 tệp](../.artifacts/mrx-critique/approved-vitest-verified.json), [build, lint, dependency-cruiser và ngân sách route](../.artifacts/mrx-critique/approved-quality.log).
+- **NEEDS_EVIDENCE** Luồng ghi trên MySQL thật và ma trận quyền đầy đủ. Kết quả dùng Chrome với fixture mạng và hợp đồng FE. Thay đổi lưu trên worktree MRX.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Distill | Ổn định thao tác và tinh gọn UI MRX | Đổi giữa hai tuần làm mất dòng, cuộn ngang cấp trang không bắt tiêu đề bị che | Writing Plans, TDD, IPC Debugging, IPC UI Review, IPC Code Review, IPC Test Audit, Verification Before Completion | Có, tái hiện trước/sau bằng Chrome và đo tọa độ | Vitest từ thư mục gốc thiếu fixture vì đường dẫn làm việc. Lượt đúng từ frontend đạt 769/769. | Giữ hiển thị đến khi dữ liệu lô mới về, giữ quyền và lệnh nghiệp vụ, giảm nút và nhãn lặp. |
+
+2026-11-25. Kiểm tra route, thao tác, chuyển trạng thái và tinh gọn nghiệp vụ MRX trên worktree từ main c34436a8. Phạm vi FR-DASH, FR-MENU, FR-APPR, FR-WH, FR-CHEF, FR-RECON, FR-CAT/ADMIN, FR-SYS, FR-AUTH, DOM-MODE-1 và NFR-UI-01/04.
+
+- **PASS** 21 màn × 390/834/1440 px, 5 URL dạng gốc, 51 ca Chrome hồi quy, 5 probe đổi chế độ/nhánh/quyền và 6 phép đo đổi lô. 15 URL DEFAULT và bốn điểm vào trái vai trò Bếp bị chặn trước API nghiệp vụ. Vitest 291 ca riêng biệt, API 156/156 trên test store cục bộ.
+- **FAIL** Lúc đổi lô, nhóm nút Kho bị thay bởi badge chờ và Bếp ẩn badge phiên bản ở cả ba độ rộng, dù bảng giữ nguyên tọa độ. Hai CTA BOM cùng xuất hiện lúc thiếu nguồn; hồ sơ đã chốt lặp ba tín hiệu trạng thái.
+- **NEEDS_EVIDENCE** Nghiệp vụ ghi toàn trình trên MySQL thật, nhiều người thao tác đồng thời và ma trận quyền đầy đủ. Lượt này ghi bằng chứng và đề xuất, các thay đổi mã ứng viên đến từ lượt trước. [Báo cáo theo route và ưu tiên](../.artifacts/mrx-critique/MRX-ROUTE-AUDIT.md).
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Critique/Distill | Audit MRX và đề xuất | Độ sâu theo route, tách chế độ và nút/nhãn lặp | IPC UI Review, IPC Test Audit, Verification Before Completion | Có, đo qua 63 lượt màn hình và quan sát 6 lần chuyển lô | Critique single-context. Selector cấu hình ban đầu sai tên, probe dùng nhãn thật và đạt. | Ổn định chỗ đặt thao tác, đưa hàng chờ lên trước, giữ nguồn và quyền ghi riêng. |
+
+
+2026-11-25. Critique và tinh gọn MRX từ `origin/main` c34436a8. Đối chiếu toàn bộ route MRX, sửa các lỗi có hồi quy cụ thể ở FR-WH, FR-CAT, FR-MENU và kiểm tra hợp đồng FR-RECON/FR-CHEF. Giữ UI trong lúc tải, giữ phản hồi trong vùng thao tác và bỏ các nhãn lặp khi đủ ngữ cảnh. NFR-UI-01/04, C1–C6, DOM-MODE-1.
+
+### Scoped Pre-Code UI Gate Block
+
+- Kho Lịch sử nguồn và Xuất kho, Quản trị BOM, Định lượng/Kế hoạch, Chuẩn bị lô, Duyệt vận hành (FR-APPR). WorkspaceFrame hoặc SplitView là work object chính theo route.
+- MATERIAL_RECONCILIATION, ProtectedRoute, RoleGuard, ActionGuard và các quyền đọc/ghi hiện hành của từng màn. Bảng thuộc truy vấn trước bị khóa tương tác và xử lý riêng khi API từ chối quyền.
+- Loading, empty, error, permission-denied, partial, write-reconciliation. Dùng Modal, PaginationBar, StateBoundary, InlineBanner, Button và DataGrid hiện có.
+- D6 từ 12 px, D7 một hành động chính, T7 cột định danh ổn định, T8 mật độ compact, M1.2 một modal, N6 sidebar hiện hành.
+
+- **PASS** Chrome 51/51 và xác nhận 403, phân trang, phục hồi ghi phiếu 3/3. Sửa hộp Lịch sử nguồn, tải lại BOM, nhãn Định lượng/Kế hoạch, phản hồi nhảy bảng ở Kho/Chuẩn bị lô, và mất focus ở Duyệt vận hành.
+- **PASS** Backend trả trang rỗng cho offset ngoài phạm vi và giữ tổng đếm, Application 49/49, API theo phạm vi 38/38. Build FE/BE, lint, dependency-cruiser, ngân sách 10 route. Lượt Vitest cuối 768/768 trên 69 tệp.
+- **FAIL có sẵn trên main** `check:architecture-growth --strict` báo `Warehouse.test.tsx` trên 1.500 dòng. Đã đối chiếu baseline có cùng lỗi.
+- **NEEDS_EVIDENCE** MySQL thật, ma trận vai trò đầy đủ, thao tác đồng thời và lệnh mất phản hồi được lưu từ bản cũ thiếu payload đầy đủ nằm ngoài bằng chứng lượt này. [Báo cáo](../.artifacts/mrx-critique/REPORT.md).
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Critique/Distill, Ponytail Audit | Audit và sửa FE/BE MRX | Lệnh mất phản hồi qua reload, trang xa lặp dòng, focal point rơi khi chuyển trang | IPC Debugging, TDD, IPC Test Audit, IPC UI Review, IPC Code Review, Verification Before Completion | Có, ca đỏ Chrome/SQLite và phép đo đối chứng | Critique single-context, detector [], một ca skeleton nhạy với lịch chạy đã đạt lại trong bộ 51/51 | Giữ công việc trong lúc tải, ổn định điểm đặt phản hồi và gửi lại nguyên lệnh |
+
 2026-11-24. Tích hợp checkpoint `1b4f40e1` trên `origin/main` `14ab00cb`. Giữ migration `20261118174006_AddCustomerServiceShiftNames` và các luồng phê duyệt, xuất bổ sung, phục hồi từ các PR đã vào main. Ghép phân trang Kho, sửa kích thước bảng MRX, phân trang Excel Bếp và các thay đổi frontend khớp phạm vi. Build FE/BE và Application Tests 49/49 đạt. Bảo vệ main yêu cầu Verify và một review phê duyệt trước squash.
 
 2026-11-24. Mở rộng audit chớp UI MRX theo FR-MENU, FR-WH, FR-CHEF, FR-RECON và FR-CAT, C1–C6. **FAIL** Chi tiết Lịch sử nguồn co 648 → 202 px khi phân trang; đổi mốc BOM dỡ bảng và hiện skeleton; banner lỗi Định lượng/Kế hoạch đẩy bảng 41–49 px; xác nhận nhập BOM ở Chuẩn bị lô đẩy bảng 32 px. **PASS** 47 kịch bản hiện có và 7 probe fixture hoàn tất, Danh bạ hoàn tất giữ nguyên bảng qua 500 và thử lại. **NEEDS_EVIDENCE** Dashboard, các nhánh giao dịch/kiểm toán còn lại, quyền và thiết bị đầy đủ. Mã ứng dụng chưa đổi. [Báo cáo](../.artifacts/mrx-flash-wide/REPORT.md).

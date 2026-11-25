@@ -112,8 +112,8 @@ export function MrxDailyLinesBranch({
     {
       id: 'ingredient',
       header: 'Nguyên liệu thực phẩm',
-      width: '26%',
-      minWidth: '220px',
+      width: 'var(--mrx-warehouse-ingredient-width, 26%)',
+      minWidth: 'var(--mrx-warehouse-ingredient-width, 220px)',
       cell: (line) => (
         <div className="flex min-w-0 flex-col items-start">
           <span className="max-w-full whitespace-normal wrap-anywhere font-semibold text-slate-900 text-sm">{line.ingredientName}</span>
@@ -121,7 +121,7 @@ export function MrxDailyLinesBranch({
         </div>
       ),
     },
-    { id: 'unit', header: 'ĐVT', width: '12%', minWidth: '100px', align: 'center', cell: (line) => <span className="whitespace-normal wrap-anywhere font-mono text-xs text-slate-700">{line.unitName}</span> },
+    { id: 'unit', header: 'ĐVT', width: 'var(--mrx-warehouse-flex-width, 12%)', minWidth: '100px', align: 'center', cell: (line) => <span className="whitespace-normal wrap-anywhere font-mono text-xs text-slate-700">{line.unitName}</span> },
     { id: 'required', header: 'Tổng nhu cầu tuần', width: '20%', minWidth: '174px', align: 'right', cell: (line) => <Num value={line.requiredQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className="font-bold text-slate-900 text-sm" /> },
     { id: 'issued', header: 'Tổng đã xuất thực tế', width: '20%', minWidth: '174px', align: 'right', cell: (line) => <Num value={line.issuedQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className="font-mono text-sm" /> },
     { id: 'remaining', header: 'Còn lại phải xuất', width: '22%', minWidth: '174px', align: 'right', cell: (line) => line.remainingQuantity == null ? <span className="text-xs text-slate-600">Chưa xác định</span> : <Num value={line.remainingQuantity} format="plain" decimals={6} suffix={` ${line.unitName}`} className={line.remainingQuantity > 0 ? 'text-amber-700 font-bold font-mono text-sm' : 'text-slate-600 font-mono text-sm'} /> },
@@ -131,8 +131,8 @@ export function MrxDailyLinesBranch({
     {
       id: 'ingredient',
       header: 'Nguyên liệu thực phẩm',
-      width: '26%',
-      minWidth: '220px',
+      width: 'var(--mrx-warehouse-ingredient-width, 26%)',
+      minWidth: 'var(--mrx-warehouse-ingredient-width, 220px)',
       cell: (line) => (
         <div className="flex min-w-0 flex-col items-start">
           <span className="max-w-full whitespace-normal wrap-anywhere font-semibold text-slate-900 text-sm">{line.ingredientName}</span>
@@ -143,7 +143,7 @@ export function MrxDailyLinesBranch({
     {
       id: 'required',
       header: 'Nhu cầu ca',
-      width: '21%',
+      width: 'var(--mrx-warehouse-flex-width, 21%)',
       minWidth: '174px',
       align: 'right',
       cell: (line) => <span className="inline-flex max-w-full flex-wrap items-baseline justify-end gap-x-1"><Num value={line.requiredQuantity} format="plain" decimals={6} />{' '}<span className="whitespace-normal break-words text-xs">{line.canonicalUnitName}</span></span>,

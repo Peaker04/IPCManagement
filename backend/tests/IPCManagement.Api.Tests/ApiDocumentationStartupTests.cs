@@ -26,6 +26,12 @@ public class ApiDocumentationStartupTests
         using var document = JsonDocument.Parse(body);
         Assert.True(document.RootElement.TryGetProperty("openapi", out _));
         Assert.True(document.RootElement.GetProperty("paths").TryGetProperty("/api/Auth/login", out _));
+        var batchProperties = document.RootElement.GetProperty("components").GetProperty("schemas")
+            .GetProperty("ReconciliationBatchDto").GetProperty("properties");
+        Assert.Equal("boolean", batchProperties.GetProperty("canComplete").GetProperty("type").GetString());
+        Assert.True(batchProperties.GetProperty("canComplete").GetProperty("nullable").GetBoolean());
+        Assert.Equal("string", batchProperties.GetProperty("completionBlocker").GetProperty("type").GetString());
+        Assert.True(batchProperties.GetProperty("completionBlocker").GetProperty("nullable").GetBoolean());
         var legacy = await app.GetTestClient().GetStringAsync("/swagger/v1/swagger.json");
         using var legacyDocument = JsonDocument.Parse(legacy);
         Assert.Equal(document.RootElement.GetProperty("paths").GetRawText(),

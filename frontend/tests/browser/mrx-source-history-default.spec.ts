@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import type { MrxSourceHistoryDetail } from '../../src/api/mrxApi';
 
 test.use({ video: 'off' });
 
@@ -9,7 +10,7 @@ test('MRX source history keeps event list and detail readable without horizontal
     localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
   });
   const entry = { eventId: 'amendment:aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa', customerCode: 'ANV', customerName: 'AMANN', weekStartDate: '2027-01-18', occurredAt: '2027-01-19T08:00:00Z', actorName: 'Điều phối', status: 'PENDING_REVIEW', approvalStatus: 'PENDING', changeRoute: 'REQUEST', reason: 'Đổi món trong tuần', affectedLineCount: 16 };
-  const detail = { event: entry, requesterName: 'Điều phối', requestedAt: entry.occurredAt, reviewerName: null, reviewedAt: null, executorName: null, executedAt: null, revisions: [], materials: { items: [
+  let detail: MrxSourceHistoryDetail = { event: entry, requesterName: 'Điều phối', requestedAt: entry.occurredAt, reviewerName: null, reviewedAt: null, executorName: null, executedAt: null, revisions: [], materials: { items: [
     { serviceDate: '2027-01-19', ingredientCode: 'ING-1F2388D926', ingredientName: 'Cá bạc má', unitName: 'Kilogram', previousQuantity: 97.778, newQuantity: 99.73356, deltaQuantity: 1.95556, isApplied: false },
     { serviceDate: '2027-01-19', ingredientCode: 'ING-1B39C45C0B', ingredientName: 'Chuối', unitName: 'Quả', previousQuantity: 0, newQuantity: 2.5, deltaQuantity: 2.5, isApplied: false },
   ], totalCount: 2, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false } };
@@ -19,11 +20,11 @@ test('MRX source history keeps event list and detail readable without horizontal
     const data = url.pathname === '/api/system-operation-mode'
       ? { mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát MRX', version: 1, updatedAt: '2026-11-15T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } }
       : url.pathname === '/api/reconciliation/source-history'
-        ? { items: [entry], totalCount: 1, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false }
+        ? { items: [detail.event], totalCount: 1, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false }
         : url.pathname.startsWith('/api/reconciliation/source-history/') ? detail : null;
     await route.fulfill({ status: data ? 200 : 503, json: { success: Boolean(data), data } });
   });
-  for (const width of [1900, 1440, 1024, 768, 390]) {
+  for (const width of [1900, 1440, 1024, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/warehouse?view=mrx-issues');
     await expect(page.getByText('ANV · AMANN')).toBeVisible();
@@ -46,9 +47,12 @@ test('MRX source history keeps event list and detail readable without horizontal
     }
     await page.screenshot({ path: test.info().outputPath(`source-history-events-${width}.png`) });
     await page.getByRole('button', { name: /Xem chi tiết thay đổi nguồn/ }).click();
-    await expect(page.getByRole('dialog').getByText('Ảnh hưởng dự kiến · Chưa ghi nhận cập nhật nguồn')).toBeVisible();
+    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Ảnh hưởng dự kiến', exact: true })).toBeVisible();
     await expect(page.getByRole('dialog').getByText('Cá bạc má')).toBeVisible();
-    await expect(page.getByRole('dialog').getByText('Chưa duyệt')).toBeVisible();
+    await expect(page.getByRole('dialog').getByText('Chờ duyệt', { exact: true })).toBeVisible();
+    await expect(page.getByRole('dialog').getByText('Người yêu cầu · Thời điểm', { exact: true })).toBeVisible();
+    await expect(page.getByRole('dialog').getByText('Người duyệt · Thời điểm', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('dialog').getByText('Người thực hiện yêu cầu · Thời điểm', { exact: true })).toHaveCount(0);
     const detailOverflow = await page.locator('.mrx-history-detail').evaluate(element => element.scrollWidth - element.clientWidth);
     expect(detailOverflow).toBeLessThanOrEqual(2);
     const afterPositions = await page.locator('.mrx-history-materials tbody td[data-label="Sau"]').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().right));
@@ -63,4 +67,19 @@ test('MRX source history keeps event list and detail readable without horizontal
       await page.getByRole('dialog').getByRole('button', { name: 'Đóng', exact: true }).click();
     }
   }
+  detail = {
+    ...detail,
+    event: { ...entry, status: 'APPLIED', approvalStatus: 'APPROVED', changeRoute: 'APPROVED' },
+    reviewerName: 'Quản lý ca', reviewedAt: '2027-01-19T09:30:00Z',
+    executorName: 'Người áp dụng nguồn', executedAt: '2027-01-19T09:31:00Z',
+    revisions: [{ revisionId: 'bbbbbbbb-1111-4111-8111-bbbbbbbbbbbb', batchId: 'cccccccc-1111-4111-8111-cccccccccccc', revisionNumber: 2, appliedAt: '2027-01-19T09:31:00Z' }],
+    materials: { ...detail.materials, items: detail.materials.items.map(row => ({ ...row, isApplied: true })) },
+  };
+  await page.getByRole('button', { name: /Xem chi tiết thay đổi nguồn/ }).click();
+  const applied = page.getByRole('dialog');
+  await expect(applied.getByRole('heading', { name: 'Thay đổi định lượng đã áp dụng' })).toBeVisible();
+  await expect(applied.getByRole('definition').filter({ hasText: /^Quản lý ca\s*\d{1,2}:\d{2}/ })).toBeVisible();
+  await expect(applied.getByRole('definition').filter({ hasText: /^Người áp dụng nguồn\s*\d{1,2}:\d{2}/ })).toBeVisible();
+  await expect(applied.getByText('Đổi món trong tuần', { exact: true })).toBeVisible();
+  await expect(applied.getByText('Lần 2', { exact: false })).toBeVisible();
 });

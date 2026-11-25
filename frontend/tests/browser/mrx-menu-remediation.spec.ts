@@ -34,6 +34,9 @@ test('BROWSER_FIXTURE: MRX BOM from imported menu and direct catalog', async ({ 
   const calls: string[] = [];
   const unexpected: string[] = [];
   let menuSaved = false;
+  let holdBomTier = false;
+  let releaseBomTier!: () => void;
+  const bomTierGate = new Promise<void>(resolve => { releaseBomTier = resolve; });
   const savedTiers = new Set<number>();
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const request = route.request();
@@ -71,6 +74,7 @@ test('BROWSER_FIXTURE: MRX BOM from imported menu and direct catalog', async ({ 
             intervals: [{ effectiveFrom: weekStartDate, effectiveTo: null }] }] });
       case 'GET /api/Dishes/bom-coverage': {
         const tier = Number(url.searchParams.get('priceTier')) || null;
+        if (holdBomTier && tier === 30000) await bomTierGate;
         const hasBom = savedTiers.has(tier ?? 30000);
         return ok({ priceTier: tier, generatedAt: '2026-07-20T00:00:00Z', totalDishes: 1, completeDishes: Number(hasBom),
           missingBomDishes: Number(!hasBom), totalBomLines: Number(hasBom), dishes: [{ ...dish, hasBom, bomLineCount: Number(hasBom) }] });
@@ -112,8 +116,25 @@ test('BROWSER_FIXTURE: MRX BOM from imported menu and direct catalog', async ({ 
     }
   });
 
+  const desktop = page.viewportSize()!;
+  await page.setViewportSize({ width: 320, height: 760 });
   await page.goto(`/weekly-menu?view=mrx-batch&customerId=${customer.customerId}&weekStartDate=${weekStartDate}`);
-  await page.getByRole('button', { name: 'Nhập Excel', exact: true }).click();
+  const header = page.getByRole('heading', { level: 1 });
+  const refresh = page.getByRole('button', { name: 'Làm mới', exact: true });
+  const importMenu = page.getByRole('button', { name: 'Nhập Excel', exact: true });
+  await expect(importMenu).toBeInViewport();
+  const titleBox = (await header.boundingBox())!;
+  const actionBox = (await refresh.boundingBox())!;
+  expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(actionBox.y);
+  expect(titleBox.width).toBeGreaterThanOrEqual(240);
+  const customerScope = page.getByRole('combobox', { name: 'Chọn khách hàng MRX' });
+  expect((await customerScope.boundingBox())!.width).toBeGreaterThanOrEqual(titleBox.width - 1);
+  const lifecycle = page.getByRole('navigation', { name: 'Tiến trình vòng đời lô đối soát' });
+  await expect(lifecycle).toBeVisible();
+  expect(await lifecycle.evaluate(node => node.getBoundingClientRect().right <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: test.info().outputPath('mrx-batch-320.png') });
+  await page.setViewportSize(desktop);
+  await importMenu.click();
   const importer = page.getByRole('dialog');
   await importer.getByLabel('Chọn file Excel thực đơn').setInputFiles({ name: 'menu.xlsx',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: readFileSync(menuFile) });
@@ -173,7 +194,21 @@ test('BROWSER_FIXTURE: MRX BOM from imported menu and direct catalog', async ({ 
   await inspectDate.fill('19/07/2026');
   await inspectDate.press('Tab');
   await coverageAtDate;
-  await page.getByRole('combobox', { name: 'Lọc mốc giá BOM' }).selectOption('30000');
+  const bomHeader = page.getByRole('columnheader', { name: 'Trạng thái BOM' });
+  await expect(bomHeader).toBeVisible();
+  const originalHeader = await bomHeader.elementHandle();
+  holdBomTier = true;
+  const tierRequested = page.waitForRequest(request => request.url().includes('/Dishes/bom-coverage?') && new URL(request.url()).searchParams.get('priceTier') === '30000');
+  try {
+    await page.getByRole('combobox', { name: 'Lọc mốc giá BOM' }).selectOption('30000');
+    await tierRequested;
+    await expect.soft(page.getByRole('columnheader', { name: 'Trạng thái BOM', includeHidden: true })).toBeVisible({ timeout: 1000 });
+    expect.soft(await originalHeader!.evaluate(node => node.isConnected)).toBe(true);
+    await expect.soft(page.getByRole('button', { name: 'Xuất toàn bộ BOM · 30.000 ₫' })).toBeDisabled({ timeout: 1000 });
+  } finally {
+    holdBomTier = false;
+    releaseBomTier();
+  }
   const exportAll = page.getByRole('button', { name: 'Xuất toàn bộ BOM · 30.000 ₫', exact: true });
   await expect(exportAll).toBeEnabled();
   await page.screenshot({ path: test.info().outputPath('catalog-bom-inspection-date.png') });
@@ -381,6 +416,7 @@ test('BROWSER_FIXTURE: Chef Excel scope at desktop and phone width', async ({ pa
   const exportButton = page.getByRole('button', { name: 'Xuất phiếu nấu Excel' });
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 850 });
+    await page.getByRole('button', { name: 'Tải / In', exact: true }).click();
     await exportButton.click();
     const modal = page.getByRole('dialog', { name: 'Xuất phiếu nấu Excel' });
     await expect(modal.getByRole('checkbox', { name: /lô đang xem/ })).toBeChecked();
@@ -602,7 +638,7 @@ test('BROWSER_FIXTURE: preparation scope at desktop/tablet and verified native b
     await first.uncheck();
     await expect(second).toBeChecked();
     await expect(page.getByRole('button', { name: 'Xuất nhu cầu theo NCC' })).toBeEnabled();
-    await expect(page.getByRole('cell', { name: '8 kg', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('row', { name: /Gạo tẻ/ }).getByRole('cell', { name: '8', exact: true })).toBeVisible();
     await first.check();
     await filter.clear();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -778,6 +814,7 @@ test('BROWSER_FIXTURE: warehouse day scope and compact honest empty variance reg
       : path === '/api/reconciliation/batches' ? { items: [batch], totalCount: 1, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false }
       : path === '/api/reconciliation/batches/batch-scope' ? batch
       : path === '/api/reconciliation/batches/batch-scope/warehouse-daily' ? daily
+      : path === '/api/reconciliation/preparation' ? { serviceDate: url.searchParams.get('serviceDate') ?? url.searchParams.get('weekStartDate'), batches: [], aggregatedLines: [] }
       : path === '/api/inventory-issues' ? { items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false }
       : path === '/api/reconciliation/reports/variance-register' ? { rows: [], totalCount: 0 } : null;
     if (request.method() !== 'GET' || !data) {
@@ -791,9 +828,17 @@ test('BROWSER_FIXTURE: warehouse day scope and compact honest empty variance reg
     await page.goto('/warehouse?view=mrx-daily&batchId=batch-scope');
     await expect(page.getByRole('cell', { name: /Gạo tẻ/ })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Ngày xuất kho', exact: true })).toHaveValue('16/11/2026');
+    const dayRead = viewport.width === 1440 ? page.waitForRequest(request => {
+      const url = new URL(request.url());
+      return url.pathname.endsWith('/reconciliation/preparation') && url.searchParams.get('serviceDate') === '2026-11-16' && !url.searchParams.has('weekStartDate');
+    }) : undefined;
+    await page.getByRole('button', { name: 'Chuẩn bị phối hợp' }).click();
+    await expect(page).toHaveURL(/view=mrx-preparation&date=2026-11-16&range=day/);
+    await dayRead;
     await page.goto('/warehouse?view=mrx-daily&batchId=batch-scope&date=2026-11-07');
     const emptyDay = page.getByRole('heading', { name: 'Không có định lượng cần xuất cho ngày đã chọn' });
     await expect(emptyDay).toBeVisible();
+    await expect(page.getByText('Không có định lượng ca', { exact: true })).toHaveCount(0);
     const strip = page.getByRole('button', { name: 'Cả tuần (Tổng hợp)', exact: true });
     const gap = (await emptyDay.boundingBox())!.y - (await strip.boundingBox())!.y;
     expect(gap).toBeLessThan(160);
@@ -801,6 +846,16 @@ test('BROWSER_FIXTURE: warehouse day scope and compact honest empty variance reg
     await page.getByRole('button', { name: 'Xem cả tuần của lô', exact: true }).click();
     await expect(strip).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('cell', { name: /Gạo tẻ/ })).toBeVisible();
+    const calendarTrigger = await page.getByRole('button', { name: 'Mở lịch chọn ngày' }).boundingBox();
+    expect(calendarTrigger?.width).toBeGreaterThanOrEqual(24);
+    expect(calendarTrigger?.height).toBeGreaterThanOrEqual(24);
+    const weekRead = viewport.width === 1440 ? page.waitForRequest(request => {
+      const url = new URL(request.url());
+      return url.pathname.endsWith('/reconciliation/preparation') && url.searchParams.get('weekStartDate') === '2026-11-16' && !url.searchParams.has('serviceDate');
+    }) : undefined;
+    await page.getByRole('button', { name: 'Chuẩn bị phối hợp' }).click();
+    await expect(page).toHaveURL(/view=mrx-preparation&date=2026-11-16&range=week/);
+    await weekRead;
     await page.goto('/reconciliation?view=variances&batchId=batch-scope&date=2026-11-07');
     const emptyReport = page.getByRole('heading', { name: 'Chưa ghi nhận chênh lệch xuất kho' });
     await expect(emptyReport).toBeVisible();

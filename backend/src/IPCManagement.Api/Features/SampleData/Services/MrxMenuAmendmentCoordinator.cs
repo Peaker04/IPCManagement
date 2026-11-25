@@ -181,6 +181,9 @@ internal sealed class MrxMenuAmendmentCoordinator(
         return result;
     }
 
+    internal static IQueryable<MenuAmendment> PendingSourceChanges(IpcManagementContext context) =>
+        context.Menuamendments.AsNoTracking().Where(item => item.BaseMenuVersionId != null && item.Status == "PENDING_REVIEW");
+
     public async Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetMrxInboxAsync(CancellationToken cancellationToken = default)
     {
         var items = await context.Menuamendments.AsNoTracking()

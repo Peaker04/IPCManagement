@@ -1,7 +1,7 @@
 import { getMrxShiftLabel } from '../../../constants/mrxConstants';
 import { flushSync } from 'react-dom';
 import { useEffect, useState } from 'react';
-import { Boxes, SearchX } from 'lucide-react';
+import { SearchX } from 'lucide-react';
 import { SplitView } from '../../../components/workbench/SplitView';
 import { Button } from '../../../components/ui/button';
 import { Num } from '../../../components/ui/num';
@@ -25,9 +25,7 @@ export interface MrxCookingDishListBranchProps {
   groups: DishGroup[];
   emptyFilterState?: {
     title: string;
-    description: string;
-    actionLabel: string;
-    onAction: () => void;
+    action?: { label: string; onClick: () => void };
   };
 }
 
@@ -58,10 +56,9 @@ export function MrxCookingDishListBranch({ groups, emptyFilterState }: MrxCookin
           <SearchX size={22} strokeWidth={1.75} />
         </div>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">{emptyFilterState.title}</h3>
-        <p className="text-xs text-slate-500 max-w-xs mb-3 leading-relaxed">{emptyFilterState.description}</p>
-        <Button variant="outline" size="xs" onClick={emptyFilterState.onAction}>
-          {emptyFilterState.actionLabel}
-        </Button>
+        {emptyFilterState.action && <Button variant="outline" size="xs" className="mt-2" onClick={emptyFilterState.action.onClick}>
+          {emptyFilterState.action.label}
+        </Button>}
       </div>
     ) : null}
     detail={selected ? <CookingDishDetail group={selected} /> : <CookingDishEmptyDetail />}
@@ -91,18 +88,7 @@ function CookingDishEmptyDetail() {
           <table className="w-full h-full min-w-[760px] text-sm border-collapse table-fixed">
             <CookingIngredientHeader />
             <tbody className="divide-y divide-slate-100">
-              <tr className="h-full">
-                <td colSpan={5} className="h-full p-8 text-center align-middle">
-                  <div className="flex flex-col items-center justify-center">
-                    <div aria-hidden="true" className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-3 text-slate-400">
-                      <Boxes size={22} strokeWidth={1.75} />
-                    </div>
-                    <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
-                      Chọn món hoặc điều chỉnh bộ lọc để xem định mức nguyên liệu.
-                    </p>
-                  </div>
-                </td>
-              </tr>
+              <tr className="h-full" aria-hidden="true"><td colSpan={5} className="h-full" /></tr>
             </tbody>
           </table>
         </div>

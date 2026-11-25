@@ -18,6 +18,8 @@ public sealed record ReconciliationBatchDto(
     public string? CustomerCode { get; init; }
     public DateOnly? WeekStartDate { get; init; }
     public DateOnly? WeekEndDate { get; init; }
+    public bool? CanComplete { get; init; }
+    public string? CompletionBlocker { get; init; }
     public ReconciliationDailyReviewDto? DailyReview { get; init; }
 }
 public sealed record ReconciliationDailyReviewDto(string WeeklyStatus, IReadOnlyList<ReconciliationLineDto> Lines);

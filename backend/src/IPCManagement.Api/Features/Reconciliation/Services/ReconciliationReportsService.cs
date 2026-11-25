@@ -7,6 +7,7 @@ using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.SystemOperation.Services;
+using IPCManagement.Api.Features.SampleData.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Shared.Contracts;
@@ -49,8 +50,7 @@ public sealed class ReconciliationReportsService(
 
         if (canDecide)
         {
-            var amendments = context.Menuamendments.AsNoTracking()
-                .Where(m => m.Status == "PENDING_REVIEW" || m.Status == "RECONCILIATION_REQUIRED")
+            var amendments = MrxMenuAmendmentCoordinator.PendingSourceChanges(context)
                 .Where(m => customerId == null || m.CustomerId == customerId)
                 .Where(m => request.WeekFrom == null || m.WeekStartDate >= request.WeekFrom)
                 .Where(m => request.WeekTo == null || m.WeekStartDate <= request.WeekTo);
@@ -59,20 +59,8 @@ public sealed class ReconciliationReportsService(
             foreach (var amendment in await amendments.OrderBy(m => m.CreatedAt).ThenBy(m => m.MenuAmendmentId).Skip(queueSkip).Take(queuePage.PageSize).ToListAsync(token))
                 items.Add(new("PENDING_SOURCE_CHANGE", GuidHelper.ToGuidString(amendment.MenuAmendmentId),
                     $"Thay đổi nguồn: {amendment.Reason}", $"Tuần {amendment.WeekStartDate:dd/MM/yyyy}",
-                    $"/weekly-menu?view=mrx-batch&customerId={GuidHelper.ToGuidString(amendment.CustomerId)}&weekStartDate={amendment.WeekStartDate:yyyy-MM-dd}&amendmentId={GuidHelper.ToGuidString(amendment.MenuAmendmentId)}",
+                    $"/approvals?targetType=mrx-source-change&targetId={GuidHelper.ToGuidString(amendment.MenuAmendmentId)}",
                     amendment.CreatedAt, "MANAGER", "OWN_ACTION"));
-        }
-
-        if (canSeeWarehouse)
-        {
-            var transferred = scopedBatches.Where(row => row.Batch.Status == "TRANSFERRED");
-            awaitingWarehouse = await transferred.CountAsync(token);
-            queueCounts["AWAITING_WAREHOUSE"] = awaitingWarehouse.Value;
-            foreach (var row in await transferred.OrderBy(row => row.Batch.CreatedAt).ThenBy(row => row.Batch.BatchId).Skip(queueSkip).Take(queuePage.PageSize).ToListAsync(token))
-                items.Add(new("AWAITING_WAREHOUSE", GuidHelper.ToGuidString(row.Batch.BatchId), "Chờ Kho xuất nguyên liệu",
-                    $"Tuần {row.WeekStartDate:dd/MM/yyyy}",
-                    canIssue ? $"/warehouse?view=mrx-daily&batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}" : null,
-                    row.Batch.CreatedAt, "WAREHOUSE", canIssue ? "OWN_ACTION" : "WAITING"));
         }
 
         if (canIssue || canDecide)
@@ -95,33 +83,64 @@ public sealed class ReconciliationReportsService(
             completionReady = 0;
             queueCounts["UNRESOLVED_VARIANCE"] = 0;
             queueCounts["COMPLETION_READY"] = 0;
-            var activeQuery = scopedBatches.Where(row => row.Batch.Status == "IN_PROGRESS");
+        }
+        if (canSeeWarehouse)
+        {
+            awaitingWarehouse = 0;
+            queueCounts["AWAITING_WAREHOUSE"] = 0;
+            var activeQuery = scopedBatches.Where(row => row.Batch.Status == "IN_PROGRESS" || row.Batch.Status == "TRANSFERRED");
             // Bound the daily projection while keeping ordinary hundred-batch scopes in one bulk read.
             const int summaryChunkSize = 128;
             var activeCount = await activeQuery.CountAsync(token);
             for (var offset = 0; offset < activeCount; offset += summaryChunkSize)
             {
-              var activeBatches = await activeQuery.OrderBy(row => row.Batch.CreatedAt).ThenBy(row => row.Batch.BatchId)
-                  .Skip(offset).Take(summaryChunkSize).ToListAsync(token);
-              var dailyByBatch = await batchService.GetWarehouseDailyManyAsync(activeBatches.Select(row => GuidHelper.ToGuidString(row.Batch.BatchId)).ToList(), token, includeMetadata: false);
-              foreach (var row in activeBatches)
-              {
-                if (!dailyByBatch.TryGetValue(GuidHelper.ToGuidString(row.Batch.BatchId), out var daily)) continue;
-                var overages = daily.Dates.SelectMany(d => d.Lines).Count(l => l.QuantityStatus == "OVER_ISSUED" && !l.HasValidDisposition);
-                unresolvedVariances += overages;
-                if (overages > 0) queueCounts["UNRESOLVED_VARIANCE"] += 1;
-                if (overages > 0 && queueCounts["UNRESOLVED_VARIANCE"] > queueSkip && items.Count(i => i.QueueType == "UNRESOLVED_VARIANCE") < queuePage.PageSize)
-                    items.Add(new("UNRESOLVED_VARIANCE", GuidHelper.ToGuidString(row.Batch.BatchId), $"Còn {overages} dòng xuất vượt cần xử lý",
-                        $"Tuần {row.WeekStartDate:dd/MM/yyyy}", $"/reconciliation?batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}",
-                        row.Batch.CreatedAt, "MANAGER", "OWN_ACTION"));
-                if (daily.WeeklyStatus != "WEEK_COMPLETE" || overages > 0) continue;
-                completionReady += 1;
-                queueCounts["COMPLETION_READY"] += 1;
-                if (queueCounts["COMPLETION_READY"] > queueSkip && items.Count(i => i.QueueType == "COMPLETION_READY") < queuePage.PageSize)
-                    items.Add(new("COMPLETION_READY", GuidHelper.ToGuidString(row.Batch.BatchId), "Lô sẵn sàng chốt tuần",
-                        $"Tuần {row.WeekStartDate:dd/MM/yyyy}", $"/reconciliation?batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}",
-                        row.Batch.CreatedAt, "MANAGER", "OWN_ACTION"));
-              }
+                var activeBatches = await activeQuery.OrderBy(row => row.Batch.CreatedAt).ThenBy(row => row.Batch.BatchId)
+                    .Skip(offset).Take(summaryChunkSize).ToListAsync(token);
+                var dailyByBatch = await batchService.GetWarehouseDailyManyAsync(activeBatches.Select(row => GuidHelper.ToGuidString(row.Batch.BatchId)).ToList(), token, includeMetadata: false);
+                var activeIds = activeBatches.Select(row => row.Batch.BatchId).ToList();
+                var issuedDates = await context.Inventoryissues.AsNoTracking()
+                    .Where(issue => issue.ReconciliationBatchId != null && activeIds.Contains(issue.ReconciliationBatchId))
+                    .Select(issue => new { BatchId = issue.ReconciliationBatchId!, issue.IssueDate }).Distinct().ToListAsync(token);
+                var issuedByBatch = issuedDates.ToLookup(issue => GuidHelper.ToGuidString(issue.BatchId), issue => issue.IssueDate);
+                var completionCandidates = activeBatches.Select(row => row.Batch).Where(batch => batch.Status == "IN_PROGRESS"
+                    && dailyByBatch.TryGetValue(GuidHelper.ToGuidString(batch.BatchId), out var daily)
+                    && (daily.WeeklyStatus == "WEEK_COMPLETE" || daily.Compatibility.ReasonCode == "LEGACY_DAILY_LINEAGE_MISSING")).ToList();
+                var blockers = canDecide ? await ReconciliationCompletionEligibility.GetBlockersAsync(context, completionCandidates, dailyByBatch, token) : null;
+                foreach (var row in activeBatches)
+                {
+                  if (!dailyByBatch.TryGetValue(GuidHelper.ToGuidString(row.Batch.BatchId), out var daily)) continue;
+                  var issued = issuedByBatch[GuidHelper.ToGuidString(row.Batch.BatchId)].ToHashSet();
+                  var nextDay = daily.Compatibility.CanIssueByDate ? daily.Dates.FirstOrDefault(day => day.IsApplicable
+                      && ServiceCalendar.IsServiceDay(day.ServiceDate) && day.Lines.Any(line => line.RequiredQuantity > 0)
+                      && !issued.Contains(day.ServiceDate)) : null;
+                  if (nextDay is not null)
+                  {
+                      awaitingWarehouse++;
+                      queueCounts["AWAITING_WAREHOUSE"] += 1;
+                      if (queueCounts["AWAITING_WAREHOUSE"] > queueSkip && items.Count(i => i.QueueType == "AWAITING_WAREHOUSE") < queuePage.PageSize)
+                      {
+                          var id = GuidHelper.ToGuidString(row.Batch.BatchId);
+                          items.Add(new("AWAITING_WAREHOUSE", id, "Chờ Kho xuất nguyên liệu", $"Ngày {nextDay.ServiceDate:dd/MM/yyyy}",
+                              canIssue ? $"/warehouse?view=mrx-daily&batchId={id}&date={nextDay.ServiceDate:yyyy-MM-dd}" : null,
+                              row.Batch.CreatedAt, "WAREHOUSE", canIssue ? "OWN_ACTION" : "WAITING"));
+                      }
+                  }
+                  if (!canDecide || row.Batch.Status != "IN_PROGRESS") continue;
+                  var overages = daily.Dates.SelectMany(d => d.Lines).Count(l => l.QuantityStatus == "OVER_ISSUED" && !l.HasValidDisposition);
+                  unresolvedVariances += overages;
+                  if (overages > 0) queueCounts["UNRESOLVED_VARIANCE"] += 1;
+                  if (overages > 0 && queueCounts["UNRESOLVED_VARIANCE"] > queueSkip && items.Count(i => i.QueueType == "UNRESOLVED_VARIANCE") < queuePage.PageSize)
+                      items.Add(new("UNRESOLVED_VARIANCE", GuidHelper.ToGuidString(row.Batch.BatchId), $"Còn {overages} dòng xuất vượt cần xử lý",
+                          $"Tuần {row.WeekStartDate:dd/MM/yyyy}", $"/reconciliation?batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}",
+                          row.Batch.CreatedAt, "MANAGER", "OWN_ACTION"));
+                  if (!blockers!.TryGetValue(GuidHelper.ToGuidString(row.Batch.BatchId), out var blocker) || blocker is not null) continue;
+                  completionReady += 1;
+                  queueCounts["COMPLETION_READY"] += 1;
+                  if (queueCounts["COMPLETION_READY"] > queueSkip && items.Count(i => i.QueueType == "COMPLETION_READY") < queuePage.PageSize)
+                      items.Add(new("COMPLETION_READY", GuidHelper.ToGuidString(row.Batch.BatchId), "Lô sẵn sàng chốt tuần",
+                          $"Tuần {row.WeekStartDate:dd/MM/yyyy}", $"/reconciliation?batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}",
+                          row.Batch.CreatedAt, "MANAGER", "OWN_ACTION"));
+                }
             }
         }
 

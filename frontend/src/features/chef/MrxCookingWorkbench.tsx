@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Popover } from '@base-ui/react/popover';
+import { ChevronDown } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { mrxApi, type MrxKitchenCooking, type MrxBatchSummary, type MrxBatchPage } from '../../api/mrxApi';
 import { PaginationBar } from '../../components/workbench/PaginationBar';
@@ -33,6 +35,8 @@ export function MrxCookingWorkbench() {
   const [batchListRetry, setBatchListRetry] = useState(0);
   const [catalogPage, setCatalogPage] = useState(1);
   const [historyPickerOpen, setHistoryPickerOpen] = useState(false);
+  const [outputOpen, setOutputOpen] = useState(false);
+  const outputTriggerRef = useRef<HTMLButtonElement>(null);
   const [catalogInfo, setCatalogInfo] = useState<MrxBatchPage | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(!cachedBatches);
   const hasSessionSelection = Boolean(sessionScope.customerId || sessionScope.customerCode || sessionScope.weekStartDate);
@@ -193,10 +197,12 @@ export function MrxCookingWorkbench() {
   }, [filteredDishGroups]);
 
   const [isDownloading, setIsDownloading] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
+  const [exportBatchId, setExportBatchId] = useState('');
+  if (exportBatchId && exportBatchId !== batchId) setExportBatchId('');
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const canOutput = Boolean(data?.batchId === batchId && data.rows.length > 0
     && !stateProps.isFetching && !stateProps.isPreviousData && !stateProps.error && !isLegacyLineageMissing);
+  if (outputOpen && !canOutput) setOutputOpen(false);
   const exportWeek = batches.find(batch => batch.batchId === batchId)?.weekStartDate
     || (data?.rows[0] ? weekStartFor(data.rows[0].serviceDate) : '');
   async function downloadCooking() {
@@ -232,6 +238,7 @@ export function MrxCookingWorkbench() {
 
   const selectBatch = (newId: string, historicalBatch?: MrxBatchSummary) => {
     const b = historicalBatch ?? batches.find(item => item.batchId === newId);
+    setOutputOpen(false);
     setHasUserSwitchedBatch(true);
     setBatchId(newId);
     if (b) {
@@ -251,12 +258,19 @@ export function MrxCookingWorkbench() {
         selectedShift={selectedShift}
         onSelectShift={(shift) => setSelectedShift(shift)}
         isPending={isScopePending}
-        data={isScopePending ? null : data}
-        actions={<>
-          <Button variant="outline" size="sm" disabled={!canOutput || isDownloading} onClick={() => void downloadCooking()}>Tải CSV cả lô</Button>
-          <Button variant="default" size="sm" disabled={!canOutput || !exportWeek || isDownloading} onClick={() => setExportOpen(true)}>Xuất phiếu nấu Excel</Button>
-          <Button variant="outline" size="sm" disabled={!canOutput || isFilteredEmpty} onClick={() => { if (canOutput && !isFilteredEmpty) window.print(); }}>In phiếu nấu</Button>
-        </>}
+        data={displayedError || isLegacyLineageMissing ? null : data}
+        actions={<Popover.Root open={outputOpen && canOutput} onOpenChange={setOutputOpen}>
+          <Popover.Trigger ref={outputTriggerRef} disabled={!canOutput} render={<Button size="sm" />}>Tải / In<ChevronDown size={14} aria-hidden="true" /></Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Positioner sideOffset={4} align="end" className="z-50">
+              <Popover.Popup className="grid gap-1 rounded border border-slate-200 bg-white p-2 shadow-sm print:hidden" aria-label="Tải và in phiếu nấu">
+                <Button variant="ghost" className="justify-start" disabled={!canOutput || isDownloading} onClick={() => { setOutputOpen(false); void downloadCooking(); }}>Tải CSV cả lô</Button>
+                <Button variant="ghost" className="justify-start" disabled={!canOutput || !exportWeek || isDownloading} onClick={() => { outputTriggerRef.current?.focus(); setOutputOpen(false); setExportBatchId(batchId); }}>Xuất phiếu nấu Excel</Button>
+                <Button variant="ghost" className="justify-start" disabled={!canOutput || isFilteredEmpty} onClick={() => { setOutputOpen(false); window.print(); }}>In phiếu nấu theo ca</Button>
+              </Popover.Popup>
+            </Popover.Positioner>
+          </Popover.Portal>
+        </Popover.Root>}
         catalogNavigation={<><PaginationBar label="Phân trang danh sách lô nấu" placement="selector" page={catalogInfo?.pageNumber ?? catalogPage} pageSize={50}
           totalCount={catalogInfo?.totalCount} totalPages={catalogInfo?.totalPages}
           hasPrev={catalogInfo?.hasPrev ?? false} hasNext={catalogInfo?.hasNext ?? false}
@@ -270,7 +284,6 @@ export function MrxCookingWorkbench() {
         scope="Trong ca, giữ đủ nguyên liệu mỗi món.">
         <span className="text-xs text-slate-600">Số món: <strong className="inline-block min-w-[3ch] text-right font-mono tabular-nums text-slate-900">{hasCurrentData ? `${visibleDishGroups.length}/${filteredDishGroups.length}` : '—'}</strong></span>
         <span className="text-xs text-slate-600">Tổng suất trong ca: <strong className="inline-block min-w-[3ch] text-right font-mono tabular-nums text-slate-900">{!hasCurrentData ? '—' : totalFilteredServings === null ? 'Chưa xác định' : `${totalFilteredServings} suất`}</strong></span>
-        <span className="text-xs text-slate-600">Dòng nguyên liệu đang xem: <strong className="inline-block min-w-[3ch] text-right font-mono tabular-nums text-slate-900">{hasCurrentData ? visibleDishGroups.reduce((sum, group) => sum + group.rows.length, 0) : '—'}</strong></span>
       </LocalFindBar>
 
       <WorkspaceFrame.Body>
@@ -310,9 +323,7 @@ export function MrxCookingWorkbench() {
               isFilteredEmpty
                 ? {
                     title: queryText ? 'Không có món khớp tìm kiếm' : 'Không có món cho ca đã chọn',
-                    description: 'Xóa tìm kiếm hoặc chọn ca khác.',
-                    actionLabel: queryText ? 'Xóa tìm trong phiếu nấu' : 'Xem tất cả ca',
-                    onAction: () => (queryText ? setSearchTerm('') : setSelectedShift('ALL')),
+                    action: queryText ? undefined : { label: 'Xem tất cả ca', onClick: () => setSelectedShift('ALL') },
                   }
                 : undefined
             }
@@ -321,8 +332,8 @@ export function MrxCookingWorkbench() {
       </WorkspaceFrame.Body>
       {historyPickerOpen && <ReconciliationBatchPicker selectedBatchId={batchId} onClose={() => setHistoryPickerOpen(false)}
         onSelect={batch => { selectBatch(batch.batchId, batch); setHistoryPickerOpen(false); }} />}
-      {exportOpen && exportWeek && <MrxCookingExportModal key={batchId} batchId={batchId} weekStartDate={exportWeek}
-        initialShift={selectedShift} onClose={() => setExportOpen(false)} />}
+      {exportBatchId && exportBatchId === batchId && exportWeek && <MrxCookingExportModal key={batchId} batchId={batchId} weekStartDate={exportWeek}
+        initialShift={selectedShift} onClose={() => setExportBatchId('')} />}
     </WorkspaceFrame.Root>
   );
 }

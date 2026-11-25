@@ -93,7 +93,7 @@ public sealed class ReconciliationBatchService(
             .ToList();
     }
 
-    public async Task<ReconciliationBatchDto?> GetAsync(string id, CancellationToken token = default)
+    public async Task<ReconciliationBatchDto?> GetAsync(string id, CancellationToken token = default, bool includeCompletion = true)
     {
         var bytes = RequiredId(id);
         var batch = await context.Reconciliationbatches.AsNoTracking()
@@ -125,6 +125,11 @@ public sealed class ReconciliationBatchService(
         var dailyDispositions = new List<ReconciliationDailyDisposition>();
         var dailyMap = await GetWarehouseDailyManyCoreAsync([normalizedId], [batch], batchLines, preloadedWeeks, dailyDispositions, token, includeMetadata: false);
         var daily = dailyMap.GetValueOrDefault(normalizedId);
+        if (includeCompletion && batch.Status == "IN_PROGRESS")
+        {
+            var blockers = await ReconciliationCompletionEligibility.GetBlockersAsync(context, [batch], dailyMap, token);
+            result = result with { CanComplete = blockers[normalizedId] is null, CompletionBlocker = blockers[normalizedId] };
+        }
         if (daily is null || daily.Compatibility.ReasonCode == "LEGACY_DAILY_LINEAGE_MISSING") return result;
 
         var dispositionById = dailyDispositions.ToDictionary(item => GuidHelper.ToGuidString(item.DailyLineId), StringComparer.Ordinal);

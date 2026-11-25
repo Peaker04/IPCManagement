@@ -193,7 +193,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 960, height: 720 
         roleCode: 'ADMIN', roleName: 'Admin', isActive: true, isAdminFullAccess: true, permissions: [] }));
       localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION'); localStorage.setItem('ipc_v3_mode_version', '1');
     });
-    await page.route('**/api/**', async route => {
+    await page.route(url => url.pathname.startsWith('/api/'), async route => {
       const request = route.request(); const path = new URL(request.url()).pathname;
       let data: unknown;
       if (path === '/api/system-operation-mode') data = { mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát MRX', version: 1,
@@ -261,12 +261,17 @@ for (const width of [600, 960, 1440]) {
       status: 'COMPLETION_READY', targetCode: 'ANV', customerCode: 'ANV', weekStartDate: '2026-11-30',
       route: '/reconciliation?batchId=' + id, nextAction: 'Mở đối soát', materials: [] };
     const unexpected: string[] = [];
-    await page.route('**/api/**', async route => {
+    let inboxReads = 0;
+    await page.route(url => url.pathname.startsWith('/api/'), async route => {
       const path = new URL(route.request().url()).pathname;
       let data: unknown;
       if (path === '/api/system-operation-mode') data = { mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát MRX', version: 1,
         updatedAt: item.submittedAt, reasonRequired: false, capabilities: { navigation: ['approvals'], pageTabs: { approvals: ['queue','history'] } } };
-      else if (path === '/api/operational-approvals/inbox') data = { mode: 'MATERIAL_RECONCILIATION', modeVersion: 1, unavailableSources: [],
+      else if (path === '/api/operational-approvals/inbox') data = { mode: 'MATERIAL_RECONCILIATION', modeVersion: 1,
+        unavailableSources: ++inboxReads === 1 ? [
+          { targetType: 'mrx-source-change', message: 'Chưa tải được yêu cầu đổi nguồn' },
+          { targetType: 'mrx-historical-purpose', message: 'Chưa tải được đề xuất phân bổ phiếu lịch sử' },
+        ] : [],
         targets: [{ targetType: subject.targetType, label: subject.title, mode: 'MATERIAL_RECONCILIATION', permission: '' }],
         items: [subject], limit: 20, hasNext: false, nextCursor: null };
       else if (path.endsWith('/history')) data = [{ historyId: id, targetType: subject.targetType, targetId: id,
@@ -278,7 +283,22 @@ for (const width of [600, 960, 1440]) {
       await route.fulfill({ json: { success: true, data } });
     });
     await page.goto('/approvals');
-    await page.getByRole('button', { name: 'Xem xét', exact: true }).click();
+    const retry = page.getByRole('button', { name: 'Tải lại hàng đợi', exact: true });
+    await expect(retry).toHaveCount(1);
+    await expect(page.getByText('Chưa tải được yêu cầu đổi nguồn', { exact: true })).toBeVisible();
+    await expect(page.getByText('Chưa tải được đề xuất phân bổ phiếu lịch sử', { exact: true })).toBeVisible();
+    const review = page.getByRole('button', { name: 'Xem xét', exact: true });
+    await expect(review).toBeEnabled();
+    if (width === 1440) {
+      await review.click();
+      await expect(page.getByRole('heading', { name: subject.title, exact: true })).toBeVisible();
+    }
+    await retry.click();
+    await expect(page.getByText('Hàng đợi chưa đầy đủ', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Làm mới', exact: true })).toBeEnabled();
+    expect(inboxReads).toBe(2);
+    if (width === 1440) await expect(page.getByRole('heading', { name: subject.title, exact: true })).toBeVisible();
+    else await review.click();
     await expect(page.getByText('Đã tạo lô', { exact: true })).toBeVisible();
     await expect(page.getByText('Sẵn sàng chốt lô', { exact: true })).toHaveCount(2);
     await expect(page.getByRole('button', { name: 'Mở đối soát', exact: true })).toBeInViewport();
