@@ -55,7 +55,7 @@ public sealed class ReconciliationBatchService(
         IReadOnlyCollection<string> ids, CancellationToken token = default, bool includeMetadata = true) =>
         GetWarehouseDailyManyCoreAsync(ids, null, null, null, null, token, includeMetadata);
 
-    private Task<IReadOnlyDictionary<string, ReconciliationWarehouseDailyDto>> GetWarehouseDailyManyCoreAsync(
+    internal Task<IReadOnlyDictionary<string, ReconciliationWarehouseDailyDto>> GetWarehouseDailyManyCoreAsync(
         IReadOnlyCollection<string> ids,
         IReadOnlyList<ReconciliationBatch>? preloadedBatches,
         IReadOnlyList<ReconciliationBatchLine>? preloadedWeeklyLines,
