@@ -9,7 +9,7 @@ namespace IPCManagement.Api.Features.Approvals.Services;
 internal sealed class OperationalMrxHistoricalPurposeSource(IpcManagementContext context)
 {
     internal async Task<(IReadOnlyList<ApprovalInboxItemDto> Items, bool HasMore)> ReadAsync(
-        ApprovalInboxQueryDto query, CancellationToken token, int offset, int limit)
+        ApprovalInboxQueryDto query, CancellationToken token, int offset, int limit, DateTime? cursorAt = null)
     {
         var targetId = GuidHelper.ParseGuidString(query.TargetId);
         var customerCode = query.CustomerCode?.Trim().ToUpperInvariant();
@@ -22,6 +22,7 @@ internal sealed class OperationalMrxHistoricalPurposeSource(IpcManagementContext
             where targetId == null || row.ProposalId == targetId
             where date == null || row.ServiceDate == date
             where string.IsNullOrEmpty(customerCode) || customer.CustomerCode.ToUpper() == customerCode
+            where cursorAt == null || row.CreatedAt >= cursorAt
             orderby row.CreatedAt, row.ProposalId
             select new { row.ProposalId, row.ServiceDate, row.Status, row.Reason, row.CreatedAt, row.IssueLine.Issue.IssueCode,
                 row.UnallocatedQuantity, row.IssueLine.Ingredient.IngredientName, row.IssueLine.Unit.UnitName,

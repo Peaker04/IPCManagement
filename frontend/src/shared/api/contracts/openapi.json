@@ -40253,6 +40253,14 @@
             "format": "date",
             "nullable": true
           },
+          "canComplete": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "completionBlocker": {
+            "type": "string",
+            "nullable": true
+          },
           "dailyReview": {
             "$ref": "#/components/schemas/ReconciliationDailyReviewDto"
           }

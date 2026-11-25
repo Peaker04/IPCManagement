@@ -23,6 +23,7 @@ export interface StateBoundaryProps {
   isPreviousData?: boolean;
   lockContent?: boolean;
   hasExistingData?: boolean;
+  recoverableNoticePlacement?: 'top' | 'bottom';
   loadingVariant?: 'table' | 'cards' | 'matrix' | 'form';
   loadingGeometry?: SkeletonGeometry;
   customSkeleton?: ReactNode;
@@ -42,7 +43,7 @@ export interface StateBoundaryProps {
   isEmpty?: boolean;
   emptyScenario?: EmptyScenario;
   emptyTitle?: string;
-  emptyDescription?: string;
+  emptyDescription?: string | null;
   emptyIcon?: LucideIcon;
   actionLabel?: string;
   onAction?: () => void;
@@ -138,6 +139,7 @@ export function StateBoundary({
   isPreviousData,
   lockContent,
   hasExistingData,
+  recoverableNoticePlacement = 'top',
   loadingVariant = 'table',
   loadingGeometry,
   customSkeleton,
@@ -320,7 +322,8 @@ export function StateBoundary({
       : isLineageMissing409
       ? 'prerequisite-blocked'
       : emptyScenario;
-    const content = resolveEmptyContent(resolvedScenario, emptyTitle, emptyDescription, actionLabel, prerequisiteLabel);
+    const content = resolveEmptyContent(resolvedScenario, emptyTitle, emptyDescription ?? undefined, actionLabel, prerequisiteLabel);
+    const description = emptyDescription === null ? undefined : content.desc;
     const effectiveOnAction = onAction || onResetFilters || onNavigatePrerequisite || (prerequisiteRoute ? () => navigateToPrerequisite(prerequisiteRoute) : undefined);
 
     const emptyIconComponent = resolveEmptyIcon(resolvedScenario, emptyIcon, contextDomain);
@@ -330,7 +333,7 @@ export function StateBoundary({
         <div className={clsx('p-3.5 rounded border border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center min-h-[96px] w-full', className)}>
           {createElement(emptyIconComponent, { size: 18, className: 'text-slate-400 mb-1', 'aria-hidden': true })}
           <p className="text-xs font-medium text-slate-700">{content.title}</p>
-          <p className="text-[11px] text-slate-400 max-w-xs mb-2">{content.desc}</p>
+          {description && <p className="text-[11px] text-slate-400 max-w-xs mb-2">{description}</p>}
           {content.action && effectiveOnAction && (
             <Button variant="outline" size="xs" onClick={effectiveOnAction} className="h-6 px-2 text-[11px] bg-white">
               {content.action}
@@ -346,7 +349,7 @@ export function StateBoundary({
           {createElement(emptyIconComponent, { size: 22, strokeWidth: 1.75 })}
         </div>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">{content.title}</h3>
-        <p className="text-xs text-slate-500 max-w-sm mb-4 leading-relaxed">{content.desc}</p>
+        {description && <p className="text-xs text-slate-500 max-w-sm mb-4 leading-relaxed">{description}</p>}
         {content.action && effectiveOnAction && (
           <Button variant="default" size="sm" onClick={effectiveOnAction}>
             {content.action}
@@ -364,12 +367,17 @@ export function StateBoundary({
 
   // 6. Partial State Banner & Content
   const isLoadingPrevious = isPreviousData && (!error || isFetching);
+  const recoverableNotice = error && hasExistingData && <div role="alert" className={clsx(
+    'px-4 py-2 text-xs bg-rose-50 border-rose-200 text-rose-800 flex items-center justify-between shrink-0',
+    recoverableNoticePlacement === 'bottom' ? 'border-t' : 'border-b',
+  )}>
+    <span><strong>Không thể tải dữ liệu</strong>: <span>{typeof error === 'string' ? error : error.message || 'Đã xảy ra lỗi khi tải dữ liệu.'}</span></span>
+    {onRetry && <Button variant="outline" size="xs" disabled={isFetching && recoverableNoticePlacement === 'top'}
+      aria-disabled={isFetching || undefined} onClick={() => { if (!isFetching) onRetry(); }} className="h-6 px-2 text-xs">{isFetching ? 'Đang thử lại…' : 'Thử lại'}</Button>}
+  </div>;
   return (
     <div className={clsx('flex-1 min-h-0 w-full flex flex-col relative', className)}>
-      {error && hasExistingData && <div role="alert" className="px-4 py-2 text-xs bg-rose-50 border-b border-rose-200 text-rose-800 flex items-center justify-between shrink-0">
-        <span><strong>Không thể tải dữ liệu</strong>: <span>{typeof error === 'string' ? error : error.message || 'Đã xảy ra lỗi khi tải dữ liệu.'}</span></span>
-        {onRetry && <Button variant="outline" size="xs" disabled={isFetching} onClick={onRetry} className="h-6 px-2 text-xs">{isFetching ? 'Đang thử lại…' : 'Thử lại'}</Button>}
-      </div>}
+      {recoverableNoticePlacement === 'top' && recoverableNotice}
       {isPartial && (
         <div role="status" aria-live="polite" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 flex items-center justify-between shrink-0">
           <span>{partialMessage || 'Dữ liệu hiển thị một phần do các ca sản xuất đang diễn ra.'}</span>
@@ -384,6 +392,7 @@ export function StateBoundary({
       <div className={clsx('flex-1 min-h-0 w-full flex flex-col', (isPreviousData || lockContent) && 'pointer-events-none select-none')} aria-busy={isLoadingPrevious || undefined} inert={isPreviousData || lockContent || undefined}>
         {children}
       </div>
+      {recoverableNoticePlacement === 'bottom' && recoverableNotice}
     </div>
   );
 }

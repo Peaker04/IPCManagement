@@ -31,7 +31,7 @@ public sealed class ReconciliationBatchesController : ControllerBase
         => Ok(ApiResponse<PagedResponseDto<ReconciliationBatchSummaryDto>>.SuccessResult(await service.GetPageAsync(query, token)));
 
     [HttpGet("draft-sources"), Authorize(Policy = AuthorizationPolicies.ReconciliationSourceReadAccess), ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReconciliationDraftSourceDto>>), StatusCodes.Status200OK)] public async Task<IActionResult> DraftSources(CancellationToken token) => Ok(ApiResponse<IReadOnlyList<ReconciliationDraftSourceDto>>.SuccessResult(await service.ListDraftSourcesAsync(token)));
-    [HttpGet("{id}"), Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess), ProducesResponseType(typeof(ApiResponse<ReconciliationBatchDto>), StatusCodes.Status200OK)] public async Task<IActionResult> Get(string id, CancellationToken token) { var item = await service.GetAsync(id, token); return item is null ? NotFound(ApiResponse.FailResult("Không tìm thấy lô đối chiếu.")) : Ok(ApiResponse<ReconciliationBatchDto>.SuccessResult(CanReadReconciliationDetails() ? item : ToOperationalScope(item))); }
+    [HttpGet("{id}"), Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess), ProducesResponseType(typeof(ApiResponse<ReconciliationBatchDto>), StatusCodes.Status200OK)] public async Task<IActionResult> Get(string id, CancellationToken token) { var item = await service.GetAsync(id, token, includeCompletion: CanReviewCompletion()); return item is null ? NotFound(ApiResponse.FailResult("Không tìm thấy lô đối chiếu.")) : Ok(ApiResponse<ReconciliationBatchDto>.SuccessResult(CanReadReconciliationDetails() ? item : ToOperationalScope(item))); }
     [HttpGet("{id}/warehouse-daily"), Authorize(Policy = AuthorizationPolicies.ReconciliationWarehouseReadAccess), ProducesResponseType(typeof(ApiResponse<ReconciliationWarehouseDailyDto>), StatusCodes.Status200OK)] public async Task<IActionResult> WarehouseDaily(string id, CancellationToken token) { var item = await service.GetWarehouseDailyAsync(id, token); return item is null ? NotFound(ApiResponse.FailResult("Không tìm thấy lô đối chiếu.")) : Ok(ApiResponse<ReconciliationWarehouseDailyDto>.SuccessResult(item)); }
     [HttpGet("{id}/source-changes"), Authorize(Policy = AuthorizationPolicies.ReconciliationSourceReadAccess), ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReconciliationSourceChangeDto>>), StatusCodes.Status200OK)] public async Task<IActionResult> SourceChanges(string id, CancellationToken token) => Ok(ApiResponse<IReadOnlyList<ReconciliationSourceChangeDto>>.SuccessResult(await service.ListSourceChangesAsync(id, token)));
     [HttpGet("{id}/dishes"), Authorize(Policy = AuthorizationPolicies.ReconciliationFrozenBomReadAccess), ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReconciliationBatchDishSummaryDto>>), StatusCodes.Status200OK)] public async Task<IActionResult> Dishes(string id, CancellationToken token) => Ok(ApiResponse<IReadOnlyList<ReconciliationBatchDishSummaryDto>>.SuccessResult(await service.ListDishesAsync(id, token)));
@@ -42,6 +42,9 @@ public sealed class ReconciliationBatchesController : ControllerBase
     [HttpPost("{id}/transfer-to-warehouse"), SystemOperation("reconciliation.batches.transfer", OperationDisposition.ReconciliationOnly), Authorize(Policy = AuthorizationPolicies.ReconciliationSourceReadAccess), ProducesResponseType(typeof(ApiResponse<ReconciliationWarehouseTransferDto>), StatusCodes.Status200OK)] public async Task<IActionResult> TransferToWarehouse(string id, TransferReconciliationBatchRequest request, CancellationToken token) => Ok(ApiResponse<ReconciliationWarehouseTransferDto>.SuccessResult(await service.TransferToWarehouseAsync(id, request, currentUser.GetUserId(User) ?? "", token)));
     [HttpPost("{id}/complete"), SystemOperation("reconciliation.batches.complete", OperationDisposition.ReconciliationOnly), Authorize(Policy = AuthorizationPolicies.ReconciliationCompleteAccess), ProducesResponseType(typeof(ApiResponse<ReconciliationBatchDto>), StatusCodes.Status200OK)] public async Task<IActionResult> Complete(string id, CompleteReconciliationBatchRequest request, CancellationToken token) => Ok(ApiResponse<ReconciliationBatchDto>.SuccessResult(await completion.CompleteAsync(id, request, currentUser.GetUserId(User) ?? "", token)));
 
+    private bool CanReviewCompletion() => currentUser.GetRoleNames(User).Any(role =>
+        AuthorizationPolicies.ReconciliationDecisionRoles.Contains(role, StringComparer.OrdinalIgnoreCase));
+
     private bool CanReadReconciliationDetails() => currentUser.GetRoleNames(User).Any(role =>
         AuthorizationPolicies.ReconciliationDecisionRoles.Contains(role, StringComparer.OrdinalIgnoreCase)
         || AuthorizationPolicies.ReconciliationSourceReadRoles.Contains(role, StringComparer.OrdinalIgnoreCase));
@@ -51,6 +54,8 @@ public sealed class ReconciliationBatchesController : ControllerBase
         MenuVersionId = string.Empty,
         QuantityImportBatchId = string.Empty,
         Lines = [],
-        DailyReview = null
+        DailyReview = null,
+        CanComplete = null,
+        CompletionBlocker = null
     };
 }

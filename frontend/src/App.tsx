@@ -12,6 +12,7 @@ import { isRouteEligible, resolveEligibleNavigation, resolveLandingPath } from '
 import { DirtyNavigationProvider } from './components/workbench/DirtyNavigation';
 import { RoleGuard } from './routes/RoleGuard';
 import { ReconciliationDashboardPage } from './features/dashboard/ReconciliationDashboardPage';
+import type { OperationalMode, UserInfo } from './types';
 
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const MealOrdersPage = lazy(() => import('./features/coordination/MealOrdersPage').then((m) => ({ default: m.MealOrdersPage })));
@@ -27,6 +28,8 @@ const ApprovalRulesPage = lazy(() => import('./features/admin/ApprovalRulesPage'
 const AdvancedSettingsPage = lazy(() => import('./features/admin/AdvancedSettingsPage').then((m) => ({ default: m.AdvancedSettingsPage })));
 
 const getRouteRoles = (path: string) => CANONICAL_ROUTES.find((r) => r.path === path)?.allowedRoles;
+const isEligibleDestination = (user: UserInfo, mode: OperationalMode, pathname: string, search: string) =>
+  isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode);
 
 function RootLandingRoute() {
   const { operationalMode } = useAuth();
@@ -54,7 +57,7 @@ export function App() {
   return (
     <AuthProvider
       resolveLanding={(user, mode) => resolveLandingPath(CANONICAL_ROUTES, user, mode)}
-      resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}
+      resolveEligibility={isEligibleDestination}
       onIdleExpired={() => window.location.replace('/login')}
     >
       <BrowserRouter>
@@ -68,7 +71,7 @@ export function App() {
         >
         <Routes>
           {/* Public routes */}
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage isReturnDestinationEligible={isEligibleDestination} />} />
           <Route path="/forbidden" element={<ForbiddenPage />} />
 
           {/* Protected routes wrapped in AppShell with RoleGuard — 100% Real Canonical Routes */}

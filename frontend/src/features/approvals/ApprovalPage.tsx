@@ -217,10 +217,23 @@ function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
     { id: 'action', header: 'Thao tác', align: 'center', minWidth: '88px', cell: row => <Button variant="outline" size="xs" disabled={isFetching || isLoading} onClick={event => { event.stopPropagation(); review(row); }}>Xem xét</Button> },
   ];
   const selected = data?.items.find(row => row.targetId === selection?.id && row.targetType === selection?.type);
+  const canPageBack = cursorStack.length > 0 && !isFetching;
+  const canPageForward = Boolean(data?.hasNext && data.nextCursor && !isFetching && !error);
   const hasFilters = recovery.filters.type !== 'ALL' || Boolean(recovery.filters.search
     || recovery.filters.customerCode || recovery.filters.date || recovery.filters.cursor);
+  const isMrx = mode === 'MATERIAL_RECONCILIATION';
+  const unavailableSources = data?.unavailableSources ?? [];
+  const hasPartialMrxQueue = isMrx && unavailableSources.length > 0;
+  const retryPartialQueue = () => {
+    if (recovery.filters.cursor) changeScope({ cursor: '' });
+    else void recovery.refetch();
+  };
+  const queueScope = <div className="w-44 max-w-full shrink-0"><Select aria-label="Phạm vi hàng đợi" value={recovery.filters.state}
+    options={[{ value: 'PENDING', label: 'Chờ xử lý' }, { value: 'PROCESSED', label: 'Lịch sử quyết định' }]}
+    onChange={event => changeScope({ state: event.target.value as 'PENDING' | 'PROCESSED' })} /></div>;
   return <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
     <WorkspaceHeader responsive className={selection ? '[&_[data-slot=header-scope]]:hidden lg:[&_[data-slot=header-scope]]:flex' : undefined} title="Duyệt vận hành" breadcrumb="Điều hành" contextSelectors={<div className="flex flex-wrap items-center gap-2 min-w-0 w-full">
+      {isMrx && queueScope}
       <div className="w-56 max-w-full shrink-0"><Select aria-label="Lọc loại yêu cầu phê duyệt" value={recovery.filters.type}
         options={[{ value: 'ALL', label: 'Tất cả loại hồ sơ' }, ...(data?.targets ?? []).map(target => ({ value: target.targetType, label: target.label }))]}
         onChange={event => changeScope({ type: event.target.value })} /></div>
@@ -233,36 +246,44 @@ function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
         <Input aria-label="Tìm hồ sơ" className="flex-1 basis-40 min-w-0" placeholder="Tìm mã, khách hàng, nguyên liệu..." value={search} onChange={event => setSearch(event.target.value)} />
         <Button variant="outline" type="submit">Tìm</Button>
       </form>
-    </div>} actions={<Button variant="outline" disabled={isFetching} onClick={() => { setSelection(null); void recovery.refetch(); }}>Làm mới</Button>} />
-    <TelemetrySubbar responsive className={selection ? 'hidden lg:flex' : undefined} leftControls={<div className="w-48"><Select aria-label="Phạm vi hàng đợi" value={recovery.filters.state}
-      options={[{ value: 'PENDING', label: 'Chờ xử lý' }, { value: 'PROCESSED', label: 'Lịch sử quyết định' }]}
-      onChange={event => changeScope({ state: event.target.value as 'PENDING' | 'PROCESSED' })} /></div>}
-      telemetryPills={<span>{data ? `${data.items.length} hồ sơ trên trang` : 'Đang tải hàng đợi'}</span>}
-      rightActions={<><Button variant="outline" size="sm" disabled={!cursorStack.length || isFetching} onClick={() => {
+    </div>} actions={<Button variant="outline" disabled={isFetching} onClick={() => {
+      if (hasPartialMrxQueue) {
+        retryPartialQueue();
+        return;
+      }
+      setSelection(null);
+      void recovery.refetch();
+    }}>{hasPartialMrxQueue ? 'Tải lại hàng đợi' : 'Làm mới'}</Button>} />
+    <TelemetrySubbar responsive className={selection ? 'hidden lg:flex' : undefined} leftControls={isMrx ? undefined : queueScope} telemetryPills={<span>{data ? `${data.items.length} hồ sơ trên trang` : error ? 'Chưa tải được hàng đợi' : 'Đang tải hàng đợi'}</span>}
+      rightActions={<nav aria-label="Phân trang hàng đợi phê duyệt" className="flex items-center gap-2">
+        <Button variant="outline" size="sm" aria-disabled={!canPageBack || undefined} tabIndex={cursorStack.length ? undefined : -1} onClick={() => {
+        if (!canPageBack) return;
         const previous = cursorStack.at(-1) || ''; setCursorStack(stack => stack.slice(0, -1)); setSelection(null);
         recovery.updateFilter('cursor', previous);
-      }}>Trang trước</Button><Button variant="outline" size="sm" disabled={!data?.hasNext || isFetching} onClick={() => {
-        if (!data?.nextCursor) return; setCursorStack(stack => [...stack, recovery.filters.cursor]); setSelection(null);
+      }}>Trang trước</Button><Button variant="outline" size="sm" aria-disabled={!canPageForward || undefined} tabIndex={data?.hasNext ? undefined : -1} onClick={() => {
+        if (!canPageForward || !data?.nextCursor) return;
+        setCursorStack(stack => [...stack, recovery.filters.cursor]); setSelection(null);
         recovery.updateFilter('cursor', data.nextCursor);
-      }}>Trang sau</Button></>} />
-    {accepted && <InlineBanner variant="success" onClose={() => setAccepted(null)}>{accepted}</InlineBanner>}
+      }}>Trang sau</Button></nav>} />
     {recoveryScopeChanged && <InlineBanner variant="warning" title="Có lệnh duyệt cần đối chiếu"
       actionLabel="Tra cứu lịch sử hồ sơ" onAction={() => {
         const target = pendingCommand.current!.context.item;
         navigate(`/approvals?targetType=${encodeURIComponent(target.targetType)}&targetId=${encodeURIComponent(target.targetId)}&state=PROCESSED`);
       }}>Vai trò hoặc phiên bản chế độ đã thay đổi. Lệnh cũ được giữ lại; cần đăng nhập đúng vai trò và chế độ đã gửi để kiểm tra kết quả.</InlineBanner>}
-    {(data?.unavailableSources ?? []).map(source => <InlineBanner key={source.targetType} variant="warning"
-      actionLabel="Tải lại hàng đợi" onAction={() => {
-        if (recovery.filters.cursor) changeScope({ cursor: '' });
-        else void recovery.refetch();
-      }}>{source.message}</InlineBanner>)}
-    <StateBoundary isLoading={isLoading} isFetching={isFetching} error={error} onRetry={recovery.handleRetry}
+    {hasPartialMrxQueue && <InlineBanner variant="warning" title="Hàng đợi chưa đầy đủ">
+      <ul className="list-disc pl-4">{unavailableSources.map(source => <li key={source.targetType}>{source.message}</li>)}</ul>
+    </InlineBanner>}
+    {!isMrx && unavailableSources.map(source => <InlineBanner key={source.targetType} variant="warning"
+      actionLabel="Tải lại hàng đợi" onAction={retryPartialQueue}>{source.message}</InlineBanner>)}
+    <StateBoundary isLoading={isLoading} isFetching={isFetching} isPreviousData={isFetching && Boolean(data)} lockContent={Boolean(error)}
+      hasExistingData={Boolean(data)} recoverableNoticePlacement="bottom" error={error} onRetry={recovery.handleRetry}
       isForbidden={error instanceof ApiError && error.status === 403} isEmpty={Boolean(data && !data.items.length)}
-      emptyTitle={data?.unavailableSources?.length ? 'Chưa đọc đủ hàng đợi' : recovery.filters.state === 'PROCESSED' ? 'Chưa có quyết định trong phạm vi này' : 'Không có hồ sơ chờ xử lý'} emptyDescription="Hồ sơ trong phạm vi đã chọn sẽ hiển thị tại đây."
+      emptyTitle={data?.unavailableSources?.length ? 'Chưa đọc đủ hàng đợi' : recovery.filters.state === 'PROCESSED' ? 'Chưa có quyết định trong phạm vi này' : 'Không có hồ sơ chờ xử lý'}
+      emptyDescription={isMrx ? null : 'Hồ sơ trong phạm vi đã chọn sẽ hiển thị tại đây.'}
       emptyScenario={hasFilters ? 'filter-empty' : 'true-empty'}
-      actionLabel={hasFilters ? 'Xóa bộ lọc' : 'Tải lại danh sách'}
-      onAction={hasFilters ? undefined : () => void recovery.refetch()}
-      onResetFilters={() => { setSearch(''); setCustomerCode(''); setServiceDate(''); changeScope({ type: 'ALL', search: '', customerCode: '', date: '' }); }} contextDomain="approvals">
+      actionLabel={hasFilters ? 'Xóa bộ lọc' : isMrx ? undefined : 'Tải lại danh sách'}
+      onAction={!hasFilters && !isMrx ? () => void recovery.refetch() : undefined}
+      onResetFilters={hasFilters ? () => { setSearch(''); setCustomerCode(''); setServiceDate(''); changeScope({ type: 'ALL', search: '', customerCode: '', date: '' }); } : undefined} contextDomain="approvals">
       <SplitView masterWidthClass={selection ? 'w-full lg:w-1/2' : 'w-full'} hasActiveDetail={Boolean(selection)} onBackToMaster={() => setSelection(null)}
         master={<DataGrid data={data?.items ?? []} columns={columns} keyExtractor={row => row.inboxItemId}
           selectedKey={selected?.inboxItemId} onRowClick={isFetching ? undefined : review} minWidth="min-w-[510px]" />}
@@ -363,6 +384,7 @@ function ApprovalWorkbench({ scope, mode }: { scope: string; mode: string }) {
           </div>}
         </StateBoundary> : null} />
     </StateBoundary>
+    {accepted && <InlineBanner variant="success" onClose={() => setAccepted(null)} className="shrink-0 rounded-none border-x-0">{accepted}</InlineBanner>}
     <Modal isOpen={decision !== null} onClose={() => { setDecision(null); setReason(''); }} isDirty={Boolean(reason.trim())} closeDisabled={sending || uncertain}
       title={decisionCopy[decision || 'APPROVE'].confirm} description={detail?.item.targetCode}
       footer={requestClose => <><Button variant="outline" disabled={sending || uncertain} onClick={requestClose}>Hủy bỏ</Button>

@@ -826,7 +826,7 @@ describe('Weekly Menu MRX scope and source', () => {
     });
     // Table with Thịt bò C1 must still be mounted (not unmounted to a skeleton) while resolveCust2Materials is pending!
     expect(screen.getByText('Thịt bò C1')).toBeInTheDocument();
-    expect(screen.getByText('Phiên bản:')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nguồn định lượng')).toHaveTextContent('Nguồn dự kiến: v1 · Bản trước');
 
     resolveCust2Materials({
       menuVersionId: 'mv-cust-2',

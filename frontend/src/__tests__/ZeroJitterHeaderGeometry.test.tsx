@@ -16,7 +16,7 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
       <MrxBatchHeaderBranch customers={[]} customerId="c" weekStartDate="2026-09-21" isPending
         onSelectCustomer={vi.fn()} onSelectWeekStartDate={vi.fn()}
         batch={{ batchId: 'a', status: 'READY', version: 1, createdAt: '2026-09-21', menuVersionId: 'm', quantityImportBatchId: 'i', lines: [] }}
-        statusLabels={{ READY: 'Sẵn sàng chuyển kho' }} isSubmitting={false} isRefreshing={false} onRefresh={vi.fn()} primaryAction={null} />
+        isSubmitting={false} isRefreshing={false} onRefresh={vi.fn()} primaryAction={null} />
     </>);
     expect(screen.getAllByText('Đang tải phạm vi mới')).toHaveLength(2);
     for (const status of screen.getAllByText('Đang tải phạm vi mới')) expect(status).toHaveClass('sr-only');
@@ -27,7 +27,15 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
     expect(screen.queryByText('Đang tải phạm vi mới')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Xuất bổ sung ca' })).not.toBeInTheDocument();
     rerender(<MrxDailyHeaderBranch {...dailyProps} batchStatus="IN_PROGRESS" canIssueBatch />);
-    expect(screen.getByRole('button', { name: 'Xuất bổ sung ca' })).toBeEnabled();
+    const action = screen.getByRole('button', { name: 'Xuất bổ sung ca' });
+    expect(action).toBeEnabled();
+    rerender(<MrxDailyHeaderBranch {...dailyProps} activeBatchId="next" isPending />);
+    expect(screen.getByRole('button', { name: 'Xuất bổ sung ca' })).toBe(action);
+    expect(action).toBeDisabled();
+    expect(screen.getByText(/thao tác đang hiển thị thuộc lô trước/)).toHaveClass('sr-only');
+    rerender(<MrxDailyHeaderBranch {...dailyProps} activeBatchId="next" batchStatus="COMPLETED" />);
+    expect(action).not.toBeInTheDocument();
+    expect(screen.getByText('Chỉ xem')).toBeVisible();
   });
   it('reserves fixed badge anchor slot when batchStatus is null, maintaining layout geometry', () => {
     const { container: emptyContainer } = render(
@@ -49,7 +57,6 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
         onRefresh={vi.fn()}
         canComplete={false}
         onOpenComplete={vi.fn()}
-        needsReviewCount={0}
       />
     );
 
@@ -60,7 +67,7 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
     expect(slot?.children.length).toBe(0);
   });
 
-  it('renders badge inside reserved anchor slot without shifting surrounding elements', () => {
+  it('leaves the lifecycle status and its space to the workbench strip', () => {
     const { container: populatedContainer } = render(
       <MrxBatchHeaderBranch
         customers={[{ customerId: 'c1', customerCode: 'ANV', customerName: 'Amann' }]}
@@ -73,7 +80,6 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
           menuVersionId: 'menu-v1', quantityImportBatchId: 'import-1', lines: [],
         } satisfies MrxBatch}
         source={null}
-        statusLabels={{ IN_PROGRESS: 'Đang xuất ca' }}
         isSubmitting={false}
         isRefreshing={false}
         onRefresh={vi.fn()}
@@ -88,11 +94,8 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
       />
     );
 
-    const slot = populatedContainer.querySelector('.min-w-\\[110px\\]');
-    expect(slot).toBeInTheDocument();
-    expect(slot).toContainElement(screen.getByText('Đang xuất ca'));
-    expect(slot?.querySelector('.animate-in')).not.toBeInTheDocument();
-    expect(screen.getByText('Đang xuất ca')).toBeInTheDocument();
+    expect(populatedContainer.querySelector('[data-slot="header-badge-anchor"]')).not.toBeInTheDocument();
+    expect(screen.queryByText('Đang xuất ca')).not.toBeInTheDocument();
   });
 
   it('MrxDailyHeaderBranch: reserves badge anchor slot preserving header layout', () => {
@@ -144,7 +147,6 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
         onRefresh={vi.fn()}
         canComplete={false}
         onOpenComplete={vi.fn()}
-        needsReviewCount={0}
       />
     );
 
@@ -170,7 +172,6 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
         onRefresh={vi.fn()}
         canComplete={false}
         onOpenComplete={vi.fn()}
-        needsReviewCount={0}
       />
     );
 

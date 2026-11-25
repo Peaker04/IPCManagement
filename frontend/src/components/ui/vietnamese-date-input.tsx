@@ -132,7 +132,7 @@ export const VietnameseDateInput = React.forwardRef<HTMLInputElement, Vietnamese
             type="button"
             disabled={disabled || props.readOnly}
             aria-label="Mở lịch chọn ngày"
-            className="absolute right-2.5 text-slate-400 hover:text-slate-700 cursor-pointer disabled:cursor-not-allowed transition-colors"
+            className="absolute right-0.5 grid size-8 place-items-center rounded-sm text-slate-400 hover:text-slate-700 cursor-pointer disabled:cursor-not-allowed transition-colors"
           >
             <CalendarDays className="size-4" aria-hidden="true" />
           </Popover.Trigger>

@@ -52,6 +52,9 @@ public sealed class ReconciliationSourceHistoryService(IpcManagementContext cont
         }
 
         var total = await amendments.CountAsync(token) + await standalone.CountAsync(token);
+        var offset = PageOffset(total, request.PageNumber, request.PageSize);
+        if (offset == total)
+            return PagedResponseDto<ReconciliationSourceHistoryEventDto>.Create([], total, request.PageNumber, request.PageSize);
         var limit = (int)Math.Min(total, (long)request.PageNumber * request.PageSize);
         var amendmentRows = await amendments.Include(item => item.Customer).Include(item => item.CreatedByNavigation)
             .Include(item => item.ReviewedByNavigation).Include(item => item.ExecutedByNavigation)
@@ -95,7 +98,7 @@ public sealed class ReconciliationSourceHistoryService(IpcManagementContext cont
                 item.Revision.Status, "NOT_REQUIRED", item.Revision.ApplyMode ?? "REIMPORT", item.Revision.Reason,
                 deltaCountMap.GetValueOrDefault(Convert.ToHexString(item.Revision.SourceRevisionId)))))
             .OrderByDescending(item => item.OccurredAt).ThenBy(item => item.EventId, StringComparer.Ordinal)
-            .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize).ToList();
+            .Skip(offset).Take(request.PageSize).ToList();
         return PagedResponseDto<ReconciliationSourceHistoryEventDto>.Create(events, total, request.PageNumber, request.PageSize);
     }
 
@@ -160,6 +163,9 @@ public sealed class ReconciliationSourceHistoryService(IpcManagementContext cont
         var scoped = context.Reconciliationsourcedeltas.AsNoTracking()
             .Where(item => revisionIds.Contains(item.SourceRevisionId));
         var total = await scoped.CountAsync(token);
+        var offset = PageOffset(total, pageNumber, pageSize);
+        if (offset == total)
+            return PagedResponseDto<ReconciliationSourceHistoryMaterialDto>.Create([], total, pageNumber, pageSize);
         var rows = await (from delta in scoped
             join ingredient in context.Ingredients.AsNoTracking() on delta.IngredientId equals ingredient.IngredientId
             join unit in context.Units.AsNoTracking() on delta.CanonicalUnitId equals unit.UnitId
@@ -167,7 +173,7 @@ public sealed class ReconciliationSourceHistoryService(IpcManagementContext cont
             select new ReconciliationSourceHistoryMaterialDto(delta.ServiceDate, ingredient.IngredientCode,
                 ingredient.IngredientName, unit.UnitName, delta.PreviousRequiredQuantity,
                 delta.NewRequiredQuantity, delta.DeltaQuantity, true))
-            .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(token);
+            .Skip(offset).Take(pageSize).ToListAsync(token);
         return PagedResponseDto<ReconciliationSourceHistoryMaterialDto>.Create(rows, total, pageNumber, pageSize);
     }
 
@@ -205,5 +211,7 @@ public sealed class ReconciliationSourceHistoryService(IpcManagementContext cont
     }
 
     private static PagedResponseDto<ReconciliationSourceHistoryMaterialDto> Page(List<ReconciliationSourceHistoryMaterialDto> rows, int page, int size)
-        => PagedResponseDto<ReconciliationSourceHistoryMaterialDto>.Create(rows.Skip((page - 1) * size).Take(size), rows.Count, page, size);
+        => PagedResponseDto<ReconciliationSourceHistoryMaterialDto>.Create(rows.Skip(PageOffset(rows.Count, page, size)).Take(size), rows.Count, page, size);
+
+    private static int PageOffset(int count, int page, int size) => (int)Math.Min(count, ((long)page - 1) * size);
 }

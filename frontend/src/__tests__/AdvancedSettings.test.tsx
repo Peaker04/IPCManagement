@@ -24,10 +24,10 @@ describe('Advanced Settings', () => {
   });
   it('uses URL-owned mode view without duplicate tabs and confirms mode transition', async () => {
     renderPage();
-    expect(screen.getByText(/Đang xem: Chế độ vận hành/)).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Chọn chế độ vận hành' })).toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('radio', { name: /Đối soát Nguyên liệu/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình hệ thống' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Chuyển chế độ' }));
     expect(screen.getByRole('dialog', { name: 'Xác nhận chuyển chế độ vận hành' })).toBeInTheDocument();
   });
   it('requires Backend reason and preserves the current mode on a version conflict', async () => {
@@ -41,7 +41,7 @@ describe('Advanced Settings', () => {
 
     await screen.findByText(/Chế độ hiện tại: Mặc định/);
     await userEvent.click(screen.getByRole('radio', { name: /Đối soát Nguyên liệu/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình hệ thống' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Chuyển chế độ' }));
     const confirmBtn = await screen.findByRole('button', { name: 'Xác nhận chuyển chế độ' });
     expect(confirmBtn).toBeDisabled();
     fireEvent.change(screen.getByLabelText(/Lý do chuyển chế độ/i), { target: { value: 'Hoàn tất công việc đang mở' } });
@@ -67,11 +67,11 @@ describe('Advanced Settings', () => {
 
   it.each(['cache', 'diagnostics'])('fails closed from unsupported %s support view to mode settings', async (view) => {
     renderPage(`/settings/advanced?view=${view}`);
-    expect(await screen.findByText(/Đang xem: Chế độ vận hành/)).toBeInTheDocument();
+    expect(await screen.findByRole('group', { name: 'Chọn chế độ vận hành' })).toBeInTheDocument();
     expect(screen.queryByText(/Dọn cache ngay|Chẩn đoán Kết nối|Database Engine|MySQL 8\.0/i)).not.toBeInTheDocument();
   });
 
-  it('H11: AdvancedSettingsPage renders feedback InlineBanner inside WorkspaceFrame.Body below TelemetrySubbar', async () => {
+  it('places mode-change feedback between the stable header and mode choices', async () => {
     localStorage.setItem('ipc_v3_token', 'admin-session');
     vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 7, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     vi.spyOn(systemApi, 'setOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'MRX', version: 8, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
@@ -79,12 +79,14 @@ describe('Advanced Settings', () => {
 
     await screen.findByText(/Chế độ hiện tại: Mặc định/);
     await userEvent.click(screen.getByRole('radio', { name: /Đối soát Nguyên liệu/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình hệ thống' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Chuyển chế độ' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Xác nhận chuyển chế độ' }));
 
     const notice = await screen.findByText('Đã chuyển chế độ vận hành sang Đối soát nguyên liệu.');
-    const subbar = screen.getByText(/Đang xem: Chế độ vận hành/).closest('div.min-h-11')!;
-    // Feedback alert must follow TelemetrySubbar in DOM order so TelemetrySubbar never shifts down
-    expect(Boolean(subbar.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    const header = screen.getByRole('heading', { name: 'Cấu hình hệ thống & Vận hành' });
+    const options = screen.getByRole('group', { name: 'Chọn chế độ vận hành' });
+    expect(header.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(notice.compareDocumentPosition(options) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Khôi phục mặc định' })).not.toBeInTheDocument();
   });
 });

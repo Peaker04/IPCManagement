@@ -68,7 +68,7 @@ export function useMrxQuantityInspection({ customerId, weekStartDate, view, ...q
   const stateProps = sourceQuery.stateProps.error || !source
     ? { ...sourceQuery.stateProps, isEmpty: !validScope || (!source && !sourceQuery.stateProps.isLoading && !sourceQuery.stateProps.isFetching && !sourceQuery.stateProps.error),
         emptyTitle: validScope ? sourceQuery.stateProps.emptyTitle : 'Chọn khách hàng và tuần bắt đầu',
-        emptyDescription: validScope ? sourceQuery.stateProps.emptyDescription : 'Chọn đúng khách hàng và ngày Thứ Hai để xem nguồn dự kiến.', emptyScenario: 'prerequisite-blocked' as const }
+        emptyDescription: validScope ? sourceQuery.stateProps.emptyDescription : 'Tuần bắt đầu vào Thứ Hai.', emptyScenario: 'prerequisite-blocked' as const }
     : !published
       ? { ...sourceQuery.stateProps, isEmpty: true, emptyTitle: 'Thực đơn chưa được phát hành', emptyDescription: 'Hoàn thiện nguồn tại Chuẩn bị lô đối soát.', emptyScenario: 'prerequisite-blocked' as const }
       : { ...inspection.stateProps, isEmpty: inspection.stateProps.isEmpty && !hasSearchKeyword, isFetching: Boolean(inspection.stateProps.isFetching || isSourceTransitioning), hasExistingData: Boolean(result), isPreviousData: Boolean(result && (inspection.stateProps.isPreviousData || isInspectionTransitioning)), isLoading: !result && !inspection.stateProps.error,

@@ -31,15 +31,19 @@ export function ReconciliationDispositionModal({
   const isBulk = Boolean(selectedLines && selectedLines.length > 1);
   const targetLines = isBulk ? selectedLines! : selectedLine ? [selectedLine] : [];
   const primaryLine = targetLines[0] || null;
+  const initialCategory = primaryLine?.disposition?.category || 'ACCEPTED_VARIANCE';
+  const initialReason = primaryLine?.disposition?.reason || '';
 
   const [categories, setCategories] = useState<MrxDispositionCategory[]>([]);
   const [categoryError, setCategoryError] = useState<Error | null>(null);
   const [categoryRetry, setCategoryRetry] = useState(0);
-  const [category, setCategory] = useState(primaryLine?.disposition?.category || 'ACCEPTED_VARIANCE');
-  const [reason, setReason] = useState(primaryLine?.disposition?.reason || '');
+  const [category, setCategory] = useState(initialCategory);
+  const [reason, setReason] = useState(initialReason);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [succeededLineIds, setSucceededLineIds] = useState<Set<string>>(() => new Set());
+  const defaultCategory = categories.find(option => option.value === initialCategory)?.value ?? categories[0]?.value ?? initialCategory;
+  const categoryChanged = categories.some(option => option.value === category) && category !== defaultCategory;
 
   useEffect(() => {
     if (!isOpen || isCompleted) return;
@@ -110,7 +114,9 @@ export function ReconciliationDispositionModal({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={isSubmitting ? () => {} : onClose}
+      onClose={onClose}
+      closeDisabled={isSubmitting}
+      isDirty={!isCompleted && (categoryChanged || reason !== initialReason)}
       title={
         isBulk
           ? `Xử lý chênh lệch hàng loạt (${targetLines.length} dòng)`
@@ -123,9 +129,9 @@ export function ReconciliationDispositionModal({
           ? `Áp dụng cùng kết luận và lý do giải trình cho ${targetLines.length} nguyên liệu có chênh lệch.`
           : `${primaryLine.materialName} (${primaryLine.materialCode})`
       }
-      footer={
+      footer={requestClose => (
         <>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+          <Button variant="outline" size="sm" onClick={requestClose} disabled={isSubmitting}>
             {isCompleted ? 'Đóng' : 'Quay lại'}
           </Button>
           {!isCompleted && (
@@ -139,7 +145,7 @@ export function ReconciliationDispositionModal({
             </Button>
           )}
         </>
-      }
+      )}
     >
       <div className="space-y-4 text-sm text-slate-700">
         {categoryError && <InlineBanner variant="error" actionLabel="Tải lại danh mục" onAction={() => { setCategoryError(null); setCategoryRetry((value) => value + 1); }}>{categoryError.message}</InlineBanner>}

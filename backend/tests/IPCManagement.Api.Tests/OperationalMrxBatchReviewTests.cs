@@ -1,9 +1,13 @@
+using System.Data.Common;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Approvals.Services;
 using IPCManagement.Api.Features.SampleData.Services;
+using IPCManagement.Api.Features.Reconciliation.Services;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Workflows.OperationalApprovals;
@@ -247,6 +251,83 @@ public sealed class OperationalMrxBatchReviewTests
         var page = await Hub(f.Db).GetPageAsync(f.Manager, new ApprovalInboxQueryDto());
         Assert.DoesNotContain(page.Items, row => row.TargetType == "mrx-batch-review");
         Assert.Contains(page.Items, row => row.TargetType == "mrx-supplemental-demand");
+        var (batches, dashboard) = Reports(f.Db);
+        var batch = await batches.GetAsync(GuidHelper.ToGuidString(f.BatchId));
+        Assert.False(batch!.CanComplete);
+        Assert.Contains("nhu cầu suất phát sinh đang chờ duyệt", batch.CompletionBlocker);
+        var summary = await dashboard.GetOperationalSummaryAsync(new(), ["Admin"]);
+        Assert.Equal(0, summary.CompletionReadyBatchesCount);
+        Assert.DoesNotContain(summary.Items, row => row.QueueType == "COMPLETION_READY");
+    }
+
+    [Fact]
+    public async Task Dashboard_keeps_the_next_unissued_day_after_the_first_warehouse_issue()
+    {
+        await using var f = await ReconciliationSupplementalDemandTests.Fixture.CreateAsync();
+        await IssueBaselineAsync(f);
+        var first = await f.Db.Reconciliationbatchdailylines.SingleAsync();
+        var next = new DateOnly(2026, 12, 1);
+        f.Db.Reconciliationbatchdailylines.Add(new ReconciliationBatchDailyLine { DailyLineId = GuidHelper.NewId(),
+            BatchId = first.BatchId, BatchLineId = first.BatchLineId, IngredientId = first.IngredientId,
+            CanonicalUnitId = first.CanonicalUnitId, ServiceDate = next, RequiredQuantity = 12m, Version = 1 });
+        await f.Db.SaveChangesAsync();
+        var (_, dashboard) = Reports(f.Db);
+        var summary = await dashboard.GetOperationalSummaryAsync(new(), ["Admin"]);
+        Assert.Equal(1, summary.AwaitingWarehouseBatchesCount);
+        var task = Assert.Single(summary.Items, row => row.QueueType == "AWAITING_WAREHOUSE");
+        Assert.Equal($"/warehouse?view=mrx-daily&batchId={GuidHelper.ToGuidString(f.BatchId)}&date=2026-12-01", task.TargetUrl);
+        Assert.Equal(0, summary.CompletionReadyBatchesCount);
+    }
+
+    [Fact]
+    public async Task Later_mrx_inbox_page_does_not_reread_earlier_source_chunks()
+    {
+        var reads = new AmendmentSelectCounter();
+        await using var f = await ReconciliationSupplementalDemandTests.Fixture.CreateAsync(reads);
+        var menu = await f.Db.Menuversions.SingleAsync();
+        var start = new DateTime(2026, 11, 1);
+        var amendments = Enumerable.Range(0, 151).Select(index => new MenuAmendment {
+            MenuAmendmentId = GuidHelper.NewId(), CustomerId = menu.CustomerId, BaseMenuVersionId = menu.MenuVersionId,
+            WeekStartDate = menu.WeekStartDate, Status = "PENDING_REVIEW", Reason = "Đổi món",
+            CreatedBy = f.ManagerId, CreatedAt = start.AddMinutes(Math.Min(index, 149)), ImpactSnapshotJson = "{}"
+        }).ToList();
+        f.Db.Menuamendments.AddRange(amendments);
+        await f.Db.SaveChangesAsync();
+        var query = new ApprovalInboxQueryDto { TargetType = "mrx-source-change", Limit = 50 };
+        var hub = Hub(f.Db);
+        for (var index = 0; index < 3; index++)
+        {
+            var earlier = await hub.GetPageAsync(f.Manager, query);
+            Assert.Equal(50, earlier.Items.Count);
+            Assert.True(earlier.HasNext);
+            query.Cursor = Assert.IsType<string>(earlier.NextCursor);
+        }
+        reads.Count = 0;
+        var last = await hub.GetPageAsync(f.Manager, query);
+        var lastId = amendments.Skip(149).Select(item => GuidHelper.ToGuidString(item.MenuAmendmentId))
+            .Order(StringComparer.Ordinal).Last();
+        Assert.Equal(lastId, Assert.Single(last.Items).TargetId);
+        Assert.False(last.HasNext);
+        Assert.Equal(1, reads.Count);
+    }
+
+    private sealed class AmendmentSelectCounter : DbCommandInterceptor
+    {
+        public int Count { get; set; }
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
+                && command.CommandText.Contains("menuamendments", StringComparison.OrdinalIgnoreCase)) Count++;
+            return ValueTask.FromResult(result);
+        }
+    }
+
+    private static (ReconciliationBatchService Batches, ReconciliationReportsService Reports) Reports(IpcManagementContext db)
+    {
+        var request = new SystemOperationRequestContext { Mode = "MATERIAL_RECONCILIATION" };
+        var batches = new ReconciliationBatchService(db, new ImmediateTransactionRunner(), request);
+        return (batches, new(db, batches, request));
     }
 
     private static IpcManagementContext Context() => new(new DbContextOptionsBuilder<IpcManagementContext>()

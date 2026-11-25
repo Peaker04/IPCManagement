@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { LoginPage } from '../features/auth/LoginPage';
 import { ForbiddenPage } from '../features/auth/ForbiddenPage';
 import { AuthProvider } from '../store/authContext';
@@ -13,7 +13,7 @@ import { systemApi } from '../api/systemApi';
 import { weeklyMenuApi } from '../api/weeklyMenuApi';
 import { clearAllServerCache } from '../store/serverStateCache';
 import { CANONICAL_ROUTES } from '../routes/routeRegistry';
-import { resolveLandingPath } from '../routes/navigationEligibility';
+import { isRouteEligible, resolveLandingPath } from '../routes/navigationEligibility';
 import { ProtectedRoute } from '../routes/ProtectedRoute';
 import { useAuth } from '../store/useAuth';
 import { apiClient } from '../api/client';
@@ -58,6 +58,45 @@ describe('Auth Feature (FR-AUTH)', () => {
       reasonRequired: false,
       capabilities: { navigation: ['dashboard'], pageTabs: {} },
     });
+  });
+
+  it.each([
+    ['MRX admin', 'MATERIAL_RECONCILIATION', true, '/warehouse?view=mrx-daily&batchId=lot&date=2026-11-23#issue', '/warehouse?view=mrx-daily&batchId=lot&date=2026-11-23#issue'],
+    ['MRX chef', 'MATERIAL_RECONCILIATION', false, '/warehouse?view=mrx-daily&batchId=lot', '/chef?view=mrx-cooking'],
+    ['MRX admin with a DEFAULT view', 'MATERIAL_RECONCILIATION', true, '/warehouse?view=issues', '/'],
+    ['DEFAULT admin', 'DEFAULT', true, '/warehouse?view=issues', '/'],
+  ] as const)('restores only an eligible MRX destination after login (%s)', async (_label, mode, admin, requested, expected) => {
+    const fixtureUser = JSON.parse(localStorage.getItem('ipc_v3_user')!);
+    localStorage.removeItem('ipc_v3_token');
+    localStorage.removeItem('ipc_v3_user');
+    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({
+      mode, label: 'Chế độ kiểm thử', version: 1, updatedAt: '2026-11-25T00:00:00Z',
+      reasonRequired: false, capabilities: { navigation: [], pageTabs: {} },
+    });
+    vi.spyOn(authApi, 'login').mockResolvedValue({
+      accessToken: 'fixture-token', tokenType: 'Bearer', expiresIn: 1800,
+      user: { ...fixtureUser, roleCode: admin ? 'ADMIN' : 'CHEF', roleName: admin ? 'Admin' : 'Chef',
+        isAdminFullAccess: admin, permissions: admin ? ['*'] : ['reconciliation.kitchen.read'] },
+    });
+    function Destination() {
+      const { pathname, search, hash } = useLocation();
+      return <output aria-label="Đích sau đăng nhập">{pathname}{search}{hash}</output>;
+    }
+    render(<AuthProvider resolveLanding={(user, currentMode) => resolveLandingPath(CANONICAL_ROUTES, user, currentMode)}>
+      <MemoryRouter initialEntries={[requested]}><Routes>
+        <Route path="/login" element={<LoginPage isReturnDestinationEligible={(user, currentMode, pathname, search) =>
+          isRouteEligible(CANONICAL_ROUTES, pathname, search, user, currentMode)} />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<Destination />} />
+          <Route path="/warehouse" element={<Destination />} />
+          <Route path="/chef" element={<Destination />} />
+        </Route>
+      </Routes></MemoryRouter>
+    </AuthProvider>);
+    await userEvent.type(screen.getByLabelText('Tên đăng nhập'), 'fixture');
+    await userEvent.type(screen.getByLabelText('Mật khẩu', { exact: true }), 'fixture');
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập vào hệ thống' }));
+    expect((await screen.findByLabelText('Đích sau đăng nhập')).textContent).toBe(expected);
   });
 
   it('refreshes the provider session without unmounting protected work or losing entered values', async () => {

@@ -354,6 +354,7 @@ describe('Reconciliation transitions and reports', () => {
       batchId: 'b1',
       status: 'IN_PROGRESS',
       weeklyStatus: 'WEEK_COMPLETE',
+      canComplete: true,
       version: 1,
       weekStartDate: '2026-10-19',
       weekEndDate: '2026-10-25',
@@ -396,7 +397,7 @@ describe('Reconciliation transitions and reports', () => {
     await userEvent.click(confirmBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('Hoàn tất')).toBeInTheDocument();
+      expect(screen.getByText('Đã chốt sổ · Chỉ xem')).toBeInTheDocument();
     });
     expect(serverStateCache.get<MrxBatchSummary[]>('mrx_recon_month_batches_customer-1_2026-10')?.data?.[0]?.status).toBe('COMPLETED');
   });
@@ -626,7 +627,7 @@ describe('Reconciliation transitions and reports', () => {
     expect(screen.getByRole('combobox', { name: 'Tháng đối soát' })).toHaveValue('10');
 
     // Turn on NEEDS_REVIEW filter on batch b1
-    await userEvent.click(screen.getByRole('button', { name: /Cần xử lý/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^Cần xử lý \(/i }));
     expect(screen.getByRole('button', { name: 'Thịt lô đang chạy' })).toBeVisible();
 
     // E8: Switch to completed batch b2 (which has only MATCHED lines) — filter must reset to ALL so 'Gạo lô hoàn tất' is visible!
@@ -1087,7 +1088,6 @@ describe('Reconciliation transitions and reports', () => {
       <ReconciliationBlockerStrip
         needsReviewCount={0}
         isBlocked={false}
-        isCompleted={true}
         onFilterNeedsReview={() => {}}
       />
     );

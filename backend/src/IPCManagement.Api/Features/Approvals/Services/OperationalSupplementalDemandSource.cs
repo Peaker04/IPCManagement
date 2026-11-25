@@ -7,7 +7,7 @@ namespace IPCManagement.Api.Features.Approvals.Services;
 
 internal sealed class OperationalSupplementalDemandSource(IpcManagementContext context)
 {
-    internal async Task<(IReadOnlyList<ApprovalInboxItemDto> Items, bool HasMore)> ReadAsync(ApprovalInboxQueryDto query, CancellationToken token, int offset = 0, int limit = 100)
+    internal async Task<(IReadOnlyList<ApprovalInboxItemDto> Items, bool HasMore)> ReadAsync(ApprovalInboxQueryDto query, CancellationToken token, int offset = 0, int limit = 100, DateTime? cursorAt = null)
     {
         if (!ApprovalInboxQueryPolicy.ShouldBuildTarget(query.TargetType, "mrx-supplemental-demand")) return ([], false);
         var id = string.IsNullOrWhiteSpace(query.TargetId) ? null : GuidHelper.ParseGuidString(query.TargetId)
@@ -20,6 +20,7 @@ internal sealed class OperationalSupplementalDemandSource(IpcManagementContext c
             join user in context.Users on demand.CreatedBy equals user.UserId
             where (query.State == "PENDING" ? demand.Status == "PENDING" : demand.Status == "APPROVED" || demand.Status == "REJECTED" || demand.Status == "CANCELLED")
                 && (id == null || demand.DemandId == id)
+                && (cursorAt == null || (demand.SubmittedAt ?? demand.CreatedAt) >= cursorAt)
                 && (string.IsNullOrEmpty(customerCode) || customer.CustomerCode.ToUpper() == customerCode)
             select new { Demand = demand, customer.CustomerCode, customer.CustomerName, menu.WeekStartDate, user.FullName })
             .OrderBy(x => x.Demand.CreatedAt).ThenBy(x => x.Demand.DemandId).Skip(offset).Take(limit + 1).ToListAsync(token);

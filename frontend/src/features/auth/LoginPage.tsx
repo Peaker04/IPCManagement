@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChefHat, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../store/useAuth';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { InlineBanner } from '../../components/ui/inline-banner';
+import type { OperationalMode, UserInfo } from '../../types';
 
-export function LoginPage() {
+interface LoginPageProps {
+  isReturnDestinationEligible?: (user: UserInfo, mode: OperationalMode, pathname: string, search: string) => boolean;
+}
+
+export function LoginPage({ isReturnDestinationEligible }: LoginPageProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -14,6 +19,7 @@ export function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { state } = useLocation();
   const [loginNotice] = useState(() => sessionStorage.getItem('ipc_login_notice'));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +29,17 @@ export function LoginPage() {
 
     try {
       const result = await login(username, password);
-      navigate(result.landingPath);
+      const returnTo = state?.returnTo;
+      if (result.operationalMode === 'MATERIAL_RECONCILIATION'
+        && typeof returnTo?.pathname === 'string'
+        && typeof returnTo.search === 'string'
+        && typeof returnTo.hash === 'string'
+        && returnTo.pathname !== '/login' && returnTo.pathname !== '/forbidden'
+        && isReturnDestinationEligible?.(result.user, result.operationalMode, returnTo.pathname, returnTo.search)) {
+        navigate({ pathname: returnTo.pathname, search: returnTo.search, hash: returnTo.hash }, { replace: true });
+      } else {
+        navigate(result.landingPath);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Tên đăng nhập hoặc mật khẩu không chính xác.';
       setError(msg);

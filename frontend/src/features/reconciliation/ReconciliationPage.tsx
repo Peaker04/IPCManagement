@@ -4,7 +4,6 @@ import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { StateBoundary, type StateBoundaryProps } from '../../components/workbench/StateBoundary';
 import { WorkspaceFrame } from '../../components/workbench/WorkspaceFrame';
 import { Button } from '../../components/ui/button';
-import { Num } from '../../components/ui/num';
 import { InlineBanner } from '../../components/ui/inline-banner';
 import { ApiError } from '../../api/client';
 import { downloadAuthenticatedFile } from '../../utils/fileDownload';
@@ -178,7 +177,6 @@ export function ReconciliationPage() {
         onRefresh={handleRefresh}
         canComplete={Boolean(canComplete)}
         onOpenComplete={() => setIsCompleteOpen(true)}
-        needsReviewCount={needsReviewCount}
       />
 
       <TelemetrySubbar
@@ -186,13 +184,14 @@ export function ReconciliationPage() {
         className="mrx-tools-subbar"
         leftControls={
           activeReportTab === 'lines' ? (
-            <ReconciliationLifecycleStrip status={effectiveBatchStatus} isPending={isScopePending} />
+            effectiveBatchStatus !== 'COMPLETED' && <ReconciliationLifecycleStrip status={effectiveBatchStatus} isPending={isScopePending} />
           ) : activeReportTab === 'audit' ? (
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-700">Nhật ký kiểm toán đối soát nguyên liệu:</span>
-              <div className="flex items-center gap-1.5 bg-slate-200/70 p-0.5 rounded">
+              <div role="group" aria-label="Loại nhật ký kiểm toán" className="flex items-center gap-1.5 bg-slate-200/70 p-0.5 rounded">
                 <button
                   type="button"
+                  aria-pressed={auditSubTab === 'warehouse'}
                   onClick={() => setAuditSubTab('warehouse')}
                   className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors cursor-pointer ${
                     auditSubTab === 'warehouse'
@@ -200,10 +199,11 @@ export function ReconciliationPage() {
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Kho ({reports.auditReport?.totalCount ?? '—'})
+                  Kho
                 </button>
                 <button
                   type="button"
+                  aria-pressed={auditSubTab === 'source'}
                   onClick={() => setAuditSubTab('source')}
                   className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors cursor-pointer ${
                     auditSubTab === 'source'
@@ -211,7 +211,7 @@ export function ReconciliationPage() {
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Nguồn & BOM ({reports.sourceTotalCount ?? '—'})
+                  Nguồn & BOM
                 </button>
               </div>
             </div>
@@ -238,19 +238,7 @@ export function ReconciliationPage() {
             <span className="text-xs text-slate-500 font-mono tabular-nums">
               Tổng chênh lệch: <strong className="inline-block min-w-[3ch] text-right text-slate-900">{reports.variancesReport?.totalCount ?? '—'} dòng</strong>
             </span>
-          ) : activeReportTab === 'transactions' ? (
-            <span className="text-xs text-slate-500 font-mono tabular-nums">
-              Dòng giao dịch: <strong className="inline-block min-w-[3ch] text-right text-slate-900">{reports.transactionsReport?.totalCount ?? '—'} dòng</strong>
-            </span>
-          ) : activeReportTab === 'audit' ? (
-            <span className="text-xs text-slate-500 font-mono tabular-nums">
-              Sự kiện kiểm toán: <strong className="inline-block min-w-[3ch] text-right text-slate-900"><Num value={auditSubTab === 'warehouse' ? reports.auditReport?.totalCount : reports.sourceTotalCount} /></strong>
-            </span>
-          ) : (
-            <span className="text-xs text-slate-500 font-mono tabular-nums">
-              Tổng hồ sơ: <strong className="inline-block min-w-[3ch] text-right text-slate-900">{reports.completedReport?.totalCount ?? '—'} lô</strong>
-            </span>
-          )
+          ) : null
         }
         rightActions={
           activeReportTab === 'lines' ? (
@@ -328,16 +316,16 @@ export function ReconciliationPage() {
       )}
 
       <WorkspaceFrame.Body>
-        {activeReportTab === 'lines' && (data || isScopePending) && <ReconciliationBlockerStrip
+        {activeReportTab === 'lines' && effectiveBatchStatus !== 'COMPLETED' && (data || isScopePending) && <ReconciliationBlockerStrip
           isPending={isScopePending || isDayPending}
           hasResolvedStatus={Boolean(data)}
           isPreviousScope={isScopePending}
           pendingMessage={isScopePending ? 'Đang xác minh trạng thái lô đã chọn…' : 'Đang xác minh ngày đối soát…'}
-          isBlocked={data?.status !== 'COMPLETED' && !(data?.status === 'IN_PROGRESS' && data?.weeklyStatus === 'WEEK_COMPLETE')}
-          isCompleted={data?.status === 'COMPLETED'}
+          isBlocked={currentData?.canComplete !== true}
+          blocker={currentData?.completionBlocker}
           needsReviewCount={needsReviewCount}
           onFilterNeedsReview={() => setLineStatusFilter('NEEDS_REVIEW')}
-          onNavigateWarehouse={data && canOpenWarehouse ? () => navigate(`/warehouse?view=mrx-daily&batchId=${data.batchId}&date=${serviceDate}`) : undefined}
+          onNavigateWarehouse={data && canOpenWarehouse && (!currentData?.completionBlocker || currentData.weeklyStatus !== 'WEEK_COMPLETE') ? () => navigate(`/warehouse?view=mrx-daily&batchId=${data.batchId}&date=${serviceDate}`) : undefined}
         />}
         {activeReportTab === 'lines' ? <ReconciliationLinesBranch
           resolvedBatchId={!isScopePending ? data?.batchId ?? '' : undefined}
@@ -392,10 +380,11 @@ export function ReconciliationPage() {
       <ReconciliationCompletionModal
         isOpen={isCompleteOpen}
         onClose={() => setIsCompleteOpen(false)}
-        data={data}
+        data={currentData}
         customerCode={customerCode}
         weekStartDate={batches.find((item) => item.batchId === data?.batchId)?.weekStartDate ?? data?.weekStartDate}
         isSubmitting={isSubmitting}
+        isChecking={isRefreshing || isFetching || isDayPending || isScopePending || catalogLoading || Boolean(catalogError || error)}
         onConfirm={handleComplete}
         statusLabels={STATUS_LABELS}
         error={mutationError}

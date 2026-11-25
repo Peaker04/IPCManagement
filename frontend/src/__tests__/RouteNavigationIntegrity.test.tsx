@@ -269,6 +269,9 @@ describe('Route Navigation Integrity & Subview Synchronization (DOM-MODE-1 & Rul
     renderAppWithRoute('/reconciliation?view=variances&batchId=b-99', 'MATERIAL_RECONCILIATION');
     const varianceLeaf = screen.getByRole('link', { name: 'Sổ theo dõi chênh lệch' });
     expect(varianceLeaf.className).toContain('bg-slate-900');
+    expect(screen.getByText('Tra cứu')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Lịch sử giao dịch kho' })).toHaveAttribute('href', '/reconciliation?view=transactions&batchId=b-99');
+    expect(screen.getByRole('link', { name: 'Hồ sơ đã chốt' })).toHaveAttribute('href', '/reconciliation?view=completed');
     expect(screen.getByRole('link', { name: 'Rà soát dòng ngày' }).className).not.toContain('bg-slate-900');
   });
 });

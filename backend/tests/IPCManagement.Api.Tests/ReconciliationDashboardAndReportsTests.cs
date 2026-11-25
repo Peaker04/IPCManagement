@@ -87,16 +87,18 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
                     ReconciliationServiceDate = date, RequestedQty = 1m, IssuedQty = index % 2 == 0 ? 2m : 1m }]
             });
         }
-        AddBatch(0);
+        AddBatch(1);
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
         var request = new SystemOperationRequestContext { Mode = SystemOperationEligibility.MaterialReconciliation };
         var service = new ReconciliationReportsService(context, new ReconciliationBatchService(context, new ImmediateTransactionRunner(), request), request);
         counter.Count = 0;
         var one = await service.GetOperationalSummaryAsync(new(), ["Admin"]);
-        Assert.Equal(1, one.UnresolvedVariancesCount);
+        Assert.Equal(0, one.UnresolvedVariancesCount);
+        Assert.Equal(1, one.CompletionReadyBatchesCount);
         var singleQueries = counter.Count;
-        for (var index = 1; index < 100; index++) AddBatch(index);
+        AddBatch(0);
+        for (var index = 2; index < 100; index++) AddBatch(index);
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
         counter.Count = 0;
@@ -114,6 +116,7 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
     public async Task OperationalSummary_Returns_Exact_Counts_And_Links_To_Real_Work_Objects()
     {
         await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await using var context = fixture.CreateContext();
         await EnsureSchemaAsync(context);
 
@@ -128,6 +131,12 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
         {
             BatchId = batchId, MenuVersionId = menuVersionId, QuantityImportBatchId = GuidHelper.NewId(),
             Status = "TRANSFERRED", Version = 2, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
+            Lines = [new ReconciliationBatchLine { BatchLineId = GuidHelper.NewId(), BatchId = batchId,
+                IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId, RequiredQuantity = 1m,
+                ToleranceSourceKind = "SYSTEM_DEFAULT", ToleranceSourceVersion = "1", Version = 1,
+                DailyLines = [new ReconciliationBatchDailyLine { DailyLineId = GuidHelper.NewId(), BatchId = batchId,
+                    IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId,
+                    ServiceDate = new DateOnly(2026, 6, 15), RequiredQuantity = 1m, Version = 1 }] }]
         });
         context.Reconciliationbatches.Add(new ReconciliationBatch
         {
@@ -135,19 +144,24 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
             Status = "READY", Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
         });
 
-        context.Customers.Add(new Customer { CustomerId = fixture.CustomerId, CustomerCode = "CUS", CustomerName = "Customer", IsActive = true });
         var amendmentId = GuidHelper.NewId();
         context.Menuamendments.Add(new MenuAmendment
         {
             MenuAmendmentId = amendmentId, CustomerId = fixture.CustomerId, WeekStartDate = new DateOnly(2026, 6, 15),
-            Status = "PENDING_REVIEW", Reason = "Điều chỉnh số suất", CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
+            BaseMenuVersionId = menuVersionId, Status = "PENDING_REVIEW", Reason = "Điều chỉnh số suất", CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
             ImpactSnapshotJson = "{}"
         });
 
         context.Menuamendments.Add(new MenuAmendment
         {
             MenuAmendmentId = GuidHelper.NewId(), CustomerId = fixture.CustomerId, WeekStartDate = new DateOnly(2026, 6, 15),
-            Status = "RECONCILIATION_REQUIRED", Reason = "Đề nghị cần xem xét", CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
+            BaseMenuVersionId = menuVersionId, Status = "RECONCILIATION_REQUIRED", Reason = "Đề nghị cần xem xét", CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
+            ImpactSnapshotJson = "{}"
+        });
+        context.Menuamendments.Add(new MenuAmendment
+        {
+            MenuAmendmentId = GuidHelper.NewId(), CustomerId = fixture.CustomerId, WeekStartDate = new DateOnly(2026, 6, 15),
+            Status = "PENDING_REVIEW", Reason = "Yêu cầu của luồng cũ", CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
             ImpactSnapshotJson = "{}"
         });
 
@@ -168,12 +182,12 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
 
         var summary = await service.GetOperationalSummaryAsync(new(), ["Admin"]);
 
-        summary.PendingSourceChangesCount.Should().Be(2);
+        summary.PendingSourceChangesCount.Should().Be(1);
         summary.AwaitingWarehouseBatchesCount.Should().Be(1);
         summary.PendingDeltasCount.Should().Be(1);
 
-        summary.Items.Should().Contain(i => i.QueueType == "PENDING_SOURCE_CHANGE" && i.TargetUrl != null && i.TargetUrl.Contains(GuidHelper.ToGuidString(amendmentId)));
-        summary.Items.Should().Contain(i => i.QueueType == "AWAITING_WAREHOUSE" && i.TargetUrl != null && i.TargetUrl.Contains(GuidHelper.ToGuidString(batchId)));
+        summary.Items.Should().Contain(i => i.QueueType == "PENDING_SOURCE_CHANGE" && i.TargetUrl != null && i.TargetUrl == $"/approvals?targetType=mrx-source-change&targetId={GuidHelper.ToGuidString(amendmentId)}");
+        summary.Items.Should().Contain(i => i.QueueType == "AWAITING_WAREHOUSE" && i.TargetUrl == $"/warehouse?view=mrx-daily&batchId={GuidHelper.ToGuidString(batchId)}&date=2026-06-15");
         summary.Items.Should().Contain(i => i.QueueType == "PENDING_DELTA" && i.ActionKind == "READ_ONLY");
 
         var manager = await service.GetOperationalSummaryAsync(new(), ["Quản lý"]);
@@ -189,7 +203,7 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
         excluded.AwaitingWarehouseBatchesCount.Should().Be(0);
         excluded.PendingDeltasCount.Should().Be(0);
         var exact = await service.GetOperationalSummaryAsync(new() { CustomerId = GuidHelper.ToGuidString(fixture.CustomerId), WeekFrom = new DateOnly(2026, 6, 15), WeekTo = new DateOnly(2026, 6, 15) }, ["Admin"]);
-        exact.PendingSourceChangesCount.Should().Be(2);
+        exact.PendingSourceChangesCount.Should().Be(1);
         exact.AwaitingWarehouseBatchesCount.Should().Be(1);
         var reversed = () => service.GetOperationalSummaryAsync(new() { WeekFrom = new DateOnly(2026, 6, 22), WeekTo = new DateOnly(2026, 6, 15) }, ["Admin"]);
         await reversed.Should().ThrowAsync<IPCManagement.Api.Exceptions.BusinessRuleException>();
@@ -197,19 +211,19 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
             context.Menuamendments.Add(new MenuAmendment
             {
                 MenuAmendmentId = GuidHelper.NewId(), CustomerId = fixture.CustomerId, WeekStartDate = new DateOnly(2026, 6, 15),
-                Status = "PENDING_REVIEW", Reason = $"Yêu cầu {index}", CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow, ImpactSnapshotJson = "{}"
+                BaseMenuVersionId = menuVersionId, Status = "PENDING_REVIEW", Reason = $"Yêu cầu {index}", CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow, ImpactSnapshotJson = "{}"
             });
         await context.SaveChangesAsync();
         var boundedQueue = await service.GetOperationalSummaryAsync(new(), ["Admin"]);
-        boundedQueue.PendingSourceChangesCount.Should().Be(23);
+        boundedQueue.PendingSourceChangesCount.Should().Be(22);
         boundedQueue.Items.Count(item => item.QueueType == "PENDING_SOURCE_CHANGE").Should().Be(10);
-        boundedQueue.QueueCounts["PENDING_SOURCE_CHANGE"].Should().Be(23);
+        boundedQueue.QueueCounts["PENDING_SOURCE_CHANGE"].Should().Be(22);
         boundedQueue.QueueTotalPages.Should().Be(3);
         var secondQueue = await service.GetOperationalSummaryAsync(new() { QueuePage = 2 }, ["Admin"]);
         secondQueue.Items.Where(item => item.QueueType == "PENDING_SOURCE_CHANGE").Should().HaveCount(10)
             .And.NotContain(item => boundedQueue.Items.Any(first => first.WorkObjectId == item.WorkObjectId));
         var thirdQueue = await service.GetOperationalSummaryAsync(new() { QueuePage = 3 }, ["Admin"]);
-        thirdQueue.Items.Count(item => item.QueueType == "PENDING_SOURCE_CHANGE").Should().Be(3);
+        thirdQueue.Items.Count(item => item.QueueType == "PENDING_SOURCE_CHANGE").Should().Be(2);
     }
 
     [Fact]
