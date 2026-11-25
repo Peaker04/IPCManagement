@@ -1,5 +1,11 @@
 # Current task — IDLE
 
+2026-11-25. FR-DASH và DOM-MODE-1. Khi chuẩn bị PR #64, bộ kiểm đối chiếu ngữ nghĩa phát hiện truy vấn tổng quan đọc phiếu theo lô MRX chưa có trong ma trận Phase 30. Đăng ký truy vấn đọc này với ca hiện có chạy 100 lô, kiểm đếm sai lệch, lô có thể chốt, phân trang và số truy vấn.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Finishing a Development Branch | Tích hợp MRX vào main | Ma trận Phase 30 thiếu một truy vấn có thật | IPC Debugging, IPC Test Audit, IPC Code Review, Verification Before Completion | Có, lỗi được xác nhận bằng discovery | Hai ca frontend cục bộ qua khi chạy riêng và job frontend GitHub đạt trên commit ban đầu | Ánh xạ vào ca nghiệp vụ hiện có, giữ kiểm tra một-một bắt buộc |
+
 2026-11-25. FR-MENU, FR-WH, FR-CHEF, FR-RECON. DOM-MODE-1, UXR-04, NFR-UI-01 và T7. Rà responsive MRX với Chromium, mở rộng kiểm tại 320 CSS px. Kiểm tiêu đề, thông tin lặp, cột bị che và điều khiển.
 
 ### Scoped Pre-Code UI Gate Block
