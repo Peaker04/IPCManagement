@@ -1,5 +1,4 @@
 using IPCManagement.Api.Data;
-using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Approvals.Services;
@@ -12,7 +11,7 @@ namespace IPCManagement.Api.Workflows.OperationalApprovals;
 internal sealed class OperationalMrxBatchSource(IpcManagementContext context)
 {
     internal async Task<(IReadOnlyList<ApprovalInboxItemDto> Items, bool HasMore)> ReadAsync(
-        ApprovalInboxQueryDto query, CancellationToken token, int offset = 0, int limit = 100)
+        ApprovalInboxQueryDto query, CancellationToken token, int offset = 0, int limit = 100, DateTime? cursorAt = null)
     {
         if (!ApprovalInboxQueryPolicy.ShouldBuildTarget(query.TargetType, "mrx-batch-review")) return ([], false);
         var batches = ApprovalInboxSourceFilter.ByIdentity(context.Reconciliationbatches.AsNoTracking(), x => x.BatchId, query)
@@ -24,11 +23,12 @@ internal sealed class OperationalMrxBatchSource(IpcManagementContext context)
             join user in context.Users on batch.CreatedBy equals user.UserId into users
             from user in users.DefaultIfEmpty()
             where string.IsNullOrEmpty(customerCode) || customer.CustomerCode.ToUpper() == customerCode
+            where cursorAt == null || batch.CreatedAt >= cursorAt
             orderby batch.CreatedAt, batch.BatchId
             select new { Batch = batch, menu.WeekStartDate, customer.CustomerCode, customer.CustomerName,
                 Actor = user == null ? "" : user.FullName })
             .Skip(offset).Take(limit + 1).ToListAsync(token);
-        var eligibleIds = new HashSet<string>(StringComparer.Ordinal);
+        IReadOnlyDictionary<string, string?> blockers = new Dictionary<string, string?>();
         if (query.State == "PENDING" && records.Count > 0)
         {
             var candidates = records.Take(limit).Select(x => x.Batch).ToList();
@@ -36,19 +36,9 @@ internal sealed class OperationalMrxBatchSource(IpcManagementContext context)
             var lines = await context.Reconciliationbatchlines.AsNoTracking().Where(x => ids.Contains(x.BatchId)).ToListAsync(token);
             var daily = await ReconciliationWarehouseDailyQuery.GetManyAsync(context,
                 candidates.Select(x => GuidHelper.ToGuidString(x.BatchId)).ToList(), candidates, lines, null, null, token, includeMetadata: false);
-            foreach (var batch in candidates)
-            {
-                batch.Lines = lines.Where(x => x.BatchId.SequenceEqual(batch.BatchId)).ToList();
-                var id = GuidHelper.ToGuidString(batch.BatchId);
-                try
-                {
-                    await ReconciliationCompletionEligibility.RequireAsync(context, batch, daily.GetValueOrDefault(id), token);
-                    eligibleIds.Add(id);
-                }
-                catch (BusinessRuleException) { /* Ordinary prerequisite blockers are not pending decisions. Read failures propagate. */ }
-            }
+            blockers = await ReconciliationCompletionEligibility.GetBlockersAsync(context, candidates, daily, token);
         }
-        var items = records.Take(limit).Where(x => query.State != "PENDING" || eligibleIds.Contains(GuidHelper.ToGuidString(x.Batch.BatchId))).Select(x =>
+        var items = records.Take(limit).Where(x => query.State != "PENDING" || blockers[GuidHelper.ToGuidString(x.Batch.BatchId)] is null).Select(x =>
         {
             var id = GuidHelper.ToGuidString(x.Batch.BatchId);
             return new ApprovalInboxItemDto { InboxItemId = $"MATERIAL_RECONCILIATION:mrx-batch-review:{id}",

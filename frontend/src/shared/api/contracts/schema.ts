@@ -18936,8 +18936,10 @@ export interface components {
         };
         readonly ReconciliationBatchDto: {
             readonly batchId: string;
+            readonly canComplete?: boolean | null;
             /** Format: date-time */
             readonly completedAt?: string | null;
+            readonly completionBlocker?: string | null;
             /** Format: date-time */
             readonly createdAt: string;
             readonly customerCode?: string | null;

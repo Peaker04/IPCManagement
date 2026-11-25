@@ -1,4 +1,3 @@
-import { invalidateMrxCaches } from '../../api/mrxCacheInvalidation';
 import { getMrxShiftLabel } from '../../constants/mrxConstants';
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -19,7 +18,7 @@ import { normalizeSearchText } from '../../utils/search';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { DocumentCodeCell } from '../../components/workbench/DocumentCodeCell';
 import { useOptionalDirtyNavigation } from '../../components/workbench/dirty-navigation-context';
-import { isServiceDate, weekStartFor, toVietnameseDate } from '../../utils/dates';
+import { isIsoDate, isServiceDate, isWeekStartDate, weekStartFor, toVietnameseDate } from '../../utils/dates';
 import { MrxSupplementalIssueModal } from './MrxSupplementalIssueModal';
 import { MrxHistoricalPurposeModal } from './MrxHistoricalPurposeModal';
 import { ReconciliationIssueDetailModal } from '../../components/workbench/ReconciliationIssueDetailModal';
@@ -61,6 +60,7 @@ export function MrxDailyIssueWorkbench({
     activeBatchId,
     setActiveBatchId,
     activeDate,
+    displayDate,
     setActiveDate,
     setDateValidationError,
     isWeeklyAll,
@@ -87,6 +87,8 @@ export function MrxDailyIssueWorkbench({
     saving,
     mutationError,
     issueOutcomeUnknown,
+    canRecoverInitial,
+    recoverInitial,
     setMutationError,
     issueSucceeded,
     isSupplementalOpen,
@@ -122,7 +124,10 @@ export function MrxDailyIssueWorkbench({
   const isIssueOutcomeUnknown = issueOutcomeUnknown;
   const isIssueConflict = mutationError instanceof ApiError && mutationError.status === 409;
   const isStaleIssue = isIssueConflict && mutationError.code === 'MRX_ISSUE_STALE';
-  const isOutsideBatchDate = Boolean(daily?.dates.length && !isWeeklyAll && !day);
+  const displayWeekly = displayDate === 'ALL';
+  const displayDay = displayDate === activeDate ? day : daily?.dates.find(item => item.serviceDate === displayDate);
+  const displayLines = displayDay === day ? lines : displayDay?.lines.filter(line => line.requiredQuantity > 0) ?? [];
+  const isOutsideBatchDate = Boolean(daily?.batchId === activeBatchId && daily?.dates.length && !isWeeklyAll && !day);
   const dirtyNavigation = useOptionalDirtyNavigation();
   const registerDirty = dirtyNavigation?.registerDirty;
   const hasUnsavedDraft = useMemo(() => (
@@ -189,6 +194,14 @@ export function MrxDailyIssueWorkbench({
   ], [setInspectedIssueId]);
 
   const isScopePending = !stateProps.error && Boolean(activeBatchId && (daily?.batchId !== activeBatchId || stateProps.isLoading));
+  const preparationRange = !isWeeklyAll && isServiceDate(activeDate) ? 'day' : 'week';
+  const rememberedScope = workspaceSessionStore.getScope();
+  const preparationDate = preparationRange === 'day' ? activeDate : [
+    batches.find(batch => batch.batchId === activeBatchId)?.weekStartDate,
+    daily?.batchId === activeBatchId && daily.dates[0] ? weekStartFor(daily.dates[0].serviceDate) : undefined,
+    rememberedScope.batchId === activeBatchId ? rememberedScope.weekStartDate : undefined,
+    isIsoDate(activeDate) ? weekStartFor(activeDate) : undefined,
+  ].find(isWeekStartDate);
 
   const selectBatch = (newId: string, historicalBatch?: MrxBatchSummary) => {
     if (scopeLocked || newId === activeBatchId) return;
@@ -209,6 +222,7 @@ export function MrxDailyIssueWorkbench({
     <WorkspaceFrame.Root className="select-text">
       <MrxDailyHeaderBranch
         isPending={isScopePending}
+        retainPreviousPresentation={Boolean(daily) && !isLegacyMissing}
         scopeError={Boolean(stateProps.error)}
         batches={batches}
         activeBatchId={activeBatchId}
@@ -297,7 +311,7 @@ export function MrxDailyIssueWorkbench({
             </div>
             <MrxDailyDateTabsBranch
               dates={daily?.dates}
-              activeDate={activeDate}
+              activeDate={displayDate}
               disabled={scopeLocked || isScopePending || activeTab === 'history'}
               onSelectDate={(newDate) => {
                 if (scopeLocked || activeTab === 'history' || newDate === activeDate) return;
@@ -311,7 +325,7 @@ export function MrxDailyIssueWorkbench({
                   });
                 });
               }}
-              isWeeklyAll={isWeeklyAll}
+              isWeeklyAll={displayWeekly}
             />
           </div>
         }
@@ -338,8 +352,13 @@ export function MrxDailyIssueWorkbench({
           <Button
             variant="outline"
             size="xs"
-            disabled={scopeLocked}
-            onClick={() => guardScopeChange(() => navigate(`/warehouse?view=mrx-preparation&date=${activeDate}`))}
+            disabled={scopeLocked || isScopePending || !preparationDate}
+            onClick={() => {
+              if (!preparationDate) return;
+              guardScopeChange(() => navigate(`/warehouse?${new URLSearchParams({
+                view: 'mrx-preparation', date: preparationDate, range: preparationRange,
+              })}`));
+            }}
           >
             Chuẩn bị phối hợp
           </Button>
@@ -355,12 +374,13 @@ export function MrxDailyIssueWorkbench({
           Điều phối cần chọn “Chuyển sang Kho” ở màn chuẩn bị lô. Sau khi bàn giao, chọn “Làm mới” để xuất kho.
         </InlineBanner>
       )}
-      {mutationError && (
+      {(mutationError || isIssueOutcomeUnknown) && (
         <InlineBanner
           variant={isIssueConflict ? 'conflict' : 'error'}
           title={isIssueOutcomeUnknown ? 'Chưa xác nhận được kết quả xuất kho' : isStaleIssue ? 'Dữ liệu xuất kho đã thay đổi' : 'Không thể ghi phiếu xuất'}
-          actionLabel={isIssueOutcomeUnknown ? 'Tải lại để kiểm tra kết quả' : isIssueConflict ? 'Tải lại dữ liệu mới nhất' : undefined}
-          onAction={isIssueOutcomeUnknown ? () => { invalidateMrxCaches(); window.location.reload(); } : isIssueConflict ? () => {
+          actionLabel={isIssueOutcomeUnknown ? (canRecoverInitial ? 'Gửi lại cùng mã lệnh' : undefined) : isIssueConflict ? 'Tải lại dữ liệu mới nhất' : undefined}
+          isActionLoading={isIssueOutcomeUnknown && saving}
+          onAction={isIssueOutcomeUnknown ? recoverInitial : isIssueConflict ? () => {
             setMutationError(null);
             void load(true);
           } : undefined}
@@ -368,7 +388,10 @@ export function MrxDailyIssueWorkbench({
           className="shrink-0 rounded-none border-x-0"
         >
           {isIssueOutcomeUnknown
-            ? 'Phiếu có thể đã được ghi. Gửi lại cùng mã lệnh để nhận phiếu đã ghi hoặc hoàn tất lần gửi trước.'
+            ? canRecoverInitial
+              ? (mutationError instanceof ApiError && mutationError.status < 500 && mutationError.code !== 'SESSION_CHANGED'
+                ? mutationError.message : 'Phiếu có thể đã được ghi. Gửi lại cùng mã lệnh để kiểm tra kết quả.')
+              : 'Hãy kiểm tra kết quả trong lịch sử phiếu. Chỉ có thể gửi lại lệnh ở đúng phiên bản chế độ đã dùng để ghi phiếu.'
             : mutationError?.message}
         </InlineBanner>
       )}
@@ -380,14 +403,6 @@ export function MrxDailyIssueWorkbench({
           actionLabel="Khôi phục bản nháp"
           onAction={restoreIssueDraft}
           className="shrink-0 rounded-none border-x-0"
-        />
-      )}
-
-      {issueSucceeded && (
-        <InlineBanner
-          variant="success"
-          title="Xuất kho thành công."
-          className="shrink-0 rounded-none border-x-0 py-2"
         />
       )}
 
@@ -412,7 +427,7 @@ export function MrxDailyIssueWorkbench({
           emptyIcon={Boxes}
           isEmpty={activeTab === 'history' || (daily?.batchId === activeBatchId && day && !isLegacyMissing) ? false : stateProps.isEmpty || isLegacyMissing}
           emptyTitle={activeTab === 'history' ? 'Chưa có phiếu xuất kho nào cho lô này.' : isLegacyMissing ? "Lô đối soát chưa có phân rã định lượng theo ngày" : (!isWeeklyAll && lines.length === 0 ? "Không có định lượng cần xuất cho ngày đã chọn" : stateProps.emptyTitle)}
-          emptyDescription={activeTab === 'history' ? 'Các phiếu xuất của lô đã chọn.' : isLegacyMissing ? "Lô thiếu dữ liệu theo ngày. Chọn lô khác để xuất kho." : isOutsideBatchDate ? 'Ngày đã chọn nằm ngoài tuần của lô. Chọn ngày trên lịch xuất ca hoặc xem tổng hợp cả tuần.' : (!isWeeklyAll && lines.length === 0 ? "Ngày này không có định mức cần xuất." : stateProps.emptyDescription)}
+          emptyDescription={activeTab === 'history' ? 'Các phiếu xuất của lô đã chọn.' : isLegacyMissing ? "Lô thiếu dữ liệu theo ngày. Chọn lô khác để xuất kho." : isOutsideBatchDate ? 'Ngày đã chọn nằm ngoài tuần của lô. Chọn ngày trên lịch xuất ca hoặc xem tổng hợp cả tuần.' : (!isWeeklyAll && lines.length === 0 ? null : stateProps.emptyDescription)}
           isPartial={isLegacyMissing}
           partialMessage="Thiếu định lượng ca; chỉ xem được tổng hợp."
           actionLabel={isLegacyMissing ? (canOpenSource ? 'Xem màn hình Điều phối lô' : undefined) : isOutsideBatchDate ? 'Xem cả tuần của lô' : (!activeBatchId || batches.length === 0 ? 'Xem tiến độ tại Bàn điều hành' : undefined)}
@@ -422,20 +437,20 @@ export function MrxDailyIssueWorkbench({
           } : (!activeBatchId || batches.length === 0 ? () => navigate('/') : undefined)}
         >
           {activeTab === 'demand' ? (
-            <fieldset disabled={scopeLocked} className="flex-1 min-h-0 min-w-0 flex flex-col bg-white">
+            <fieldset disabled={scopeLocked || isScopePending} className="flex-1 min-h-0 min-w-0 flex flex-col bg-white">
               <MrxDailyLinesBranch
-                isWeeklyAll={isWeeklyAll}
+                isWeeklyAll={displayWeekly}
                 weeklyAggregateLines={weeklyAggregateLines}
-                lines={lines}
+                lines={displayLines}
                 quantities={quantities}
                 setQuantities={setQuantities}
                 reasons={reasons}
                 setReasons={setReasons}
                 hasInitialIssue={hasInitialIssue}
                 readOnly={!canIssueBatch || !isServiceDate(activeDate)}
-                lastRevisionAt={day?.lastRevisionAt}
-                lastRevisionByName={day?.lastRevisionByName}
-                lastRevisionByRole={day?.lastRevisionByRole}
+                lastRevisionAt={displayDay?.lastRevisionAt}
+                lastRevisionByName={displayDay?.lastRevisionByName}
+                lastRevisionByRole={displayDay?.lastRevisionByRole}
               />
             </fieldset>
           ) : (
@@ -473,6 +488,8 @@ export function MrxDailyIssueWorkbench({
           )}
         </StateBoundary>
       </WorkspaceFrame.Body>
+      {issueSucceeded && <InlineBanner variant="success" title="Xuất kho thành công."
+        className="shrink-0 rounded-none border-x-0 py-2" />}
 
       <MrxSupplementalIssueModal
         isOpen={isSupplementalOpen}

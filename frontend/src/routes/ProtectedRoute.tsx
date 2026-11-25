@@ -1,9 +1,10 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/useAuth';
 import { StateBoundary } from '../components/workbench/StateBoundary';
 
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading, isOperationalModeReady, operationalModeError, reloadOperationalMode } = useAuth();
+  const { pathname, search, hash } = useLocation();
 
   if (isLoading) {
     return (
@@ -14,7 +15,7 @@ export function ProtectedRoute() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ returnTo: { pathname, search, hash } }} />;
   }
 
   if (!isOperationalModeReady) {

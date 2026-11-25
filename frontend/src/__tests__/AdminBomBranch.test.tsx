@@ -56,14 +56,16 @@ describe('AdminBomBranch Sub-tree Branch Tests (Rule TA-2 & TA-4)', () => {
 
   let coverage = mockCoverageReport;
   let coverageError: Error | null = null;
+  let tiers: number[];
   beforeEach(() => {
     vi.restoreAllMocks();
     coverage = mockCoverageReport;
     coverageError = null;
+    tiers = [25000, 30000, 34000];
     vi.spyOn(apiTransport, 'apiClient').mockImplementation(async endpoint => {
       const url = new URL(endpoint, 'http://localhost');
       if (url.pathname === '/system-operation-mode') return { mode: 'DEFAULT', label: 'Mặc định', version: 1, updatedAt: '2026-11-02T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } };
-      if (url.pathname === '/Dishes/bom-price-tiers') return [25000, 30000, 34000];
+      if (url.pathname === '/Dishes/bom-price-tiers') return tiers;
       if (url.pathname === '/Dishes/bom-coverage') {
         if (coverageError) throw coverageError;
         if (url.searchParams.get('priceTier') === '30000') return {
@@ -94,6 +96,16 @@ describe('AdminBomBranch Sub-tree Branch Tests (Rule TA-2 & TA-4)', () => {
     expect(screen.getByText('món ăn')).toBeInTheDocument();
     expect(screen.getByText('món hoàn tất')).toBeInTheDocument();
     expect(screen.getByText('món thiếu BOM')).toBeInTheDocument();
+  });
+
+  it('offers tier recovery without presenting a missing tier list as an empty dish search', async () => {
+    tiers = [];
+    render(<MemoryRouter><AdminBomBranch /></MemoryRouter>);
+    const retry = await screen.findByRole('button', { name: 'Tải lại mốc giá' });
+    expect(screen.queryByText('Không tìm thấy món ăn')).not.toBeInTheDocument();
+    tiers = [25000, 30000, 34000];
+    fireEvent.click(retry);
+    expect(await screen.findByText('Cơm sườn nướng')).toBeVisible();
   });
 
   it('hydrates a warm remount and keeps its rows when revalidation fails', async () => {

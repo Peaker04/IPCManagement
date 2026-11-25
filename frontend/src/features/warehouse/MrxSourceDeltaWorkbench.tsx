@@ -78,7 +78,7 @@ export function MrxSourceDeltaWorkbench() {
       <StateBoundary {...stateProps} isLoading={!displayed && !stateProps.error} hasExistingData={Boolean(displayed)}
         isEmpty={!stateProps.error && !pending && displayed?.items.length === 0}
         emptyTitle={Object.values(filters).some(Boolean) ? 'Không tìm thấy thay đổi phù hợp' : 'Chưa có lịch sử thay đổi nguồn'}
-        emptyDescription={Object.values(filters).some(Boolean) ? 'Thử đổi khách hàng, ngày hoặc mã lô.' : 'Các lần cập nhật định lượng nguồn sẽ hiển thị tại đây.'}
+        emptyDescription={Object.values(filters).some(Boolean) ? 'Thử đổi khách hàng, ngày hoặc mã lô.' : null}
         onRetry={() => void refetch(true)} onResolveConflict={() => void refetch(true)}>
         <div ref={scrollRegion} className="mrx-history-scroll" role="region" tabIndex={0} aria-label="Danh sách thay đổi nguồn">
           <MrxDeltaTableBranch items={displayed?.items ?? []} onOpen={setSelected} />

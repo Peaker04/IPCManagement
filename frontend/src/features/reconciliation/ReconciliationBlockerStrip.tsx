@@ -9,7 +9,7 @@ interface ReconciliationBlockerStripProps {
   onFilterNeedsReview: () => void;
   onNavigateWarehouse?: () => void;
   isBlocked?: boolean;
-  isCompleted?: boolean;
+  blocker?: string;
 }
 
 export function ReconciliationBlockerStrip({
@@ -21,7 +21,7 @@ export function ReconciliationBlockerStrip({
   onFilterNeedsReview,
   onNavigateWarehouse,
   isBlocked = true,
-  isCompleted = false,
+  blocker,
 }: ReconciliationBlockerStripProps) {
   if (isPending && !hasResolvedStatus) return <div role="status" aria-busy="true" className="h-11 px-4 border-b border-slate-200 bg-slate-50 shrink-0"><span className="sr-only">{pendingMessage}</span></div>;
   if (!isBlocked) {
@@ -33,10 +33,8 @@ export function ReconciliationBlockerStrip({
       >
         {isPending && <span className="sr-only">{pendingMessage}</span>}
         <span className="truncate">
-          {!(isPending && isPreviousScope) && <><strong>{isCompleted ? 'Trạng thái đối soát:' : 'Sẵn sàng chốt đối soát:'}</strong>{' '}
-          {isCompleted
-            ? 'Lô đối soát tuần đã hoàn tất và đóng băng số liệu.'
-            : 'Các ngày trong tuần đã hoàn tất xuất kho và xử lý chênh lệch.'}</>}
+          {!(isPending && isPreviousScope) && <><strong>Sẵn sàng chốt đối soát:</strong>{' '}
+            Lô đã đáp ứng các điều kiện chốt sổ.</>}
         </span>
       </div>
     );
@@ -50,9 +48,9 @@ export function ReconciliationBlockerStrip({
       {isPending && <span className="sr-only">{pendingMessage}</span>}
       <span className="truncate">
         {!(isPending && isPreviousScope) && <><strong>Chưa thể chốt đối soát:</strong>{' '}
-        {needsReviewCount > 0
+        <span>{blocker ?? (needsReviewCount > 0
           ? `Còn ${needsReviewCount} dòng chênh lệch cần giải trình trước khi chốt sổ tuần.`
-          : 'Chờ Kho hoàn tất xuất nguyên liệu cho các ngày còn lại trong tuần. Bạn có thể chọn ngày để xem tiến độ.'}</>}
+          : 'Chờ Kho hoàn tất xuất nguyên liệu cho các ngày còn lại trong tuần. Bạn có thể chọn ngày để xem tiến độ.')}</span></>}
       </span>
       {needsReviewCount > 0 ? (
         <Button variant="outline" size="xs" className="shrink-0" disabled={isPending} onClick={onFilterNeedsReview}>

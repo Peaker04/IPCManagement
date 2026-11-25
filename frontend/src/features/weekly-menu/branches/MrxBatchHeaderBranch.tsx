@@ -5,7 +5,6 @@ import { Select } from '../../../components/ui/select';
 import { VietnameseDateInput } from '../../../components/ui/vietnamese-date-input';
 import { isWeekStartDate } from '../../../utils/dates';
 import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
 import { ActionGuard } from '../../../components/ui/action-guard';
 import type { CustomerOption } from '../../../types';
 import type { MrxBatch, MrxWeeklySource } from '../../../api/mrxApi';
@@ -18,7 +17,6 @@ export interface MrxBatchHeaderBranchProps {
   onSelectWeekStartDate: (date: string) => void;
   batch: MrxBatch | null;
   source?: MrxWeeklySource | null;
-  statusLabels: Record<string, string>;
   isPending?: boolean;
   isSubmitting: boolean;
   isRefreshing: boolean;
@@ -47,7 +45,6 @@ export function MrxBatchHeaderBranch({
   onSelectWeekStartDate,
   batch,
   source,
-  statusLabels,
   isPending = false,
   isSubmitting,
   isRefreshing,
@@ -59,7 +56,7 @@ export function MrxBatchHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
-      className="mrx-scope-header"
+      className="mrx-scope-header mrx-batch-header"
       title={source && !batch ? 'Hoàn thiện nguồn tuần' : 'Chuẩn bị lô đối soát'}
       breadcrumb="Đối soát MRX · Trạm Điều phối"
       contextSelectors={
@@ -86,17 +83,7 @@ export function MrxBatchHeaderBranch({
             onChange={onSelectWeekStartDate}
             className="h-9 w-36 font-mono text-sm"
           />
-          <WorkspaceHeader.BadgeSlot variant="status">
-            {isPending ? <span role="status" className="sr-only">Đang tải phạm vi mới</span> : batch && batch.status !== 'COMPLETED' ? (
-              <Badge
-                variant="info"
-                size="default"
-                className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap"
-              >
-                {statusLabels[batch.status] ?? batch.status}
-              </Badge>
-            ) : null}
-          </WorkspaceHeader.BadgeSlot>
+          {isPending && <span role="status" className="sr-only">Đang tải phạm vi mới</span>}
         </>
       }
       actions={

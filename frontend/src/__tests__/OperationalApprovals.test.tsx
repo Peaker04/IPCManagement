@@ -340,11 +340,24 @@ it('shows source servings and changed dishes before accepting a MRX source decis
 
 
 it('keeps available MRX items visible and identifies an unavailable queue source with retry', async () => {
+  localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
   const base = handler;
-  handler = (url, init) => url.startsWith('/operational-approvals/inbox') ? { ...page, hasNext: true, nextCursor: 'partial-cursor',
-    unavailableSources: [{ targetType: 'mrx-source-change', message: 'Thay đổi nguồn thực đơn chưa tải được' }] } : base(url, init);
+  const mode = 'MATERIAL_RECONCILIATION';
+  const row = { ...item, targetType: 'mrx-supplemental-demand', itemType: 'mrx-supplemental-demand', status: 'PENDING' };
+  handler = (url, init) => {
+    if (url === '/system-operation-mode') return { ...(base(url, init) as object), mode };
+    if (url.startsWith('/operational-approvals/inbox')) return { ...page, items: [row], mode, targets: [], hasNext: true, nextCursor: 'partial-cursor',
+      unavailableSources: [
+        { targetType: 'mrx-source-change', message: 'Thay đổi nguồn thực đơn chưa tải được' },
+        { targetType: 'mrx-historical-purpose', message: 'Phân bổ phiếu lịch sử chưa tải được' },
+      ] };
+    return base(url, init);
+  };
   openPage();
   expect(await screen.findByText('Thay đổi nguồn thực đơn chưa tải được')).toBeInTheDocument();
+  expect(screen.getByText('Phân bổ phiếu lịch sử chưa tải được')).toBeInTheDocument();
+  expect(screen.getAllByRole('button', { name: 'Tải lại hàng đợi' })).toHaveLength(1);
+  expect(screen.queryByRole('button', { name: 'Làm mới' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Xem xét' })).toBeEnabled();
   await userEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
   await waitFor(() => expect(client.apiClient).toHaveBeenCalledWith('/operational-approvals/inbox?Limit=20&Cursor=partial-cursor'));

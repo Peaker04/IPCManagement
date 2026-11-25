@@ -140,7 +140,8 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
       expect(within(detail).getByText('Chưa rõ phân loại (undocumented-slot)')).toBeVisible();
       await userEvent.click(within(detail).getByRole('button', { name: 'Đóng' }));
     }
-    expect(screen.getByText('Hiện hành')).toBeVisible();
+    expect(screen.getByLabelText('Nguồn định lượng')).toHaveTextContent('Nguồn dự kiến: v3');
+    expect(screen.queryByText('Tính chất:')).not.toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', { name: 'Trang sau' }));
     await waitFor(() => expect(reads.some(url => url.searchParams.get('PageNumber') === '2')).toBe(true));
     expect(screen.queryByRole('button', { name: 'Lập lô đối soát' })).not.toBeInTheDocument();
@@ -182,6 +183,8 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     const read = vi.spyOn(mrxApi, 'getWeeklySource');
     renderWeeklyMenu('/weekly-menu?view=mrx-materials');
     expect(await screen.findByText('Chọn khách hàng và tuần bắt đầu')).toBeVisible();
+    expect(screen.getByLabelText('Nguồn định lượng')).toHaveTextContent(/^Nguồn dự kiến$/);
+    expect(screen.getByRole('textbox', { name: 'Tìm nguyên liệu' })).toBeDisabled();
     expect(screen.getByRole('combobox', { name: 'Chọn khách hàng MRX' })).toHaveValue('');
     expect(screen.getByRole('textbox', { name: 'Tuần MRX bắt đầu' })).toHaveValue('');
     expect(read).not.toHaveBeenCalled();
@@ -309,7 +312,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=customer-1&weekStartDate=ALL');
     expect(await screen.findByText('Không có nguồn thực đơn để hiển thị')).toBeVisible();
     expect(screen.getByText(/Lô đối soát vẫn được giữ nguyên/)).toBeVisible();
-    expect(screen.getAllByRole('button', { name: 'Món & BOM đã đóng băng' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: 'Món & BOM đã đóng băng' })).toHaveLength(1);
     expect(screen.queryByRole('button', { name: 'Nhập thực đơn Excel ngay' })).not.toBeInTheDocument();
   });
 
@@ -624,8 +627,8 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     await userEvent.click(await screen.findByRole('button', { name: 'Chuyển sang Kho' }));
     expect(mrxApi.transferToWarehouse).toHaveBeenCalledWith('batch-1', 2);
     expect(await screen.findByText('Đã bàn giao lô đối soát sang Kho nguyên liệu thành công.')).toBeInTheDocument();
-    expect(screen.getByText('Đã chuyển Kho')).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Tiến trình vòng đời lô đối soát' })).toBeInTheDocument();
+    const lifecycle = screen.getByRole('navigation', { name: 'Tiến trình vòng đời lô đối soát' });
+    expect(lifecycle.querySelector('[aria-current="step"]')).toHaveTextContent('Bàn giao kho');
 
     if (canOpenWarehouse) {
       expect(screen.getByRole('button', { name: 'Mở trạm Kho xuất ngày' })).toBeInTheDocument();

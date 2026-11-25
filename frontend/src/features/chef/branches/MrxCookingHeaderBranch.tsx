@@ -36,7 +36,7 @@ export function MrxCookingHeaderBranch({
   }));
 
   const sessionScope = workspaceSessionStore.getScope();
-  const fallbackWeek = data?.rows[0]?.serviceDate ? weekStartFor(data.rows[0].serviceDate) : (sessionScope.batchId === batchId ? sessionScope.weekStartDate : '');
+  const fallbackWeek = data?.batchId === batchId && data.rows[0]?.serviceDate ? weekStartFor(data.rows[0].serviceDate) : (sessionScope.batchId === batchId ? sessionScope.weekStartDate : '');
   const fallbackCustomer = sessionScope.batchId === batchId ? (sessionScope.customerCode || sessionScope.customerName) : '';
   const fallbackBatchLabel = fallbackCustomer || fallbackWeek
     ? `${fallbackCustomer || 'Lô đã chọn'}${fallbackWeek ? ` · ${toVietnameseDate(fallbackWeek)}` : ''}`
@@ -70,16 +70,18 @@ export function MrxCookingHeaderBranch({
             <Select
               aria-label="Lọc theo ca nấu"
               value={selectedShift}
-              disabled={!data || batches.length === 0}
+              disabled={!data || isPending || batches.length === 0}
               onChange={(e) => onSelectShift(e.target.value as 'ALL' | 'MORNING' | 'AFTERNOON')}
               options={MRX_SHIFT_OPTIONS}
               className="h-9 w-full font-medium text-sm"
             />
           </div>
           <WorkspaceHeader.BadgeSlot variant="status">
-            {isPending ? <span role="status" className="sr-only">Đang tải phạm vi mới</span> : data && (
+            {isPending && <span role="status" className="sr-only">{data ? 'Đang tải lô mới. Phiên bản đang hiển thị thuộc lô trước.' : 'Đang tải lô mới'}</span>}
+            {data && (
               <Badge
                 variant="neutral"
+                title={isPending ? 'Phiên bản của lô trước trong lúc tải lô mới' : undefined}
                 size="default"
                 className="h-8 px-2.5 text-xs font-mono flex items-center shrink-0 whitespace-nowrap"
               >

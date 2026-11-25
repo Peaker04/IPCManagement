@@ -76,13 +76,17 @@ test('materials: changes page size, navigates last page, and restores URL scope 
 });
 
 test('materials: persistent page 2 error permits returning to confirmed page 1', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
   await install(page, (route, url) => url.pathname.endsWith('/quantity-import/materials') && url.searchParams.get('PageNumber') === '2'
     ? fail(route, 'Trang định lượng 2 tạm lỗi') : materials(route, url));
   await page.goto(materialsUrl);
   await expect(page.getByText('Nguyên liệu 1', { exact: true })).toBeVisible();
+  const tableHead = page.locator('main thead').first();
+  const y = (await tableHead.boundingBox())!.y;
   const pager = page.getByRole('navigation', { name: 'Định lượng nguyên liệu', exact: true });
   await pager.getByRole('button', { name: 'Trang sau' }).click();
   await expect(page.getByRole('alert')).toContainText('Trang định lượng 2 tạm lỗi');
+  expect((await tableHead.boundingBox())!.y).toBe(y);
   await expect.poll(() => page.getByText('Nguyên liệu 1', { exact: true }).evaluate(node => Boolean(node.closest('[inert]')))).toBe(true);
   await expect(pager.getByRole('button', { name: 'Trang trước' })).toBeEnabled();
   await pager.getByRole('button', { name: 'Trang trước' }).click();
@@ -188,11 +192,16 @@ test('source history: draft filters apply only on Enter and Xem tất cả reset
 
 test('source detail: page 2 failure can be retried without crossing event identity, reopening resets the page', async ({ page }) => {
   const reads: Array<{ path: string; number: number }> = [];
+  let finishFailure!: () => void;
+  const failureGate = new Promise<void>(resolve => { finishFailure = resolve; });
   await install(page, (route, url) => {
     if (!url.pathname.includes('/source-history/')) return history(route, url);
     const number = Number(url.searchParams.get('PageNumber'));
     reads.push({ path: decodeURIComponent(url.pathname.split('/').at(-1)!), number });
-    if (number === 2 && reads.filter(read => read.number === 2).length === 1) return fail(route, 'Chi tiết trang 2 tạm lỗi');
+    if (number === 2 && reads.at(-1)?.path === eventRows[1].eventId) {
+      return route.fulfill({ status: 403, json: { success: false, message: 'Truy cập bị hạn chế' } });
+    }
+    if (number === 2 && reads.filter(read => read.number === 2).length === 1) return failureGate.then(() => fail(route, 'Chi tiết trang 2 tạm lỗi'));
     const event = eventRows.find(entry => entry.eventId === reads.at(-1)!.path)!;
     const rows = Array.from({ length: number === 1 ? 25 : 1 }, (_, i) => ({ serviceDate: week, ingredientCode: `ING-${number}-${i}`, ingredientName: `Định lượng trang ${number} dòng ${i}`, unitName: 'Kilogram', previousQuantity: 1, newQuantity: 2, deltaQuantity: 1, isApplied: false }));
     const detail: MrxSourceHistoryDetail = { event, requesterName: 'Điều phối', requestedAt: event.occurredAt, reviewerName: null, reviewedAt: null, executorName: null, executedAt: null, revisions: [], materials: paged(rows, number, 25, 26) };
@@ -204,8 +213,18 @@ test('source detail: page 2 failure can be retried without crossing event identi
   await opener.click();
   const dialog = page.getByRole('dialog', { name: 'Chi tiết thay đổi nguồn' });
   await expect(dialog.getByText('Định lượng trang 1 dòng 0')).toBeVisible();
-  await dialog.getByRole('button', { name: 'Trang sau' }).press('Enter');
+  const next = dialog.getByRole('button', { name: 'Trang sau' });
+  const panel = dialog.locator(':scope > div').first();
+  const before = await panel.boundingBox();
+  await next.press('Enter');
+  try {
+    await expect.poll(() => reads.length).toBe(2);
+    await expect.soft(dialog.getByRole('table')).toBeVisible();
+    await expect.soft(next).toBeFocused();
+    expect.soft(await panel.boundingBox()).toEqual(before);
+  } finally { finishFailure(); }
   await expect(dialog.getByRole('alert')).toContainText('Không tải được chi tiết');
+  await expect.soft(dialog.getByRole('table')).toBeVisible();
   await dialog.getByRole('button', { name: 'Thử lại' }).click();
   await expect(dialog.getByText('Định lượng trang 2 dòng 0')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -213,7 +232,11 @@ test('source detail: page 2 failure can be retried without crossing event identi
   await expect(opener).toBeFocused();
   await items.nth(1).getByRole('button', { name: /Xem chi tiết/ }).click();
   await expect(dialog.getByText('Định lượng trang 1 dòng 0')).toBeVisible();
-  expect(reads).toEqual([1, 2, 2, 1].map((number, i) => ({ path: eventRows[i === 3 ? 1 : 0].eventId, number })));
+  await dialog.getByRole('button', { name: 'Trang sau' }).click();
+  await expect(dialog.getByRole('alert')).toContainText('Bạn không có quyền xem chi tiết thay đổi nguồn.');
+  await expect(dialog.getByRole('table')).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'Thử lại' })).toHaveCount(0);
+  expect(reads).toEqual([1, 2, 2, 1, 2].map((number, i) => ({ path: eventRows[i >= 3 ? 1 : 0].eventId, number })));
 });
 
 const chefUrl = '/chef?view=mrx-cooking&batchId=batch-1';
@@ -239,8 +262,9 @@ test('chef Excel: waiting locks the command, error keeps scope and retry downloa
     return exports.length === 1 ? gate.then(() => fail(route, 'Không tạo được tệp Excel')) : route.fulfill({ body: workbook, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   });
   await page.goto(chefUrl);
-  const opener = page.getByRole('button', { name: 'Xuất phiếu nấu Excel', exact: true });
-  await opener.click();
+  const opener = page.getByRole('button', { name: 'Tải / In', exact: true });
+  await opener.press('Enter');
+  await page.getByRole('button', { name: 'Xuất phiếu nấu Excel', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Xuất phiếu nấu Excel' });
   const firstBatch = dialog.getByRole('checkbox', { name: /lô đang xem/ });
   await firstBatch.uncheck();
@@ -279,6 +303,7 @@ test('chef Excel: enabled next page must actually fetch after a catalog page 2 e
     return chefCatalog(route, url);
   });
   await page.goto(chefUrl);
+  await page.getByRole('button', { name: 'Tải / In', exact: true }).click();
   await page.getByRole('button', { name: 'Xuất phiếu nấu Excel', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Xuất phiếu nấu Excel' });
   const next = dialog.getByRole('navigation', { name: 'Phân trang lô trong tuần' }).getByRole('button', { name: 'Trang sau' });
@@ -298,6 +323,7 @@ test('chef Excel: explicit retry restores page 2 and selection survives paging',
     return chefCatalog(route, url);
   });
   await page.goto(chefUrl);
+  await page.getByRole('button', { name: 'Tải / In', exact: true }).click();
   await page.getByRole('button', { name: 'Xuất phiếu nấu Excel', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Xuất phiếu nấu Excel' });
   const pager = dialog.getByRole('navigation', { name: 'Phân trang lô trong tuần' });
@@ -385,7 +411,7 @@ test('material detail: a long ingredient heading fits without covering the table
       page: paged([{ ingredientId: 'i-1', ingredientCode: 'NL-1', ingredientName: longIngredient, canonicalUnitId: 'kg', canonicalUnitName: 'Kilogram', requiredQuantity: 3, contributions: [] }], 1, 50, 1) };
     return ok(route, data);
   });
-  for (const width of [390, 834, 1024, 1440]) {
+  for (const width of [320, 390, 834, 1024, 1440]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto(materialsUrl);
     await page.getByRole('row', { name: new RegExp(longIngredient) }).press('Enter');
@@ -410,7 +436,7 @@ test('warehouse: long ingredient, quantity and status fit in daily and weekly co
     if (url.pathname === '/api/inventory-issues') return ok(route, paged([], 1, 25, 0));
     return chefCatalog(route, url);
   });
-  for (const width of [390, 834, 1280]) {
+  for (const width of [320, 390, 834, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto('/warehouse?view=mrx-daily&batchId=batch-1&date=' + date);
     await expect(page.getByText(longIngredient, { exact: true })).toBeVisible();
@@ -444,7 +470,12 @@ test('warehouse: long ingredient, quantity and status fit in daily and weekly co
     const remaining = page.getByRole('row').filter({ hasText: longIngredient }).getByRole('cell').last();
     expect.soft(await textFits(remaining), `weekly total at ${width}px`).toBe(true);
     expect.soft(await showLastColumn(page.getByRole('table').filter({ has: remaining })), `weekly frozen column and total at ${width}px`).toEqual({ frozen: true, readable: true });
-    if (width === 390) await page.screenshot({ path: test.info().outputPath('warehouse-weekly-390.png') });
+    if (width <= 390) await page.screenshot({ path: test.info().outputPath(`warehouse-weekly-${width}.png`) });
+    if (width === 320) {
+      const region = page.getByRole('region', { name: 'Bảng tổng hợp xuất kho theo tuần' });
+      await region.evaluate(node => { node.scrollTop = node.scrollHeight; });
+      await region.getByRole('button', { name: 'Sao chép NL-1' }).click({ trial: true, timeout: 3000 });
+    }
     expect.soft(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
   }
 });
@@ -456,7 +487,7 @@ test('chef: long labels do not escape their panel and the final numeric column i
     return ok(route, { batchId: chefBatch.batchId, sourceVersion: chefBatch.version, rows: [{ ...chefRow, dishName: longDish,
       dishCode: code, ingredientName: longIngredient, unitName: longUnit, totalRequiredQuantity: 1234567.123456 }] });
   });
-  for (const width of [390, 834, 1024, 1440]) {
+  for (const width of [320, 390, 834, 1024, 1440]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto(chefUrl);
     await page.getByRole('button', { name: new RegExp(longDish) }).click();
@@ -484,4 +515,107 @@ test('chef: long labels do not escape their panel and the final numeric column i
   const printTable = page.getByRole('table');
   await expect(printTable.getByRole('columnheader', { name: 'Tổng lượng cần' })).toBeVisible();
   expect(await printTable.evaluate(table => table.getBoundingClientRect().right)).toBeLessThanOrEqual(721);
+});
+
+for (const width of [390, 834]) {
+  test(`warehouse: committed issue stays visible while the receipt is refreshed at ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    let releasePost = () => {};
+    let releaseRead = () => {};
+    let posted = false;
+    let commits = 0;
+    const postGate = new Promise<void>(resolve => { releasePost = resolve; });
+    const readGate = new Promise<void>(resolve => { releaseRead = resolve; });
+    const line = { dailyLineId:'dl-1', batchLineId:'bl-1', ingredientId:'i-1', ingredientCode:'NL-1', ingredientName:'Gạo của ca', canonicalUnitId:'kg', canonicalUnitName:'kg', quantityStatus:'UNTOUCHED' as const, requiredQuantity:4, issuedQuantity:null, returnedQuantity:0, remainingQuantity:4, hasValidDisposition:false };
+    await install(page, async (route, url) => {
+      if (url.pathname === '/api/inventory-issues' && route.request().method() === 'POST') {
+        commits++;
+        await postGate;
+        posted = true;
+        return ok(route, { issueId:'issue-1', issueCode:'PX-1' });
+      }
+      if (url.pathname === '/api/inventory-issues') return ok(route, paged([], 1, 25, 0));
+      if (!url.pathname.endsWith('/warehouse-daily')) return chefCatalog(route, url);
+      if (posted) await readGate;
+      const data: MrxWarehouseDaily = { batchId:chefBatch.batchId, batchStatus:posted?'IN_PROGRESS':'TRANSFERRED', sourceVersion:posted?3:2, weeklyStatus:'IN_PROGRESS', compatibility:{canRead:true, canIssueByDate:true}, dates:[{ serviceDate:week, status:posted?'COMPLETE':'UNTOUCHED', isApplicable:true, requiredQuantity:4, issuedQuantity:posted?4:0, returnedQuantity:0, remainingQuantity:posted?0:4, lines:[posted?{...line, quantityStatus:'EXACT', issuedQuantity:4, remainingQuantity:0}:line] }] };
+      return ok(route, data);
+    });
+    await page.goto('/warehouse?view=mrx-daily&batchId=batch-1&date=' + week);
+    await page.getByRole('button', { name:'Điền đủ toàn bộ' }).click();
+    const input = page.getByRole('textbox', { name:'Số lượng thực xuất Gạo của ca' });
+    const submit = page.getByRole('button', { name:'Xác nhận xuất kho' });
+    await expect(input).toHaveValue('4');
+    await expect(submit).toBeEnabled();
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+    const table = page.locator('main thead').first();
+    const original = await table.elementHandle();
+    const take = async () => ({ headY: (await table.boundingBox())?.y, value:await input.count()?await input.inputValue():null, sameNode:await table.evaluate((node, initial) => node === initial, original), commits });
+    const before = await take();
+    const create = page.waitForRequest(request => request.method() === 'POST' && request.url().endsWith('/inventory-issues'));
+    try {
+      await submit.click();
+      await create;
+      expect(await take()).toEqual({ ...before, commits: 1 });
+      const reread = page.waitForRequest(request => request.url().endsWith('/warehouse-daily'));
+      releasePost();
+      await reread;
+
+      const pendingRead = await take();
+
+      releaseRead();
+      await expect(page.getByRole('button', { name:'Xuất bổ sung ca' })).toBeVisible();
+      expect(pendingRead).toEqual({ ...before, commits: 1 });
+      expect(await take()).toEqual({ ...before, commits: 1 });
+    } finally { releasePost(); releaseRead(); }
+  });
+}
+
+test('warehouse: switching weeks keeps the previous rows and locked actions until the new lot resolves', async ({ page }) => {
+  await page.setViewportSize({ width: 834, height: 900 });
+  const nextWeek = '2026-11-30';
+  const nextBatch = { ...chefBatch, batchId: 'batch-2', customerId: 'customer-2', customerCode: 'KH02',
+    weekStartDate: nextWeek, weekEndDate: '2026-12-06', status: 'COMPLETED' };
+  let release = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  await install(page, async (route, url) => {
+    if (url.pathname.endsWith('/batches')) return ok(route, paged([chefBatch, nextBatch], 1, 50, 2));
+    if (url.pathname === '/api/inventory-issues') return ok(route, paged([], 1, 25, 0));
+    if (!url.pathname.endsWith('/warehouse-daily')) return fail(route, 'Endpoint outside this fixture.');
+    const next = url.pathname.includes('/batch-2/');
+    if (next) await gate;
+    const data: MrxWarehouseDaily = {
+      batchId: next ? nextBatch.batchId : chefBatch.batchId, sourceVersion: 2,
+      batchStatus: next ? 'COMPLETED' : 'TRANSFERRED', weeklyStatus: next ? 'WEEK_COMPLETE' : 'IN_PROGRESS',
+      compatibility: {canRead: true, canIssueByDate: !next},
+      dates: [{ serviceDate: next ? nextWeek : week, status: next ? 'COMPLETE' : 'UNTOUCHED', isApplicable: true,
+        requiredQuantity: 4, issuedQuantity: next ? 4 : 0, returnedQuantity: 0, remainingQuantity: next ? 0 : 4,
+        lines: [{dailyLineId: next ? 'line-2' : 'line-1', batchLineId:'bl-1', ingredientId:'i-1', ingredientCode:'NL-1',
+          ingredientName:next ? 'Gạo tuần mới' : 'Gạo tuần trước', canonicalUnitId:'kg', canonicalUnitName:'kg',
+          quantityStatus:next ? 'EXACT' : 'UNTOUCHED', requiredQuantity:4, issuedQuantity:next ? 4 : null,
+          returnedQuantity:0, remainingQuantity:next ? 0 : 4, hasValidDisposition:false}],
+      }],
+    };
+    return ok(route, data);
+  });
+  await page.goto('/warehouse?view=mrx-daily&batchId=batch-1&date=' + week);
+  const ingredient = page.getByText('Gạo tuần trước', { exact: true });
+  await expect(ingredient).toBeVisible();
+  const fill = page.getByRole('button', { name: 'Điền đủ toàn bộ' });
+  await expect(fill).toBeEnabled();
+  const header = page.getByRole('columnheader', { name: 'Nhu cầu ca', exact: true });
+  const heading = await header.boundingBox();
+  const lot = page.getByRole('combobox', { name: 'Chọn lô đối soát xuất kho' });
+  try {
+    const requested = page.waitForRequest(request => request.url().includes('/batch-2/warehouse-daily'));
+    await lot.focus();
+    await lot.selectOption(nextBatch.batchId);
+    await requested;
+    await expect(fill).toBeDisabled();
+    await expect(lot).toBeFocused();
+    await expect(ingredient).toBeVisible({timeout:1500});
+    expect(Math.abs((await header.boundingBox())!.y - heading!.y)).toBeLessThanOrEqual(1);
+  } finally { release(); }
+  await expect(page.getByText('Gạo tuần mới', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/batchId=batch-2&date=2026-11-30/);
+  await expect(fill).toHaveCount(0);
 });

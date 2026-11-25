@@ -410,12 +410,13 @@ public sealed class OperationalApprovalService(
         var supplementalSource = new OperationalSupplementalDemandSource(context);
         var batchSource = new OperationalMrxBatchSource(context);
         var historicalSource = new OperationalMrxHistoricalPurposeSource(context);
+        // Keep equal timestamps for the final ordinal inbox-ID tie break.
         for (var offset = 0; ; offset += 100)
         {
-            var amendments = await ReadSourceAsync("mrx-source-change", () => ReadMrxItemsAsync(query, token, offset, 100));
-            var demands = await ReadSourceAsync("mrx-supplemental-demand", () => supplementalSource.ReadAsync(query, token, offset, 100));
-            var batches = await ReadSourceAsync("mrx-batch-review", () => batchSource.ReadAsync(query, token, offset, 100));
-            var historical = await ReadSourceAsync(MrxHistoricalPurposeRecoveryService.Target, () => historicalSource.ReadAsync(query, token, offset, 100));
+            var amendments = await ReadSourceAsync("mrx-source-change", () => ReadMrxItemsAsync(query, token, offset, 100, cursor?.At));
+            var demands = await ReadSourceAsync("mrx-supplemental-demand", () => supplementalSource.ReadAsync(query, token, offset, 100, cursor?.At));
+            var batches = await ReadSourceAsync("mrx-batch-review", () => batchSource.ReadAsync(query, token, offset, 100, cursor?.At));
+            var historical = await ReadSourceAsync(MrxHistoricalPurposeRecoveryService.Target, () => historicalSource.ReadAsync(query, token, offset, 100, cursor?.At));
             foreach (var failure in failures) bestBySource.Remove(failure.TargetType);
             var candidates = ApprovalInboxQueryPolicy.Apply(amendments.Items.Concat(demands.Items).Concat(batches.Items).Concat(historical.Items), query)
                 .Where(item => cursor is null || item.SubmittedAt > cursor.At
@@ -457,23 +458,27 @@ public sealed class OperationalApprovalService(
         return item;
     }
 
-    private async Task<(IReadOnlyList<ApprovalInboxItemDto> Items, bool HasMore)> ReadMrxItemsAsync(ApprovalInboxQueryDto query, CancellationToken token, int offset = 0, int limit = 100)
+    private async Task<(IReadOnlyList<ApprovalInboxItemDto> Items, bool HasMore)> ReadMrxItemsAsync(ApprovalInboxQueryDto query, CancellationToken token, int offset = 0, int limit = 100, DateTime? cursorAt = null)
     {
         var key = string.IsNullOrEmpty(query.TargetId) ? null : GuidHelper.ParseGuidString(query.TargetId) ?? throw new ArgumentException("Mã hồ sơ không hợp lệ.");
         var customerCode = query.CustomerCode?.Trim().ToUpperInvariant();
-        var records = await context.Menuamendments.AsNoTracking().Include(item => item.Customer).Include(item => item.CreatedByNavigation)
-            .Where(item => (query.State == "PENDING" ? item.Status == "PENDING_REVIEW" : item.Status != "PENDING_REVIEW") &&
-                (string.IsNullOrEmpty(customerCode) || item.Customer.CustomerCode.ToUpper() == customerCode) && item.BaseMenuVersionId != null && (key == null || item.MenuAmendmentId == key))
+        var source = query.State == "PENDING" ? MrxMenuAmendmentCoordinator.PendingSourceChanges(context)
+            : context.Menuamendments.AsNoTracking().Where(item => item.BaseMenuVersionId != null && item.Status != "PENDING_REVIEW");
+        var records = await source.Include(item => item.Customer).Include(item => item.CreatedByNavigation)
+            .Where(item => (string.IsNullOrEmpty(customerCode) || item.Customer.CustomerCode.ToUpper() == customerCode)
+                && (key == null || item.MenuAmendmentId == key)
+                && (cursorAt == null || item.CreatedAt >= cursorAt))
             .OrderBy(item => item.CreatedAt).ThenBy(item => item.MenuAmendmentId).Skip(offset).Take(limit + 1).ToListAsync(token);
         var hasMore = records.Count > limit;
         var items = records.Take(limit).Select(item =>
         {
             var targetId = GuidHelper.ToGuidString(item.MenuAmendmentId);
+            var impact = ReadImpact(item);
             return new ApprovalInboxItemDto { InboxItemId = $"MATERIAL_RECONCILIATION:mrx-source-change:{targetId}",
                 TargetType = "mrx-source-change", TargetId = targetId, TargetCode = item.Customer.CustomerCode,
                 CustomerCode = item.Customer.CustomerCode,
-                ServiceDates = ReadImpact(item).ImpactLines.Select(x => x.ServiceDate)
-                    .Concat(ReadImpact(item).MaterialImpact.Select(x => x.ServiceDate)).Distinct().Order().ToArray(),
+                ServiceDates = impact.ImpactLines.Select(x => x.ServiceDate)
+                    .Concat(impact.MaterialImpact.Select(x => x.ServiceDate)).Distinct().Order().ToArray(),
                 Title = "Thay đổi nguồn thực đơn", Source = item.Customer.CustomerName, SubmittedBy = item.CreatedByNavigation.FullName,
                 SubmittedAt = item.CreatedAt, Status = item.Status, Reason = item.Reason, WeekStartDate = item.WeekStartDate,
                 Route = $"/approvals?targetType=mrx-source-change&targetId={targetId}" };

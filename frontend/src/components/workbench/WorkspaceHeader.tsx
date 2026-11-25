@@ -90,7 +90,10 @@ export function WorkspaceHeader({
               {breadcrumb}
             </span>
           )}
-          <h1 className="text-base font-semibold text-slate-900 tracking-tight whitespace-nowrap shrink-0 leading-tight">
+          <h1 className={clsx(
+            'text-base font-semibold text-slate-900 tracking-tight shrink-0 leading-tight',
+            responsive ? 'whitespace-normal [overflow-wrap:anywhere]' : 'whitespace-nowrap'
+          )}>
             {title}
           </h1>
         </div>

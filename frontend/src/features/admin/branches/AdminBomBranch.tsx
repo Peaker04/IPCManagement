@@ -47,11 +47,12 @@ export function AdminBomBranch() {
     queryFn: (_, signal) => bomApi.getBomCoverage(selectedTier, signal, mrxShared ? inspectionDate : undefined),
   });
   const { isLoading: queryLoading, error, isFetching } = coverageQuery.stateProps;
-  const report = !inspectionDateReady || !tierValid || (mrxShared && coverageQuery.stateProps.isPreviousData)
-    || (error && (coverageQuery.data?.priceTier ?? undefined) !== selectedTier)
+  const report = !inspectionDateReady || !tierValid
+    || (error && (coverageQuery.stateProps.isPreviousData || (coverageQuery.data?.priceTier ?? undefined) !== selectedTier))
     ? null
     : coverageQuery.data;
   const isPreviousReport = Boolean(report && !error && (coverageQuery.stateProps.isPreviousData || (report.priceTier ?? undefined) !== selectedTier));
+  const isBomBusy = mrxShared && (queryLoading || isFetching || isPreviousReport);
   const isLoading = !report && (queryLoading || isFetching || (Boolean(selectedTier) && tiersLoading));
   const statusFilter = filters.bomStatus === 'MISSING' || filters.bomStatus === 'COMPLETE' ? filters.bomStatus : 'ALL';
   const setStatusFilter = (value: 'ALL' | 'MISSING' | 'COMPLETE') => setFilter('bomStatus', value);
@@ -69,7 +70,7 @@ export function AdminBomBranch() {
   const [exportError, setExportError] = useState<string | null>(null);
 
   const exportAll = async () => {
-    if (selectedTier === undefined || !tierValid || !inspectionDateReady || exportPending) return;
+    if (selectedTier === undefined || !tierValid || !inspectionDateReady || exportPending || isBomBusy || error) return;
     setExportPending(true);
     setExportError(null);
     try {
@@ -186,7 +187,7 @@ export function AdminBomBranch() {
       {/* Zone 2: Telemetry Subbar with 4 KPI items */}
       <div className="min-h-11 px-4 py-1.5 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-500">Độ phủ định mức BOM:</span>
+          <span className="text-slate-500">{isPreviousReport ? 'Kết quả trước:' : 'Độ phủ BOM:'}</span>
           <span className="font-semibold text-slate-800 flex items-center gap-1.5">
             <Utensils size={14} className="text-slate-500" aria-hidden="true" />
             <strong className="font-mono">{report ? totalCount : '—'}</strong> món ăn
@@ -271,7 +272,7 @@ export function AdminBomBranch() {
         <div className="flex flex-wrap items-center gap-2">
           {mrxShared && <Button
             variant="outline" size="sm"
-            disabled={selectedTier === undefined || !tierValid || !inspectionDateReady || tiersLoading || Boolean(tiersError) || exportPending}
+            disabled={selectedTier === undefined || !tierValid || !inspectionDateReady || tiersLoading || Boolean(tiersError) || isBomBusy || Boolean(error) || exportPending}
             title={selectedTier === undefined ? 'Chọn mốc giá để xuất toàn bộ BOM' : undefined}
             onClick={() => void exportAll()}
           >
@@ -282,7 +283,7 @@ export function AdminBomBranch() {
           <Button
             variant="default"
             size="sm"
-            disabled={!inspectionDateReady}
+            disabled={!inspectionDateReady || isBomBusy}
             onClick={() => setIsBatchImportOpen(true)}
             className="h-8 px-2.5 text-xs flex items-center gap-1.5 bg-slate-900 text-white hover:bg-slate-800"
           >
@@ -306,14 +307,15 @@ export function AdminBomBranch() {
 
       {/* Main DataGrid */}
       <div className="flex-1 min-h-0 flex flex-col">
-        {inspectionDateReady && <StateBoundary
+        {inspectionDateReady && !(tiersError && !report) && <StateBoundary
           isLoading={isLoading}
           isFetching={isFetching}
           isPreviousData={isPreviousReport}
           hasExistingData={Boolean(report)}
+          recoverableNoticePlacement={mrxShared ? 'bottom' : 'top'}
           error={error}
           onRetry={() => void loadData()}
-          isEmpty={!isLoading && !error && dishes.length === 0 && !searchQuery.trim() && statusFilter === 'ALL'}
+          isEmpty={!isPreviousReport && !isLoading && !error && dishes.length === 0 && !searchQuery.trim() && statusFilter === 'ALL'}
           emptyScenario="true-empty"
           emptyTitle="Không tìm thấy món ăn"
           emptyDescription="Không có món phù hợp bộ lọc."

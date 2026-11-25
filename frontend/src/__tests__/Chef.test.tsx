@@ -26,6 +26,12 @@ function renderChef(initialEntry = '/chef?view=plans') {
   );
 }
 
+async function cookingOutput(name: string) {
+  const trigger = screen.getByRole('button', { name: 'Tải / In' });
+  if (trigger.getAttribute('aria-expanded') !== 'true') await userEvent.click(trigger);
+  return screen.getByRole('button', { name });
+}
+
 describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
   beforeEach(() => {
     vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({
@@ -178,10 +184,9 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(within(ingredient).queryByRole('button', { name: /Sao chép/ })).not.toBeInTheDocument();
     expect(cells[4]).toHaveTextContent(/^0,0004$/);
 
-    const header = screen.getByRole('banner');
-    expect(within(header).getByRole('button', { name: 'In phiếu nấu' })).toBeEnabled();
-    expect(within(header).getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
-    expect(within(header).getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeEnabled();
+    expect(await cookingOutput('In phiếu nấu theo ca')).toBeEnabled();
+    expect(await cookingOutput('Tải CSV cả lô')).toBeEnabled();
+    expect(await cookingOutput('Xuất phiếu nấu Excel')).toBeEnabled();
 
     // Forbidden fields & mutations MUST NOT exist
     expect(screen.queryByText(/Đơn giá/i)).not.toBeInTheDocument();
@@ -195,10 +200,10 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
 
     // An authenticated export failure must remain on the cooking sheet, not open an unauthenticated fallback.
     vi.spyOn(mrxApi, 'downloadKitchenCookingBlob').mockRejectedValueOnce(new Error('Tải file thất bại (HTTP 403)'));
-    await userEvent.click(screen.getByRole('button', { name: 'Tải CSV cả lô' }));
+    await userEvent.click(await cookingOutput('Tải CSV cả lô'));
     expect(await screen.findByRole('alert')).toHaveTextContent('Tải file thất bại (HTTP 403)');
     expect(openSpy).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
+    expect(await cookingOutput('Tải CSV cả lô')).toBeEnabled();
 
     const catalog = await mrxApi.getBatchPage();
     vi.mocked(mrxApi.getBatchPage).mockResolvedValue({ ...catalog, totalCount: 2, items: [
@@ -208,7 +213,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     const download = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json({
       success: false, message: 'Lô của KH2 thiếu dữ liệu phiếu nấu.',
     }, { status: 409 }));
-    await userEvent.click(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' }));
+    await userEvent.click(await cookingOutput('Xuất phiếu nấu Excel'));
     const dialog = screen.getByRole('dialog', { name: 'Xuất phiếu nấu Excel' });
     expect(await within(dialog).findByRole('checkbox', { name: /lô đang xem/ })).toBeChecked();
     await userEvent.click(within(dialog).getByRole('checkbox', { name: /Khách thứ hai/ }));
@@ -225,7 +230,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: /^Đóng$/ }));
 
     const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
-    const printBtn = screen.getByRole('button', { name: 'In phiếu nấu' });
+    const printBtn = await cookingOutput('In phiếu nấu theo ca');
     await userEvent.click(printBtn);
     expect(printSpy).toHaveBeenCalled();
   });
@@ -319,24 +324,32 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(screen.queryByRole('region', { name: 'Món Cơm sườn nướng · Chay' })).not.toBeInTheDocument();
     expect(screen.getByText('120 suất')).toBeInTheDocument();
     const download = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('', { status: 403 }));
-    await userEvent.click(screen.getByRole('button', { name: 'Tải CSV cả lô' }));
+    await userEvent.click(await cookingOutput('Tải CSV cả lô'));
     expect(download).toHaveBeenCalledWith('/api/reconciliation/batches/batch-1/kitchen-cooking/csv', expect.anything());
+    await userEvent.clear(find);
+    await userEvent.type(find, 'Không có món khớp');
+    expect(screen.getByRole('heading', { name: 'Không có món khớp tìm kiếm' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Xóa tìm trong phiếu nấu' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Dòng nguyên liệu đang xem:')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Xóa tìm kiếm' }));
+    expect(find).toHaveFocus();
     expect(screen.getAllByRole('region', { name: /Món Cơm sườn nướng/ })).toHaveLength(2);
     expect(screen.getByRole('combobox', { name: 'Lọc theo ca nấu' })).toHaveValue('MORNING');
     expect(vi.mocked(apiTransport.apiClient).mock.calls.filter(([path]) => path.endsWith('/kitchen-cooking'))).toHaveLength(reads);
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Lọc theo ca nấu' }), 'AFTERNOON');
     expect(screen.getByRole('heading', { name: 'Không có món cho ca đã chọn' })).toBeVisible();
+    expect(screen.queryByText('Chọn món hoặc điều chỉnh bộ lọc để xem định mức nguyên liệu.')).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /Món Cơm sườn nướng/ })).not.toBeInTheDocument();
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
+    expect(await cookingOutput('Tải CSV cả lô')).toBeEnabled();
+    expect(await cookingOutput('Xuất phiếu nấu Excel')).toBeEnabled();
+    expect(await cookingOutput('In phiếu nấu theo ca')).toBeDisabled();
+    await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', { name: 'Xem tất cả ca' }));
     expect(screen.getByRole('combobox', { name: 'Lọc theo ca nấu' })).toHaveValue('ALL');
     expect(screen.getAllByRole('region', { name: /Món Cơm sườn nướng/ })).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeEnabled();
+    expect(await cookingOutput('In phiếu nấu theo ca')).toBeEnabled();
   });
 
   it.each([
@@ -409,9 +422,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(await screen.findByText('Chưa đủ dữ liệu phiếu nấu')).toBeVisible();
     expect(screen.queryByText(/được tạo từ phiên bản trước/)).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' })).toHaveValue('batch-incomplete');
-    expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tải / In' })).toBeDisabled();
     expect(screen.getByRole('searchbox', { name: 'Tìm món, nguyên liệu trong phiếu nấu' })).toBeDisabled();
     expect(screen.queryByRole('region', { name: /Món/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Về Bàn điều hành' }));
@@ -438,29 +449,25 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     renderChef('/chef?view=mrx-cooking&batchId=batch-target');
     expect(screen.queryByText('Món lô cũ')).not.toBeInTheDocument();
     expect(screen.queryByText('Gạo lô cũ')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tải / In' })).toBeDisabled();
     await act(async () => { resolveCooking({ ...foreign, batchId: 'batch-target', sourceVersion: 3,
       rows: [{ ...foreign.rows[0], dishCode: 'MON-B', dishName: 'Món lô đang chọn', ingredientName: 'Gạo lô đang chọn' }] }); });
     expect(await screen.findByText('Món lô đang chọn')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeEnabled();
+    expect(await cookingOutput('In phiếu nấu theo ca')).toBeEnabled();
     expect(screen.queryByText('Món lô cũ')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Tải CSV cả lô' }));
+    await userEvent.click(await cookingOutput('Tải CSV cả lô'));
     expect(download).toHaveBeenCalledWith('batch-target', 'csv');
     expect(await screen.findByRole('alert')).toHaveTextContent('Không có quyền tải phiếu.');
 
     let resolveNext!: (value: MrxKitchenCooking) => void;
     vi.mocked(mrxApi.getKitchenCooking).mockReturnValueOnce(new Promise(resolve => { resolveNext = resolve; }));
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' }), 'batch-foreign');
-    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tải / In' })).toBeDisabled();
     await act(async () => { resolveNext(foreign); });
     expect(await screen.findByText('Món lô cũ')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Xuất phiếu nấu Excel' })).toBeEnabled();
+    expect(await cookingOutput('In phiếu nấu theo ca')).toBeEnabled();
+    expect(await cookingOutput('Tải CSV cả lô')).toBeEnabled();
+    expect(await cookingOutput('Xuất phiếu nấu Excel')).toBeEnabled();
   });
 
   it('keeps cooking URL scope through navigation and catalogue paging beyond the first fifty batches', async () => {
@@ -503,9 +510,9 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     await screen.findByText('Phiên bản: v1');
     await userEvent.selectOptions(select, 'batch-older');
     await waitFor(() => expect(reads).toContain('/api/reconciliation/batches/batch-older/kitchen-cooking'));
-    expect(screen.queryByText('Phiên bản: v1')).not.toBeInTheDocument();
-    expect(screen.getByText('Đang tải phạm vi mới')).toHaveClass('sr-only');
-    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
+    expect(screen.getByText('Phiên bản: v1')).toBeVisible();
+    expect(screen.getByText(/Đang tải lô mới/)).toHaveClass('sr-only');
+    expect(screen.getByRole('button', { name: 'Tải / In' })).toBeDisabled();
     await act(async () => resolveOlder(Response.json({ success: true, data: { batchId: 'batch-older', sourceVersion: 2, rows: [] } })));
     expect(await screen.findByText('Phiên bản: v2')).toBeInTheDocument();
     expect(select).toHaveValue('batch-older');

@@ -21,18 +21,9 @@ import { MrxBatchHeaderBranch } from './branches/MrxBatchHeaderBranch';
 import { workspaceSessionStore } from '../../store/workspaceSessionStore';
 import { useMrxBatchWorkspace } from './hooks/useMrxBatchWorkspace';
 import { useOptionalDirtyNavigation } from '../../components/workbench/dirty-navigation-context';
-import { getMrxShiftLabel, MRX_STATUS_LABELS } from '../../constants/mrxConstants';
+import { getMrxShiftLabel } from '../../constants/mrxConstants';
 import { bomApi } from '../../api/bomApi';
 import { useWorkbenchQuery } from '../../hooks/useWorkbenchQuery';
-
-const STATUS_LABELS: Record<string, string> = {
-  ...MRX_STATUS_LABELS,
-  DRAFT: 'Đang chuẩn bị',
-  READY: 'Đã đóng băng',
-  TRANSFERRED: 'Đã chuyển Kho',
-  IN_PROGRESS: 'Đang xuất ca',
-  COMPLETED: 'Hoàn tất',
-};
 
 export function MrxBatchWorkbench() {
   const navigate = useNavigate();
@@ -235,7 +226,6 @@ export function MrxBatchWorkbench() {
         }}
         batch={batch}
         source={source}
-        statusLabels={STATUS_LABELS}
         isSubmitting={busy || Boolean(reviewRequest)}
         isRefreshing={isRefreshing}
         onRefresh={() => {
@@ -352,20 +342,6 @@ export function MrxBatchWorkbench() {
       />
       </>}
 
-      {changeMessage && !reviewRequest && (
-        <InlineBanner
-          variant="success"
-          title={changeMessage}
-          children={!canOpenWarehouse && batch?.status === 'TRANSFERRED' ? 'Đã bàn giao · Chờ Kho xuất nguyên liệu.' : undefined}
-          actionLabel={canOpenWarehouse && batch && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS') ? 'Mở trạm Kho xuất ngày' : undefined}
-          onAction={canOpenWarehouse && batch && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS')
-            ? () => navigate(`/warehouse?view=mrx-daily&batchId=${batch.batchId}&date=${weekStartDate}`)
-            : undefined}
-          onClose={() => setChangeMessage('')}
-          className="shrink-0 rounded-none border-x-0 py-1.5"
-        />
-      )}
-
       {batch && !changeMessage && !canOpenWarehouse && !reviewRequest && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS') && (
         <InlineBanner variant="info" title={batch.status === 'TRANSFERRED' ? 'Đã bàn giao · Chờ Kho xuất nguyên liệu.' : 'Kho đang xử lý xuất nguyên liệu cho lô.'} />
       )}
@@ -412,8 +388,6 @@ export function MrxBatchWorkbench() {
           isEmpty={stateProps.isEmpty || Boolean(batch && !source)}
           emptyTitle={batch && !source ? 'Không có nguồn thực đơn để hiển thị' : stateProps.emptyTitle}
           emptyDescription={batch && !source ? 'Lô đối soát vẫn được giữ nguyên. Chỉ có thể tra cứu dữ liệu đã đóng băng; không thể dựng lại nguồn từ BOM hiện tại.' : stateProps.emptyDescription}
-          actionLabel={batch && !source ? 'Món & BOM đã đóng băng' : undefined}
-          onAction={batch && !source ? () => setIsDishesModalOpen(true) : undefined}
         >
           {source && (sourceEdit.editScope ? (
             isSourceReviewOpen ? (
@@ -529,6 +503,20 @@ export function MrxBatchWorkbench() {
           ))}
         </StateBoundary>}
       </WorkspaceFrame.Body>
+
+      {changeMessage && !reviewRequest && (
+        <InlineBanner
+          variant="success"
+          title={changeMessage}
+          children={!canOpenWarehouse && batch?.status === 'TRANSFERRED' ? 'Đã bàn giao · Chờ Kho xuất nguyên liệu.' : undefined}
+          actionLabel={canOpenWarehouse && batch && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS') ? 'Mở trạm Kho xuất ngày' : undefined}
+          onAction={canOpenWarehouse && batch && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS')
+            ? () => navigate(`/warehouse?view=mrx-daily&batchId=${batch.batchId}&date=${weekStartDate}`)
+            : undefined}
+          onClose={() => setChangeMessage('')}
+          className="shrink-0 rounded-none border-x-0 py-1.5"
+        />
+      )}
 
       {canOpenImport && (isImportModalOpen || isNewImport) && <WeeklyMenuImportModal
         isOpen

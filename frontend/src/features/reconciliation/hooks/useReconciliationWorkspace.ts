@@ -482,7 +482,7 @@ export function useReconciliationWorkspace(auditSubTab: 'warehouse' | 'source' =
     return () => { ignore = true; };
   }, [batchId, serviceDate, setServiceDate, activeReportTab, needsLinkedMetadata, lineRefreshRevision]);
 
-  const canComplete = !catalogLoading && !catalogError && !isFetching && !isPreviousData && data?.status === 'IN_PROGRESS' && data.weeklyStatus === 'WEEK_COMPLETE';
+  const canComplete = !catalogLoading && !catalogError && !error && !isLoading && !isFetching && !isPreviousData && data?.batchId === batchId && data.status === 'IN_PROGRESS' && data.canComplete === true;
 
   const handleComplete = async () => {
     if (!data || !canComplete) return;

@@ -11,6 +11,7 @@ interface ReconciliationCompletionModalProps {
   customerCode: string;
   weekStartDate?: string;
   isSubmitting: boolean;
+  isChecking?: boolean;
   onConfirm: () => Promise<void>;
   statusLabels: Record<string, string>;
   error?: Error | null;
@@ -25,6 +26,7 @@ export function ReconciliationCompletionModal({
   customerCode,
   weekStartDate,
   isSubmitting,
+  isChecking = false,
   onConfirm,
   statusLabels,
   error,
@@ -32,8 +34,8 @@ export function ReconciliationCompletionModal({
   onViewNeedsReview,
 }: ReconciliationCompletionModalProps) {
   const week = data?.weekStartDate || weekStartDate;
-  const isBlocked = (needsReviewCount != null && needsReviewCount > 0);
-  const canConfirm = Boolean(data && data.status === 'IN_PROGRESS' && data.weeklyStatus === 'WEEK_COMPLETE' && !isBlocked);
+  const isBlocked = data?.canComplete !== true && (needsReviewCount != null && needsReviewCount > 0);
+  const canConfirm = !isChecking && data?.status === 'IN_PROGRESS' && data.canComplete === true;
   const weeklyStatusLabel = data?.weeklyStatus ? statusLabels[data.weeklyStatus] ?? 'Trạng thái chưa nhận diện' : 'Chưa xác định';
 
   return (
@@ -78,7 +80,7 @@ export function ReconciliationCompletionModal({
           <div>Khách hàng: <strong>{data?.customerName || customerCode}</strong></div>
           <div>Trạng thái tuần: <strong>{weeklyStatusLabel}</strong></div>
         </div>
-        {!canConfirm && !isBlocked && <InlineBanner variant="warning">Chưa đủ điều kiện chốt tuần. Đóng hộp thoại và kiểm tra tiến độ xuất kho của lô.</InlineBanner>}
+        {!canConfirm && !isBlocked && <InlineBanner variant="warning">{isChecking ? 'Đang xác minh điều kiện chốt lô.' : data?.completionBlocker ?? 'Chưa đủ điều kiện chốt tuần. Đóng hộp thoại và kiểm tra tiến độ xuất kho của lô.'}</InlineBanner>}
       </div>
     </Modal>
   );

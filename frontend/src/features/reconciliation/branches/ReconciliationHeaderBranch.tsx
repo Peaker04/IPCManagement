@@ -31,7 +31,6 @@ export interface ReconciliationHeaderBranchProps {
   onRefresh: () => void | Promise<void>;
   canComplete: boolean;
   onOpenComplete: () => void;
-  needsReviewCount: number;
   catalogLoading?: boolean;
   completedFilters?: ReactNode;
 }
@@ -57,7 +56,6 @@ export function ReconciliationHeaderBranch({
   onRefresh,
   canComplete,
   onOpenComplete,
-  needsReviewCount,
   catalogLoading,
   completedFilters,
 }: ReconciliationHeaderBranchProps) {
@@ -130,7 +128,7 @@ export function ReconciliationHeaderBranch({
                   size="default"
                   className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap"
                 >
-                  {statusLabels[batchStatus] || batchStatus}
+                  {batchStatus === 'COMPLETED' ? 'Đã chốt sổ · Chỉ xem' : statusLabels[batchStatus] || batchStatus}
                 </Badge>
               ) : null}
             </WorkspaceHeader.BadgeSlot>
@@ -138,7 +136,6 @@ export function ReconciliationHeaderBranch({
         )
       }
       actions={
-        activeReportTab !== 'lines' ? (
           <WorkspaceHeader.Actions>
             <Button
               variant="outline"
@@ -154,24 +151,7 @@ export function ReconciliationHeaderBranch({
               />
               <span>Làm mới</span>
             </Button>
-          </WorkspaceHeader.Actions>
-        ) : (
-          <WorkspaceHeader.Actions>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="h-9 text-sm font-medium flex items-center gap-1.5"
-            >
-              <RefreshCw
-                size={14}
-                className={clsx('transition-transform', isRefreshing && 'animate-spin')}
-                aria-hidden="true"
-              />
-              <span>Làm mới</span>
-            </Button>
-            {canComplete ? (
+            {activeReportTab === 'lines' && canComplete && (
               <ActionGuard
                 capabilityId="RECON.BATCH.COMPLETE"
                 roles={['ADMIN', 'MANAGER', 'Quản lý']}
@@ -189,13 +169,8 @@ export function ReconciliationHeaderBranch({
                   Chốt đối soát tuần
                 </Button>
               </ActionGuard>
-            ) : batchStatus === 'IN_PROGRESS' && needsReviewCount > 0 ? (
-              <span className="text-xs text-slate-500 font-medium">
-                {`Còn ${needsReviewCount} dòng chênh lệch cần xử lý`}
-              </span>
-            ) : null}
+            )}
           </WorkspaceHeader.Actions>
-        )
       }
     />
   );

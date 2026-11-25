@@ -5,6 +5,7 @@ export interface RouteLeafDef {
   id: string;
   to: string;
   label: string;
+  groupLabel?: string;
   surfaceId: string;
   capabilityIds: string[];
   allowedRoles?: string[];
@@ -77,10 +78,10 @@ export const CANONICAL_ROUTES: RouteDef[] = [
     modes: ['MATERIAL_RECONCILIATION'],
     leaves: [
       { id: 'reconciliation.lines', to: '/reconciliation', label: 'Rà soát dòng ngày', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ', 'RECON.LINE.DISPOSE'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
-      { id: 'reconciliation.variances', to: '/reconciliation?view=variances', label: 'Sổ theo dõi chênh lệch', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
-      { id: 'reconciliation.transactions', to: '/reconciliation?view=transactions', label: 'Lịch sử giao dịch kho', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
-      { id: 'reconciliation.audit', to: '/reconciliation?view=audit', label: 'Nhật ký kiểm toán', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
-      { id: 'reconciliation.completed', to: '/reconciliation?view=completed', label: 'Danh bạ hồ sơ hoàn tất', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
+      { id: 'reconciliation.variances', to: '/reconciliation?view=variances', label: 'Sổ theo dõi chênh lệch', groupLabel: 'Tra cứu', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
+      { id: 'reconciliation.transactions', to: '/reconciliation?view=transactions', label: 'Lịch sử giao dịch kho', groupLabel: 'Tra cứu', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
+      { id: 'reconciliation.audit', to: '/reconciliation?view=audit', label: 'Nhật ký kiểm toán', groupLabel: 'Tra cứu', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
+      { id: 'reconciliation.completed', to: '/reconciliation?view=completed', label: 'Hồ sơ đã chốt', groupLabel: 'Tra cứu', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
     ],
   },
   {

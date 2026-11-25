@@ -21,6 +21,7 @@ import { workspaceSessionStore } from '../store/workspaceSessionStore';
 const defaultSummary = { ...MOCK_RECONCILIATION, weekStartDate: '2026-10-19', weekEndDate: '2026-10-24' };
 const completionReadySummary = {
   ...defaultSummary,
+  canComplete: true,
   lines: MOCK_RECONCILIATION.lines.map((line) => ({ ...line, issuedQuantity: 72, issuedRequiredDifference: 0, status: 'MATCHED', triggers: [] })),
 };
 
@@ -101,6 +102,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
   });
 
   it('renders Zone 1 WorkspaceHeader (56px) with customer select, date, and single primary button (Rule D7)', async () => {
+    vi.mocked(mrxApi.getBatchSummary).mockResolvedValue(completionReadySummary);
     renderReconciliation();
 
     expect(await screen.findByRole('heading', { name: 'Đối soát nguyên liệu' })).toBeInTheDocument();
@@ -158,6 +160,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
   it('blocks completion outside MATERIAL_RECONCILIATION without issuing a mutation', async () => {
     localStorage.setItem('ipc_v3_mode', 'DEFAULT');
+    vi.mocked(mrxApi.getBatchSummary).mockResolvedValue(completionReadySummary);
     vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 1, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     renderReconciliation();
 
@@ -168,13 +171,15 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(screen.getByRole('group', { name: 'Chỉ khả dụng trong chế độ đối soát nguyên liệu.' })).toBeInTheDocument();
   });
 
-  it('never invents completion readiness when weekly status is absent and blocks unresolved rows', () => {
+  it('uses server readiness for both daily and legacy completion', () => {
     const props = { isOpen: true, onClose: vi.fn(), customerCode: 'DAV', isSubmitting: false, onConfirm: vi.fn(), statusLabels: { WEEK_COMPLETE: 'Đã xuất đủ' } };
     const { rerender } = render(<ReconciliationCompletionModal {...props} data={{ ...MOCK_RECONCILIATION, weeklyStatus: undefined }} />);
     expect(screen.getByText('Chưa xác định')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Xác nhận khóa chốt tuần' })).toBeDisabled();
     rerender(<ReconciliationCompletionModal {...props} data={{ ...MOCK_RECONCILIATION, status: 'IN_PROGRESS', weeklyStatus: 'WEEK_COMPLETE' }} needsReviewCount={2} />);
     expect(screen.getByRole('button', { name: 'Xác nhận khóa chốt tuần' })).toBeDisabled();
+    rerender(<ReconciliationCompletionModal {...props} data={{ ...completionReadySummary, weeklyStatus: undefined }} />);
+    expect(screen.getByRole('button', { name: 'Xác nhận khóa chốt tuần' })).toBeEnabled();
   });
 
   it('opens complete modal and submits reconciliation lock', async () => {
@@ -265,6 +270,28 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     );
   });
 
+  it('asks before discarding an edited disposition via Escape or Quay lại', async () => {
+    vi.spyOn(mrxApi, 'getDispositionCategories').mockResolvedValue([{ value: 'ACCEPTED_VARIANCE', label: 'Chấp nhận sai lệch' }]);
+    const save = vi.spyOn(mrxApi, 'setDailyDisposition').mockResolvedValue();
+    renderReconciliation();
+    const opener = await screen.findByRole('button', { name: 'Xử lý chênh lệch Thịt đùi heo tươi' });
+    await userEvent.click(opener);
+    const dialog = await screen.findByRole('dialog', { name: 'Xử lý chênh lệch theo ngày' });
+    const input = within(dialog).getByRole('textbox', { name: 'Lý do xử lý chênh lệch' });
+    await userEvent.type(input, 'Kiểm lại số lượng theo ca');
+    await userEvent.keyboard('{Escape}');
+    const firstConfirmation = await screen.findByRole('alertdialog', { name: 'Hủy thay đổi chưa lưu?' });
+    await userEvent.click(within(firstConfirmation).getByRole('button', { name: 'Tiếp tục chỉnh sửa' }));
+    expect(input).toHaveValue('Kiểm lại số lượng theo ca');
+    expect(input).toHaveFocus();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Quay lại' }));
+    const confirmation = await screen.findByRole('alertdialog', { name: 'Hủy thay đổi chưa lưu?' });
+    await userEvent.click(within(confirmation).getByRole('button', { name: 'Hủy thay đổi' }));
+    expect(dialog).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it('retains committed bulk decisions and retries only the remaining line', async () => {
     vi.mocked(mrxApi.getBatchSummary).mockResolvedValue({ ...MOCK_RECONCILIATION, lines: [
       MOCK_RECONCILIATION.lines[0],
@@ -280,6 +307,15 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(screen.getByText('Đã lưu 1/2 dòng · Còn 1 dòng.')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Xác nhận 2 dòng' }));
     expect(save.mock.calls.map(([id]) => id)).toEqual(['daily-1', 'daily-2', 'daily-2']);
+  });
+
+  it('shows the server completion blocker when warehouse quantities are already complete', async () => {
+    const blocked = { ...completionReadySummary, weeklyStatus: 'WEEK_COMPLETE', canComplete: false,
+      completionBlocker: 'Còn nhu cầu suất phát sinh đang chờ duyệt.' };
+    vi.mocked(mrxApi.getBatchSummary).mockResolvedValue(blocked);
+    renderReconciliation();
+    expect(await screen.findByText('Còn nhu cầu suất phát sinh đang chờ duyệt.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Chốt đối soát/ })).not.toBeInTheDocument();
   });
 
   it('shows read-only disposition details without mutation controls when batch is COMPLETED', async () => {
@@ -299,7 +335,9 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     renderReconciliation();
 
-    expect(await screen.findByText('Hoàn tất')).toBeInTheDocument();
+    expect(await screen.findByText('Đã chốt sổ · Chỉ xem')).toBeInTheDocument();
+    expect(screen.queryByText('Lô đối soát tuần đã hoàn tất và đóng băng số liệu.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Tiến trình vòng đời lô đối soát' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Chốt đối soát ca' })).not.toBeInTheDocument();
 
     const viewBtn = await screen.findByRole('button', { name: 'Xem hướng xử lý Thịt đùi heo tươi' });
@@ -382,6 +420,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     expect(await screen.findByText(/Chưa thể chốt đối soát:/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Lọc dòng cần xử lý/i })).toBeInTheDocument();
+    expect(screen.queryByText('Còn 1 dòng chênh lệch cần xử lý', { exact: true })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Chốt đối soát tuần' })).not.toBeInTheDocument();
   });
 
@@ -511,7 +550,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     renderReconciliation('/reconciliation?view=completed');
     expect(await screen.findByRole('button', { name: 'Đối chiếu lô tuần 21/09/2026 · Draxlmaier' })).toBeVisible();
     expect(screen.queryByRole('columnheader', { name: 'Mã lô' })).not.toBeInTheDocument();
-    expect(screen.getByText('51 lô')).toBeVisible();
+    expect(screen.getByRole('navigation', { name: 'Phân trang hồ sơ hoàn tất' })).toHaveTextContent('51 kết quả');
     await userEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Đối chiếu lô tuần 14/09/2026 · Draxlmaier' }));
     expect(screen.queryByText('Thịt đùi heo tươi')).not.toBeInTheDocument();
@@ -574,6 +613,8 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     await waitFor(() => expect(getCompleted).toHaveBeenCalledWith(1, 50, scope ?? {}, expect.any(AbortSignal)));
     expect(await screen.findByText(/Danh bạ lô đối soát đã hoàn tất/i)).toBeInTheDocument();
+    expect(screen.queryByText('Tổng hồ sơ:')).not.toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Phân trang hồ sơ hoàn tất' })).toHaveTextContent('1 kết quả');
     expect(screen.queryByText('b2d7e7be-6be0-40bd-8409-d4cc1bd5471d')).not.toBeInTheDocument();
     expect(screen.queryByText('4c90da94-81eb-4cbc-8121-f5d573c4c1b8')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Đối chiếu lô tuần 21/09/2026 · Draxlmaier' })).toBeVisible();
@@ -898,7 +939,9 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     });
     renderReconciliation('/reconciliation?view=audit&batchId=audit-batch-a&date=2026-10-19');
     expect(await screen.findByText('Ghi nhận trang đầu')).toBeVisible();
-    expect(screen.getByText('Sự kiện kiểm toán:')).toHaveTextContent(/Sự kiện kiểm toán:\s*51/);
+    expect(screen.getByRole('button', { name: 'Kho' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Nguồn & BOM' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByText('Sự kiện kiểm toán:')).not.toBeInTheDocument();
     const pager = screen.getByRole('navigation', { name: 'Phân trang nhật ký kiểm toán' });
     expect(pager).toHaveTextContent('51 kết quả');
     await userEvent.click(within(pager).getByRole('button', { name: 'Trang sau' }));
@@ -942,9 +985,10 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
       return Response.json({ success: true, data });
     });
 
-    renderReconciliation('/reconciliation?view=transactions&date=2026-09-21');
+    renderReconciliation(`/reconciliation?view=transactions&batchId=${MOCK_RECONCILIATION.batchId}&date=2026-09-21`);
 
     expect(await screen.findByText('PX-PAGE-1')).toBeInTheDocument();
+    expect(screen.queryByText('Dòng giao dịch:')).not.toBeInTheDocument();
     expect(within(screen.getByRole('table')).getByText('Gạo')).toBeVisible();
     expect(within(screen.getByRole('table')).getByText(/1 kg/)).toBeVisible();
     expect(screen.getByRole('navigation', { name: 'Phân trang giao dịch kho' })).toHaveTextContent('Phân trang giao dịch kho');

@@ -92,6 +92,8 @@ export interface ReconciliationBatchSummary {
   status: string;
   version: number;
   weeklyStatus?: string;
+  canComplete?: boolean;
+  completionBlocker?: string;
   lines: ReconciliationLineItem[];
 }
 
@@ -117,6 +119,8 @@ export function mapBatchDtoToSummary(batch: MrxBatch, serviceDate?: string): Rec
     status: batch.status,
     version: batch.version,
     weeklyStatus: batch.dailyReview?.weeklyStatus,
+    canComplete: batch.canComplete ?? undefined,
+    completionBlocker: batch.completionBlocker ?? undefined,
     lines: lines.map((line) => ({
       id: line.batchLineId,
       dailyLineId: line.dailyLineId || undefined,
@@ -397,8 +401,8 @@ export const mrxApi = {
     if (filters.serviceDate) query.set('ServiceDate', filters.serviceDate);
     return apiClient<MrxSourceHistoryPage>(`/reconciliation/source-history?${query}`, { signal });
   },
-  getSourceHistoryDetail: (eventId: string, pageNumber = 1, pageSize = 25) =>
-    apiClient<MrxSourceHistoryDetail>(`/reconciliation/source-history/${encodeURIComponent(eventId)}?PageNumber=${pageNumber}&PageSize=${pageSize}`),
+  getSourceHistoryDetail: (eventId: string, pageNumber = 1, pageSize = 25, signal?: AbortSignal) =>
+    apiClient<MrxSourceHistoryDetail>(`/reconciliation/source-history/${encodeURIComponent(eventId)}?PageNumber=${pageNumber}&PageSize=${pageSize}`, { signal }),
 
   createReturn: (request: CreateMrxReturnRequest) =>
     withMrxInvalidation(apiClient<MrxReturnCreated>('/inventory-returns', { method: 'POST', body: JSON.stringify(request) })),
