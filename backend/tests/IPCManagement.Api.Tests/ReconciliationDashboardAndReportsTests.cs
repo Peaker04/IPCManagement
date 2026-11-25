@@ -42,11 +42,11 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
 
     private sealed class SelectCounter : DbCommandInterceptor
     {
-        public int Count { get; set; }
+        public List<string> Statements { get; } = [];
         public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command, CommandEventData eventData,
             InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
         {
-            if (command.CommandText.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)) Count++;
+            if (command.CommandText.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)) Statements.Add(command.CommandText);
             return ValueTask.FromResult(result);
         }
     }
@@ -92,18 +92,23 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
         context.ChangeTracker.Clear();
         var request = new SystemOperationRequestContext { Mode = SystemOperationEligibility.MaterialReconciliation };
         var service = new ReconciliationReportsService(context, new ReconciliationBatchService(context, new ImmediateTransactionRunner(), request), request);
-        counter.Count = 0;
+        counter.Statements.Clear();
         var one = await service.GetOperationalSummaryAsync(new(), ["Admin"]);
         Assert.Equal(0, one.UnresolvedVariancesCount);
         Assert.Equal(1, one.CompletionReadyBatchesCount);
-        var singleQueries = counter.Count;
+        var singleQueries = counter.Statements.Count;
         AddBatch(0);
         for (var index = 2; index < 100; index++) AddBatch(index);
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
-        counter.Count = 0;
+        counter.Statements.Clear();
         var many = await service.GetOperationalSummaryAsync(new(), ["Admin"]);
-        var manyQueries = counter.Count;
+        var manyQueries = counter.Statements.Count;
+        var repeatReads = counter.Statements.Where(sql => !sql.Contains("JOIN", StringComparison.OrdinalIgnoreCase)
+            && !sql.Contains("EXISTS", StringComparison.OrdinalIgnoreCase)
+            && (sql.Contains("FROM \"reconciliationbatches\" AS", StringComparison.OrdinalIgnoreCase)
+                || sql.Contains("FROM \"menuversions\" AS", StringComparison.OrdinalIgnoreCase)));
+        Assert.Empty(repeatReads);
         Assert.Equal(50, many.UnresolvedVariancesCount);
         Assert.Equal(50, many.CompletionReadyBatchesCount);
         Assert.Equal(10, many.Items.Count(item => item.QueueType == "UNRESOLVED_VARIANCE"));
@@ -136,7 +141,10 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
                 ToleranceSourceKind = "SYSTEM_DEFAULT", ToleranceSourceVersion = "1", Version = 1,
                 DailyLines = [new ReconciliationBatchDailyLine { DailyLineId = GuidHelper.NewId(), BatchId = batchId,
                     IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId,
-                    ServiceDate = new DateOnly(2026, 6, 15), RequiredQuantity = 1m, Version = 1 }] }]
+                    ServiceDate = new DateOnly(2026, 6, 15), RequiredQuantity = 1m, Version = 1 },
+                    new ReconciliationBatchDailyLine { DailyLineId = GuidHelper.NewId(), BatchId = batchId,
+                        IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId,
+                        ServiceDate = new DateOnly(2026, 6, 17), RequiredQuantity = 1m, Version = 1 }] }]
         });
         context.Reconciliationbatches.Add(new ReconciliationBatch
         {
@@ -180,6 +188,7 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
         var batches = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), requestContext);
         var service = new ReconciliationReportsService(context, batches, requestContext);
 
+        var customerCode = await context.Customers.Where(x => x.CustomerId == fixture.CustomerId).Select(x => x.CustomerCode).SingleAsync();
         var summary = await service.GetOperationalSummaryAsync(new(), ["Admin"]);
 
         summary.PendingSourceChangesCount.Should().Be(1);
@@ -187,7 +196,10 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
         summary.PendingDeltasCount.Should().Be(1);
 
         summary.Items.Should().Contain(i => i.QueueType == "PENDING_SOURCE_CHANGE" && i.TargetUrl != null && i.TargetUrl == $"/approvals?targetType=mrx-source-change&targetId={GuidHelper.ToGuidString(amendmentId)}");
-        summary.Items.Should().Contain(i => i.QueueType == "AWAITING_WAREHOUSE" && i.TargetUrl == $"/warehouse?view=mrx-daily&batchId={GuidHelper.ToGuidString(batchId)}&date=2026-06-15");
+        var batchIdentifier = GuidHelper.ToGuidString(batchId);
+        var warehouseWork = summary.Items.Should().ContainSingle(i => i.QueueType == "AWAITING_WAREHOUSE").Which;
+        warehouseWork.Subtitle.Should().Be($"{customerCode} · Lô {batchIdentifier[..8]} · 2 ngày chưa có phiếu · Sớm nhất 15/06/2026");
+        warehouseWork.TargetUrl.Should().Be($"/warehouse?view=mrx-daily&batchId={batchIdentifier}&date=2026-06-15");
         summary.Items.Should().Contain(i => i.QueueType == "PENDING_DELTA" && i.ActionKind == "READ_ONLY");
 
         var manager = await service.GetOperationalSummaryAsync(new(), ["Quản lý"]);
@@ -224,6 +236,19 @@ public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHe
             .And.NotContain(item => boundedQueue.Items.Any(first => first.WorkObjectId == item.WorkObjectId));
         var thirdQueue = await service.GetOperationalSummaryAsync(new() { QueuePage = 3 }, ["Admin"]);
         thirdQueue.Items.Count(item => item.QueueType == "PENDING_SOURCE_CHANGE").Should().Be(2);
+
+        context.Inventoryissues.Add(new InventoryIssue
+        {
+            IssueId = GuidHelper.NewId(), IssueCode = "SUMMARY-15", IssueDate = new DateOnly(2026, 6, 15),
+            WarehouseId = fixture.WarehouseId, ReconciliationBatchId = batchId,
+            IssuedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
+        });
+        await context.SaveChangesAsync();
+        var afterIssue = await service.GetOperationalSummaryAsync(new(), ["Admin"]);
+        afterIssue.AwaitingWarehouseBatchesCount.Should().Be(1);
+        var remainingWork = afterIssue.Items.Should().ContainSingle(i => i.QueueType == "AWAITING_WAREHOUSE").Which;
+        remainingWork.Subtitle.Should().Be($"{customerCode} · Lô {batchIdentifier[..8]} · 1 ngày chưa có phiếu · Sớm nhất 17/06/2026");
+        remainingWork.TargetUrl.Should().Be($"/warehouse?view=mrx-daily&batchId={batchIdentifier}&date=2026-06-17");
     }
 
     [Fact]

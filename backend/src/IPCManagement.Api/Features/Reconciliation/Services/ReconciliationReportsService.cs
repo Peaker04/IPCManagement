@@ -46,7 +46,7 @@ public sealed class ReconciliationReportsService(
             where customerId == null || menu.CustomerId == customerId
             where request.WeekFrom == null || menu.WeekStartDate >= request.WeekFrom
             where request.WeekTo == null || menu.WeekStartDate <= request.WeekTo
-            select new { Batch = batch, menu.CustomerId, menu.WeekStartDate };
+            select new { Batch = batch, menu.WeekStartDate, menu.Customer.CustomerCode };
 
         if (canDecide)
         {
@@ -96,13 +96,19 @@ public sealed class ReconciliationReportsService(
             {
                 var activeBatches = await activeQuery.OrderBy(row => row.Batch.CreatedAt).ThenBy(row => row.Batch.BatchId)
                     .Skip(offset).Take(summaryChunkSize).ToListAsync(token);
-                var dailyByBatch = await batchService.GetWarehouseDailyManyAsync(activeBatches.Select(row => GuidHelper.ToGuidString(row.Batch.BatchId)).ToList(), token, includeMetadata: false);
+                var batches = activeBatches.Select(row => row.Batch).ToList();
+                var weekByVersionId = activeBatches
+                    .GroupBy(row => Convert.ToHexString(row.Batch.MenuVersionId), StringComparer.Ordinal)
+                    .ToDictionary(group => group.Key, group => group.First().WeekStartDate, StringComparer.Ordinal);
+                var dailyByBatch = await batchService.GetWarehouseDailyManyCoreAsync(
+                    batches.Select(batch => GuidHelper.ToGuidString(batch.BatchId)).ToList(),
+                    batches, null, weekByVersionId, null, token, includeMetadata: false);
                 var activeIds = activeBatches.Select(row => row.Batch.BatchId).ToList();
                 var issuedDates = await context.Inventoryissues.AsNoTracking()
                     .Where(issue => issue.ReconciliationBatchId != null && activeIds.Contains(issue.ReconciliationBatchId))
                     .Select(issue => new { BatchId = issue.ReconciliationBatchId!, issue.IssueDate }).Distinct().ToListAsync(token);
                 var issuedByBatch = issuedDates.ToLookup(issue => GuidHelper.ToGuidString(issue.BatchId), issue => issue.IssueDate);
-                var completionCandidates = activeBatches.Select(row => row.Batch).Where(batch => batch.Status == "IN_PROGRESS"
+                var completionCandidates = batches.Where(batch => batch.Status == "IN_PROGRESS"
                     && dailyByBatch.TryGetValue(GuidHelper.ToGuidString(batch.BatchId), out var daily)
                     && (daily.WeeklyStatus == "WEEK_COMPLETE" || daily.Compatibility.ReasonCode == "LEGACY_DAILY_LINEAGE_MISSING")).ToList();
                 var blockers = canDecide ? await ReconciliationCompletionEligibility.GetBlockersAsync(context, completionCandidates, dailyByBatch, token) : null;
@@ -110,18 +116,22 @@ public sealed class ReconciliationReportsService(
                 {
                   if (!dailyByBatch.TryGetValue(GuidHelper.ToGuidString(row.Batch.BatchId), out var daily)) continue;
                   var issued = issuedByBatch[GuidHelper.ToGuidString(row.Batch.BatchId)].ToHashSet();
-                  var nextDay = daily.Compatibility.CanIssueByDate ? daily.Dates.FirstOrDefault(day => day.IsApplicable
-                      && ServiceCalendar.IsServiceDay(day.ServiceDate) && day.Lines.Any(line => line.RequiredQuantity > 0)
-                      && !issued.Contains(day.ServiceDate)) : null;
-                  if (nextDay is not null)
+                  var pendingDates = daily.Compatibility.CanIssueByDate
+                      ? daily.Dates.Where(day => day.IsApplicable && ServiceCalendar.IsServiceDay(day.ServiceDate)
+                          && day.Lines.Any(line => line.RequiredQuantity > 0) && !issued.Contains(day.ServiceDate))
+                          .Select(day => day.ServiceDate).ToArray()
+                      : Array.Empty<DateOnly>();
+                  if (pendingDates.Length > 0)
                   {
                       awaitingWarehouse++;
                       queueCounts["AWAITING_WAREHOUSE"] += 1;
                       if (queueCounts["AWAITING_WAREHOUSE"] > queueSkip && items.Count(i => i.QueueType == "AWAITING_WAREHOUSE") < queuePage.PageSize)
                       {
                           var id = GuidHelper.ToGuidString(row.Batch.BatchId);
-                          items.Add(new("AWAITING_WAREHOUSE", id, "Chờ Kho xuất nguyên liệu", $"Ngày {nextDay.ServiceDate:dd/MM/yyyy}",
-                              canIssue ? $"/warehouse?view=mrx-daily&batchId={id}&date={nextDay.ServiceDate:yyyy-MM-dd}" : null,
+                          var nextDate = pendingDates.Min();
+                          items.Add(new("AWAITING_WAREHOUSE", id, "Chờ Kho xuất nguyên liệu",
+                              $"{row.CustomerCode} · Lô {id[..8]} · {pendingDates.Length} ngày chưa có phiếu · Sớm nhất {nextDate:dd/MM/yyyy}",
+                              canIssue ? $"/warehouse?view=mrx-daily&batchId={id}&date={nextDate:yyyy-MM-dd}" : null,
                               row.Batch.CreatedAt, "WAREHOUSE", canIssue ? "OWN_ACTION" : "WAITING"));
                       }
                   }
@@ -131,14 +141,14 @@ public sealed class ReconciliationReportsService(
                   if (overages > 0) queueCounts["UNRESOLVED_VARIANCE"] += 1;
                   if (overages > 0 && queueCounts["UNRESOLVED_VARIANCE"] > queueSkip && items.Count(i => i.QueueType == "UNRESOLVED_VARIANCE") < queuePage.PageSize)
                       items.Add(new("UNRESOLVED_VARIANCE", GuidHelper.ToGuidString(row.Batch.BatchId), $"Còn {overages} dòng xuất vượt cần xử lý",
-                          $"Tuần {row.WeekStartDate:dd/MM/yyyy}", $"/reconciliation?batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}",
+                          $"{row.CustomerCode} · Tuần {row.WeekStartDate:dd/MM/yyyy}", $"/reconciliation?batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}",
                           row.Batch.CreatedAt, "MANAGER", "OWN_ACTION"));
                   if (!blockers!.TryGetValue(GuidHelper.ToGuidString(row.Batch.BatchId), out var blocker) || blocker is not null) continue;
                   completionReady += 1;
                   queueCounts["COMPLETION_READY"] += 1;
                   if (queueCounts["COMPLETION_READY"] > queueSkip && items.Count(i => i.QueueType == "COMPLETION_READY") < queuePage.PageSize)
                       items.Add(new("COMPLETION_READY", GuidHelper.ToGuidString(row.Batch.BatchId), "Lô sẵn sàng chốt tuần",
-                          $"Tuần {row.WeekStartDate:dd/MM/yyyy}", $"/reconciliation?batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}",
+                          $"{row.CustomerCode} · Tuần {row.WeekStartDate:dd/MM/yyyy}", $"/reconciliation?batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}",
                           row.Batch.CreatedAt, "MANAGER", "OWN_ACTION"));
                 }
             }

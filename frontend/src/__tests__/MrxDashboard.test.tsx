@@ -84,12 +84,8 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     vi.spyOn(mrxApi, 'getOperationalSummary').mockImplementation(() => new Promise(resolve => { resolveSummary = resolve; }));
     await act(async () => { renderDashboard(); });
     const header = screen.getByRole('heading', { name: 'Bàn điều hành đối soát' });
-    const guide = screen.getByText('Hướng dẫn quy trình đối soát');
-    expect(guide.closest('details')).not.toHaveAttribute('open');
-    await userEvent.click(guide);
-    const flow = screen.getByRole('region', { name: 'Sơ đồ quy trình đối chiếu 4 bước' });
-    const command = within(flow).getAllByRole('button')[0];
-    command.focus();
+    const customerFilter = screen.getByRole('combobox', { name: 'Lọc theo khách hàng' });
+    customerFilter.focus();
     const loading = screen.queryByRole('status', { name: 'Đang tải chỉ số điều hành' });
     if (count) { expect(loading).toBeVisible(); expect(loading?.childElementCount).toBe(count); }
     else expect(loading).not.toBeInTheDocument();
@@ -100,10 +96,10 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
       pendingSourceChangesCount: null, awaitingWarehouseBatchesCount: count ? 4 : null,
       unresolvedVariancesCount: null, completionReadyBatchesCount: null,
     }));
-    expect(await screen.findByRole('region', { name: 'Sơ đồ quy trình đối chiếu 4 bước' })).toBeVisible();
+    expect(await screen.findByRole('region', { name: 'Danh sách lô theo bộ lọc' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Bàn điều hành đối soát' })).toBe(header);
-    expect(screen.getByRole('region', { name: 'Sơ đồ quy trình đối chiếu 4 bước' })).toBe(flow);
-    expect(command).toHaveFocus();
+    expect(screen.queryByText('Hướng dẫn quy trình đối soát')).not.toBeInTheDocument();
+    expect(customerFilter).toHaveFocus();
     expect(screen.queryByRole('status', { name: 'Đang tải chỉ số điều hành' })).not.toBeInTheDocument();
   });
 
@@ -213,7 +209,7 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     const sourceCustomers = vi.mocked(weeklyMenuApi.getCustomers).mockRejectedValue(new Error('403: Không có quyền Điều phối'));
     vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue({ ...summary, pendingSourceChangesCount: null, awaitingWarehouseBatchesCount: null, pendingDeltasCount: null, unresolvedVariancesCount: null, completionReadyBatchesCount: null });
     renderDashboard();
-    expect(await screen.findByRole('button', { name: /Phiếu nấu theo ca/ })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Danh sách lô theo bộ lọc' })).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Lập lô đối soát mới' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Kho xuất định lượng ngày/ })).not.toBeInTheDocument();
     expect(await screen.findByRole('option', { name: 'DAV · Draxlmaier' })).toBeInTheDocument();
@@ -221,7 +217,7 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     expect(sourceCustomers).not.toHaveBeenCalled();
   });
 
-  it('restores the four-step dashboard and source action with working authorized destinations', async () => {
+  it('opens source import with the authorized dashboard action', async () => {
     localStorage.setItem('ipc_v3_user', JSON.stringify({ userId: 'admin-1', username: 'admin', fullName: 'Quản trị', roleCode: 'ADMIN', roleName: 'Admin', isActive: true, isAdminFullAccess: true, permissions: [] }));
     vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue(summary);
     workspaceSessionStore.setScope({ customerId: 'customer-1', weekStartDate: '2026-10-19', batchId: 'completed-1' });
@@ -242,15 +238,6 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     ]);
     render(<AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}><RouterProvider router={router} /></AuthProvider>);
 
-    await userEvent.click(await screen.findByText('Hướng dẫn quy trình đối soát'));
-    expect(screen.getByRole('region', { name: 'Sơ đồ quy trình đối chiếu 4 bước' })).toBeVisible();
-    expect(screen.getByRole('button', { name: /Lập lô và chuẩn bị nguồn/ })).toBeVisible();
-    expect(screen.getByRole('button', { name: /Kho xuất định lượng ngày/ })).toBeVisible();
-    expect(screen.getByRole('button', { name: /Đối soát và chốt sổ/ })).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: /Phiếu nấu theo ca/ }));
-    expect(router.state.location.pathname).toBe('/chef');
-    expect(router.state.location.search).toBe('?view=mrx-cooking');
-    await act(async () => { await router.navigate('/'); });
     await userEvent.click(await screen.findByRole('button', { name: 'Lập lô đối soát mới' }));
     expect(router.state.location.pathname).toBe('/weekly-menu');
     expect(router.state.location.search).toBe('?view=mrx-batch&action=import');
@@ -261,11 +248,6 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(router.state.location.search).toBe('?view=mrx-batch');
     expect(screen.getByRole('textbox', { name: 'Tuần MRX bắt đầu' })).toHaveValue('19/10/2026');
-    await act(async () => { await router.navigate('/'); });
-    await userEvent.click(await screen.findByText('Hướng dẫn quy trình đối soát'));
-    await userEvent.click(await screen.findByRole('button', { name: /Lập lô và chuẩn bị nguồn/ }));
-    expect(router.state.location.search).toBe('?view=mrx-batch');
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows a failed summary read with retry instead of invented empty counts', async () => {
@@ -276,6 +258,7 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
     expect((await screen.findByText('Đổi nguồn chờ duyệt')).parentElement).toHaveTextContent('3');
     expect(getSummary).toHaveBeenCalledTimes(2);
+    expect(mrxApi.getBatchPage).toHaveBeenCalledTimes(1);
   });
 
   it('hides the empty work queue without hiding the batch overview', async () => {
@@ -289,12 +272,21 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     expect(screen.queryByText('Không có công việc chờ xử lý theo bộ lọc hiện tại.')).not.toBeInTheDocument();
   });
 
-  it('prioritizes the role queue before the batch register and labels the next task', async () => {
+  it('shows operational metrics before the batch register and keeps the role queue accessible', async () => {
     vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue({ ...summary, items: [{ queueType: 'AWAITING_WAREHOUSE', workObjectId: 'batch-1', title: 'Lô chờ', subtitle: 'Chờ xuất kho', targetUrl: '/reconciliation?batchId=batch-1', createdAt: '2026-10-19T00:00:00Z', ownerRole: 'MANAGER', actionKind: 'OWN_ACTION' }] });
     renderDashboard();
     const batchSection = await screen.findByRole('region', { name: 'Danh sách lô theo bộ lọc' });
     const queueSection = await screen.findByRole('region', { name: 'Công việc theo vai trò' });
-    expect(queueSection.compareDocumentPosition(batchSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(queueSection).getByRole('button', { name: 'Mở phiếu xuất ngày' })).toBeVisible();
+    const metrics = screen.getByText('Đổi nguồn chờ duyệt');
+    expect(metrics.compareDocumentPosition(batchSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(batchSection.compareDocumentPosition(queueSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const table = within(queueSection).getByRole('table');
+    expect(within(table).getAllByRole('columnheader').map(cell => cell.textContent)).toEqual([
+      'Công việc', 'Phạm vi', 'Phụ trách', 'Thao tác',
+    ]);
+    const row = within(table).getByRole('row', { name: /Lô chờ/ });
+    expect(within(row).getByRole('cell', { name: 'Chờ xuất kho' })).toBeVisible();
+    expect(within(row).getByRole('cell', { name: 'Quản lý' })).toBeVisible();
+    expect(within(row).getByRole('button', { name: 'Mở phiếu xuất ngày' })).toBeVisible();
   });
 });

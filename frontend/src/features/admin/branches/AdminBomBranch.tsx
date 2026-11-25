@@ -182,32 +182,126 @@ export function AdminBomBranch() {
   const missingCount = report?.missingBomDishes ?? dishes.filter((d) => !d.hasBom).length;
   const totalBomLines = report?.totalBomLines ?? dishes.reduce((sum, d) => sum + d.bomLineCount, 0);
 
+  const scopeControls = (
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+      <div className="w-44 max-w-full shrink-0">
+        <Select id="bom-overview-tier" aria-label="Lọc mốc giá BOM" className="text-xs"
+          value={selectedTier ?? ''} disabled={tiersLoading || Boolean(tiersError) || exportPending}
+          onChange={event => setFilter('bomPriceTier', event.target.value)}
+          options={[{ value: '', label: 'Tất cả mốc giá' }, ...tiers.map(tier => ({ value: String(tier), label: `${tier.toLocaleString('vi-VN')} ₫` }))]} />
+      </div>
+      {mrxShared && <div className="flex flex-wrap items-center gap-2 text-xs">
+        <label htmlFor="bom-inspection-date">Ngày xét BOM</label>
+        <VietnameseDateInput id="bom-inspection-date" value={inspectionDate} onChange={setInspectionDate}
+          onValidationChange={setInspectionDateError} error={!inspectionDateReady} disabled={exportPending} required />
+      </div>}
+    </div>
+  );
+  const statusControls = (
+    <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Lọc theo trạng thái BOM">
+      <button
+        type="button"
+        aria-pressed={statusFilter === 'ALL'}
+        onClick={() => setStatusFilter('ALL')}
+        className={`px-3 py-1 rounded border text-xs font-semibold transition-colors cursor-pointer ${
+          statusFilter === 'ALL'
+            ? 'bg-slate-900 border-slate-900 text-white'
+            : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+        }`}
+      >
+        Tất cả ({report ? totalCount : '—'})
+      </button>
+      <button
+        type="button"
+        aria-pressed={statusFilter === 'MISSING'}
+        onClick={() => setStatusFilter('MISSING')}
+        className={`px-3 py-1 rounded border text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+          statusFilter === 'MISSING'
+            ? 'bg-amber-600 border-amber-600 text-white'
+            : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
+        }`}
+      >
+        <AlertTriangle size={12} aria-hidden="true" />
+        <span>Món thiếu BOM ({report ? missingCount : '—'})</span>
+      </button>
+      <button
+        type="button"
+        aria-pressed={statusFilter === 'COMPLETE'}
+        onClick={() => setStatusFilter('COMPLETE')}
+        className={`px-3 py-1 rounded border text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+          statusFilter === 'COMPLETE'
+            ? 'bg-emerald-700 border-emerald-700 text-white'
+            : 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+        }`}
+      >
+        <CheckCircle2 size={12} aria-hidden="true" />
+        <span>Đã đủ định mức ({report ? completeCount : '—'})</span>
+      </button>
+    </div>
+  );
+  const actions = (
+    <div className={mrxShared ? "flex flex-wrap items-center gap-2 xl:ms-auto" : "flex flex-wrap items-center gap-2"}>
+      {mrxShared && <Button
+        variant="outline" size="sm"
+        disabled={selectedTier === undefined || !tierValid || !inspectionDateReady || tiersLoading || Boolean(tiersError) || isBomBusy || Boolean(error) || exportPending}
+        title={selectedTier === undefined ? 'Chọn mốc giá để xuất toàn bộ BOM' : undefined}
+        onClick={() => void exportAll()}
+      >
+        <Download size={14} aria-hidden="true" />
+        {exportPending ? 'Đang xuất…' : `Xuất toàn bộ BOM${tierLabel}`}
+      </Button>}
+      <ActionGuard capabilityId="CAT.BOM.IMPORT" roles={CATALOG_WRITE_ROLES}>
+        <Button
+          variant="default"
+          size="sm"
+          disabled={!inspectionDateReady || isBomBusy}
+          onClick={() => setIsBatchImportOpen(true)}
+          className="h-8 px-2.5 text-xs flex items-center gap-1.5 bg-slate-900 text-white hover:bg-slate-800"
+        >
+          <Upload size={13} aria-hidden="true" />
+          <span>Nhập BOM Excel</span>
+        </Button>
+      </ActionGuard>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => void loadData()}
+        disabled={isLoading || isFetching}
+        className="h-8 px-2.5 text-xs flex items-center gap-1"
+      >
+        <RefreshCw size={13} className={isLoading || isFetching ? 'animate-spin' : ''} aria-hidden="true" />
+        <span>Làm mới</span>
+      </Button>
+    </div>
+  );
+
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-white">
-      {/* Zone 2: Telemetry Subbar with 4 KPI items */}
-      <div className="min-h-11 px-4 py-1.5 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-500">{isPreviousReport ? 'Kết quả trước:' : 'Độ phủ BOM:'}</span>
-          <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-            <Utensils size={14} className="text-slate-500" aria-hidden="true" />
-            <strong className="font-mono">{report ? totalCount : '—'}</strong> món ăn
-          </span>
-          <span className="text-slate-300">·</span>
-          <span className="font-semibold text-emerald-700 flex items-center gap-1">
-            <CheckCircle2 size={13} aria-hidden="true" />
-            <strong className="font-mono">{report ? completeCount : '—'}</strong> món hoàn tất
-          </span>
-          <span className="text-slate-300">·</span>
-          <span className="font-semibold text-amber-700 flex items-center gap-1">
-            <AlertTriangle size={13} aria-hidden="true" />
-            <strong className="font-mono">{report ? missingCount : '—'}</strong> món thiếu BOM
-          </span>
-        </div>
+      {!mrxShared && (
+        <div className="min-h-11 px-4 py-1.5 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-slate-500">{isPreviousReport ? 'Kết quả trước:' : 'Độ phủ BOM:'}</span>
+            <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+              <Utensils size={14} className="text-slate-500" aria-hidden="true" />
+              <strong className="font-mono">{report ? totalCount : '—'}</strong> món ăn
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="font-semibold text-emerald-700 flex items-center gap-1">
+              <CheckCircle2 size={13} aria-hidden="true" />
+              <strong className="font-mono">{report ? completeCount : '—'}</strong> món hoàn tất
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="font-semibold text-amber-700 flex items-center gap-1">
+              <AlertTriangle size={13} aria-hidden="true" />
+              <strong className="font-mono">{report ? missingCount : '—'}</strong> món thiếu BOM
+            </span>
+          </div>
 
-        <div className="text-xs text-slate-500 font-mono">
-          Tổng cộng <strong>{report ? totalBomLines : '—'}</strong> {mrxShared ? 'dòng BOM dùng chung có hiệu lực' : 'dòng định mức đang áp dụng'}
+          <div className="text-xs text-slate-500 font-mono">
+            Tổng cộng <strong>{report ? totalBomLines : '—'}</strong> dòng định mức đang áp dụng
+          </div>
         </div>
-      </div>
+      )}
 
       {tiersError && <InlineBanner variant="error" actionLabel="Tải lại mốc giá" onAction={() => void retryTiers()}>{tiersError.message}</InlineBanner>}
       {exportError && <InlineBanner variant="error" onClose={() => setExportError(null)}>{exportError}</InlineBanner>}
@@ -215,95 +309,19 @@ export function AdminBomBranch() {
       <LocalFindBar label="Tìm kiếm món ăn" value={searchQuery} onChange={setSearchQuery}
         matched={report ? filteredDishes.length : undefined} total={report ? dishes.length : undefined}
         clearLabel="Xóa tìm kiếm BOM" scope="Trong báo cáo BOM đã tải; không đổi phạm vi nhập BOM."
-        searchTrailing={
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="w-44 shrink-0">
-            <Select id="bom-overview-tier" aria-label="Lọc mốc giá BOM" className="text-xs"
-              value={selectedTier ?? ''} disabled={tiersLoading || Boolean(tiersError) || exportPending}
-              onChange={event => setFilter('bomPriceTier', event.target.value)}
-              options={[{ value: '', label: 'Tất cả mốc giá' }, ...tiers.map(tier => ({ value: String(tier), label: `${tier.toLocaleString('vi-VN')} ₫` }))]} />
-            </div>
-            {mrxShared && <div className="flex flex-wrap items-center gap-2 text-xs">
-              <label htmlFor="bom-inspection-date">Ngày xét BOM</label>
-              <VietnameseDateInput id="bom-inspection-date" value={inspectionDate} onChange={setInspectionDate}
-                onValidationChange={setInspectionDateError} error={!inspectionDateReady} disabled={exportPending} required />
-            </div>}
-          </div>
-        }>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-        <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Lọc theo trạng thái BOM">
-          <button
-            type="button"
-            onClick={() => setStatusFilter('ALL')}
-            className={`px-3 py-1 rounded border text-xs font-semibold transition-colors cursor-pointer ${
-              statusFilter === 'ALL'
-                ? 'bg-slate-900 border-slate-900 text-white'
-                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            Tất cả ({report ? totalCount : '—'})
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('MISSING')}
-            className={`px-3 py-1 rounded border text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
-              statusFilter === 'MISSING'
-                ? 'bg-amber-600 border-amber-600 text-white'
-                : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
-            }`}
-          >
-            <AlertTriangle size={12} aria-hidden="true" />
-            <span>Món thiếu BOM ({report ? missingCount : '—'})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter('COMPLETE')}
-            className={`px-3 py-1 rounded border text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
-              statusFilter === 'COMPLETE'
-                ? 'bg-emerald-700 border-emerald-700 text-white'
-                : 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
-            }`}
-          >
-            <CheckCircle2 size={12} aria-hidden="true" />
-            <span>Đã đủ định mức ({report ? completeCount : '—'})</span>
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {mrxShared && <Button
-            variant="outline" size="sm"
-            disabled={selectedTier === undefined || !tierValid || !inspectionDateReady || tiersLoading || Boolean(tiersError) || isBomBusy || Boolean(error) || exportPending}
-            title={selectedTier === undefined ? 'Chọn mốc giá để xuất toàn bộ BOM' : undefined}
-            onClick={() => void exportAll()}
-          >
-            <Download size={14} aria-hidden="true" />
-            {exportPending ? 'Đang xuất…' : `Xuất toàn bộ BOM${tierLabel}`}
-          </Button>}
-          <ActionGuard capabilityId="CAT.BOM.IMPORT" roles={CATALOG_WRITE_ROLES}>
-          <Button
-            variant="default"
-            size="sm"
-            disabled={!inspectionDateReady || isBomBusy}
-            onClick={() => setIsBatchImportOpen(true)}
-            className="h-8 px-2.5 text-xs flex items-center gap-1.5 bg-slate-900 text-white hover:bg-slate-800"
-          >
-            <Upload size={13} aria-hidden="true" />
-            <span>Nhập BOM Excel</span>
-          </Button>
-          </ActionGuard>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void loadData()}
-            disabled={isLoading || isFetching}
-            className="h-8 px-2.5 text-xs flex items-center gap-1"
-          >
-            <RefreshCw size={13} className={isLoading || isFetching ? 'animate-spin' : ''} aria-hidden="true" />
-            <span>Làm mới</span>
-          </Button>
-        </div>
-        </div>
+        searchTrailing={mrxShared ? undefined : scopeControls}>
+        {mrxShared ? scopeControls : <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {statusControls}
+          {actions}
+        </div>}
       </LocalFindBar>
+      {mrxShared && (
+        <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate-200 bg-slate-50 px-4 py-2">
+          {statusControls}
+          <span className="text-xs text-slate-600">{isPreviousReport && 'Kết quả trước · '}{report ? totalBomLines : '—'} dòng BOM dùng chung có hiệu lực</span>
+          {actions}
+        </div>
+      )}
 
       {/* Main DataGrid */}
       <div className="flex-1 min-h-0 flex flex-col">
