@@ -11,11 +11,12 @@ export function AdminDataPage() {
   const { user, operationalMode } = useAuth();
 
   if (view === 'bom') {
+    const isMrx = operationalMode === 'MATERIAL_RECONCILIATION';
     return (
       <WorkspaceFrame.Root className="select-text">
         <WorkspaceHeader
           title="Quản trị dữ liệu & Danh mục"
-          breadcrumb="Hệ thống · Quản trị dữ liệu · Định mức BOM"
+          breadcrumb={isMrx ? undefined : "Hệ thống · Quản trị dữ liệu · Định mức BOM"}
         />
         <AdminBomBranch />
       </WorkspaceFrame.Root>

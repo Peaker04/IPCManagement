@@ -1,4 +1,4 @@
-import { Fragment, Suspense, useState, useEffect, startTransition, type MouseEvent, type ReactNode } from 'react';
+import { Suspense, useState, useEffect, startTransition, type MouseEvent, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   CalendarDays,
@@ -32,7 +32,6 @@ interface NavLeafItem {
   to: string;
   label: string;
   exact?: boolean;
-  groupLabel?: string;
   key?: string;
 }
 
@@ -59,7 +58,7 @@ interface AppShellNavigationRoute {
   path: string;
   title: string;
   navigationLabel?: string;
-  leaves?: Array<{ to: string; label: string; groupLabel?: string }>;
+  leaves?: Array<{ to: string; label: string }>;
 }
 
 function toNavigationMenu(routes: AppShellNavigationRoute[], pathname: string, search: string, scope: WorkspaceSessionScope): NavigationEntry[] {
@@ -374,27 +373,23 @@ export function AppShell({ children, navigation, homePath = '/', loadingFallback
                 {/* Vertical guide line for nested tree children (Rule N6) */}
                 {isParentExpanded && (
                   <div className="border-l-2 border-slate-200 ml-5 pl-2.5 space-y-0.5 my-1">
-                    {entry.children.map((child, index) => {
+                    {entry.children.map((child) => {
                       const isActive = isCurrentSubview(child.to);
                       return (
-                        <Fragment key={child.key ?? child.to}>
-                          {child.groupLabel && child.groupLabel !== entry.children[index - 1]?.groupLabel && (
-                            <p className="px-2.5 pt-2 text-xs font-semibold text-slate-600">{child.groupLabel}</p>
+                        <NavLink
+                          key={child.key ?? child.to}
+                          to={child.to}
+                          aria-current={isActive ? 'page' : false}
+                          onClick={(event) => handleNavigation(event, child.to)}
+                          className={clsx(
+                            'block rounded px-2.5 py-1.5 text-xs font-medium transition-colors',
+                            isActive
+                              ? 'bg-slate-900 text-white font-semibold shadow-2xs'
+                              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                           )}
-                          <NavLink
-                            to={child.to}
-                            aria-current={isActive ? 'page' : false}
-                            onClick={(event) => handleNavigation(event, child.to)}
-                            className={clsx(
-                              'block rounded px-2.5 py-1.5 text-xs font-medium transition-colors',
-                              isActive
-                                ? 'bg-slate-900 text-white font-semibold shadow-2xs'
-                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                            )}
-                          >
-                            <span className="truncate">{child.label}</span>
-                          </NavLink>
-                        </Fragment>
+                        >
+                          <span className="truncate">{child.label}</span>
+                        </NavLink>
                       );
                     })}
                   </div>

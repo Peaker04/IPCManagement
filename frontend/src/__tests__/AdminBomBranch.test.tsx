@@ -57,14 +57,16 @@ describe('AdminBomBranch Sub-tree Branch Tests (Rule TA-2 & TA-4)', () => {
   let coverage = mockCoverageReport;
   let coverageError: Error | null = null;
   let tiers: number[];
+  let mode: 'DEFAULT' | 'MATERIAL_RECONCILIATION';
   beforeEach(() => {
     vi.restoreAllMocks();
     coverage = mockCoverageReport;
     coverageError = null;
     tiers = [25000, 30000, 34000];
+    mode = 'DEFAULT';
     vi.spyOn(apiTransport, 'apiClient').mockImplementation(async endpoint => {
       const url = new URL(endpoint, 'http://localhost');
-      if (url.pathname === '/system-operation-mode') return { mode: 'DEFAULT', label: 'Mặc định', version: 1, updatedAt: '2026-11-02T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } };
+      if (url.pathname === '/system-operation-mode') return { mode, label: mode === 'DEFAULT' ? 'Mặc định' : 'Đối soát MRX', version: 1, updatedAt: '2026-11-02T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } };
       if (url.pathname === '/Dishes/bom-price-tiers') return tiers;
       if (url.pathname === '/Dishes/bom-coverage') {
         if (coverageError) throw coverageError;
@@ -83,7 +85,9 @@ describe('AdminBomBranch Sub-tree Branch Tests (Rule TA-2 & TA-4)', () => {
     });
   });
 
-  it('renders 4 KPI telemetry items and full dish list', async () => {
+  it('shows BOM totals once alongside the filters and full dish list', async () => {
+    mode = 'MATERIAL_RECONCILIATION';
+    localStorage.setItem('ipc_v3_mode', mode);
     render(<MemoryRouter><AdminBomBranch /></MemoryRouter>);
 
     await waitFor(() => {
@@ -92,10 +96,11 @@ describe('AdminBomBranch Sub-tree Branch Tests (Rule TA-2 & TA-4)', () => {
       expect(screen.getByText('Gà hấp lá chanh')).toBeInTheDocument();
     });
 
-    // Check KPI counts
-    expect(screen.getByText('món ăn')).toBeInTheDocument();
-    expect(screen.getByText('món hoàn tất')).toBeInTheDocument();
-    expect(screen.getByText('món thiếu BOM')).toBeInTheDocument();
+    expect(screen.queryByText('Độ phủ BOM:')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tất cả (3)' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Đã đủ định mức (2)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Món thiếu BOM (1)' })).toBeInTheDocument();
+    expect(screen.getByText(/dòng BOM dùng chung có hiệu lực/)).toBeVisible();
   });
 
   it('offers tier recovery without presenting a missing tier list as an empty dish search', async () => {

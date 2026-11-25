@@ -255,6 +255,36 @@
   min-width: 190px;
 }
 [data-slot="workspace-frame"] { container-type: inline-size; }
+.mrx-dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  background: var(--border-subtle);
+  overflow: hidden;
+}
+.mrx-dashboard-metrics > div { background: var(--bg-surface); }
+.mrx-dashboard-metrics:has(> :only-child) { grid-template-columns: 1fr; width: fit-content; }
+@container (max-width: 480px) {
+  .mrx-dashboard-header { grid-template-columns: minmax(0, 1fr); }
+  .mrx-dashboard-header [data-slot="header-command-region"] {
+    grid-column: 1;
+    grid-row: 3;
+    margin-inline-start: 0;
+    padding-inline-start: 0;
+  }
+  .mrx-dashboard-header [data-slot="header-scope"] { grid-column: 1; }
+  .mrx-dashboard-queue-grid {
+    --mrx-queue-work-width: 112px;
+    --mrx-queue-scope-width: auto;
+  }
+}
+
+@container (min-width: 660px) {
+  .mrx-dashboard-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
 .mrx-scope-header {
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto auto;

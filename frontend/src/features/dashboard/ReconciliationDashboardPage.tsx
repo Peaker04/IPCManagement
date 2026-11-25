@@ -23,13 +23,6 @@ import { HistoricalScopeFilter } from '../../components/workbench/HistoricalScop
 import { useHistoricalScope } from '../../hooks/useHistoricalScope';
 import type { CustomerOption } from '../../types';
 
-const PIPELINE_STEPS = [
-  { step: '01', title: 'Lập lô và chuẩn bị nguồn', desc: 'Khóa định mức BOM và chốt số suất tuần', route: '/weekly-menu?view=mrx-batch' },
-  { step: '02', title: 'Kho xuất định lượng ngày', desc: 'Thực xuất nguyên liệu theo ngày phục vụ', route: '/warehouse?view=mrx-daily' },
-  { step: '03', title: 'Phiếu nấu theo ca', desc: 'Định lượng đóng băng theo ca cho Bếp trưởng', route: '/chef?view=mrx-cooking' },
-  { step: '04', title: 'Đối soát và chốt sổ', desc: 'Rà soát chênh lệch, xử lý và chốt lô', route: '/reconciliation' },
-] as const;
-
 const QUEUE_ACTION_LABELS: Record<string, string> = {
   PENDING_SOURCE_CHANGE: 'Xem yêu cầu đổi nguồn',
   AWAITING_WAREHOUSE: 'Mở phiếu xuất ngày',
@@ -49,7 +42,7 @@ export function ReconciliationDashboardPage() {
   const { weekFrom, weekTo } = historicalScope.range;
   const page = Math.max(1, Math.trunc(Number(searchParams.get('page')) || 1));
   const queuePage = Math.max(1, Math.trunc(Number(searchParams.get('queuePage')) || 1));
-  const updateFilters = useCallback((nextValues: { customerId?: string; period?: string; page?: number }) => {
+  const updateFilters = useCallback((nextValues: { customerId?: string; page?: number }) => {
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       if (nextValues.customerId !== undefined) {
@@ -57,11 +50,6 @@ export function ReconciliationDashboardPage() {
         else next.delete('customerId');
         next.delete('page');
         next.delete('queuePage');
-      }
-      if (nextValues.period !== undefined) {
-        if (nextValues.period && nextValues.period !== 'ALL') next.set('period', nextValues.period);
-        else next.delete('period');
-        next.delete('page');
       }
       if (nextValues.page !== undefined) {
         if (nextValues.page > 1) next.set('page', String(nextValues.page));
@@ -100,11 +88,11 @@ export function ReconciliationDashboardPage() {
   const customers = data?.customers ?? getCachedArray<CustomerOption>(customersKey) ?? [];
 
   const refreshing = isTransitioning || (current?.refreshing ?? Boolean(exactData));
-  const read = useCallback(async (forceSummary: boolean, signal: AbortSignal): Promise<DashboardData> => {
+  const read = useCallback(async (force: boolean, signal: AbortSignal): Promise<DashboardData> => {
     if (historicalScope.error) throw new Error(historicalScope.error);
     const summaryKey = `mrx_dashboard_summary_${scope}_${queuePage}`;
     const cachedSummary = serverStateCache.get<MrxOperationalSummary>(summaryKey);
-    const summaryRequest = !forceSummary && cachedSummary && !cachedSummary.isStale
+    const summaryRequest = !force && cachedSummary && !cachedSummary.isStale
       ? Promise.resolve(cachedSummary.data)
       : mrxApi.getOperationalSummary(queuePage > 1 ? { ...filters, queuePage } : filters, signal).then(summary => {
         signal.throwIfAborted();
@@ -113,16 +101,21 @@ export function ReconciliationDashboardPage() {
       });
     const batchKey = `mrx_dashboard_batches_${scope}_${page}`;
     const cachedBatches = serverStateCache.get<MrxBatchPage>(batchKey);
-    const [summary, batches] = await Promise.all([
+    const [summary, batches] = await Promise.allSettled([
       summaryRequest,
-      !forceSummary && cachedBatches && !cachedBatches.isStale ? Promise.resolve(cachedBatches.data)
+      !force && cachedBatches && !cachedBatches.isStale ? Promise.resolve(cachedBatches.data)
         : mrxApi.getBatchPage({ ...filters, pageNumber: page, pageSize: 20 }, signal).then(batches => {
           signal.throwIfAborted();
           serverStateCache.set(batchKey, batches);
           return batches;
         }),
     ]);
-    return { summary, customers: summary.customerOptions, batches };
+    signal.throwIfAborted();
+    if (summary.status === 'rejected') serverStateCache.delete(summaryKey);
+    if (batches.status === 'rejected') serverStateCache.delete(batchKey);
+    if (summary.status === 'rejected') throw summary.reason;
+    if (batches.status === 'rejected') throw batches.reason;
+    return { summary: summary.value, customers: summary.value.customerOptions, batches: batches.value };
   }, [filters, page, scope, historicalScope.error, queuePage]);
 
   const fetchDashboard = useCallback(async (force: boolean, retained: DashboardData | null) => {
@@ -155,6 +148,11 @@ export function ReconciliationDashboardPage() {
     return fetchDashboard(true, exactData);
   }, [cacheKey, exactData, fetchDashboard]);
 
+  const retry = () => {
+    setState({ key: cacheKey, data: exactData, error: null, refreshing: true });
+    return fetchDashboard(false, exactData);
+  };
+
   useEffect(() => {
     if (operationalMode !== 'MATERIAL_RECONCILIATION') return;
     return subscribeMrxReads(() => { void refresh(); });
@@ -176,7 +174,7 @@ export function ReconciliationDashboardPage() {
   }, [canOpen]);
   const batchColumns = useMemo<ColumnDef<MrxBatchSummary>[]>(() => [
     { id: 'batchId', header: 'Mã lô đối soát', width: '20%', minWidth: '150px', cell: (row) => <IdentifierText value={row.batchId} displayValue={row.batchId.length > 12 ? row.batchId.slice(0, 8) : row.batchId} /> },
-    { id: 'customer', header: 'Khách hàng', width: '24%', minWidth: '160px', cell: (row) => <span className="font-semibold text-slate-900">{row.customerCode ? `${row.customerCode} · ` : ''}{row.customerName || 'Chưa xác định khách hàng'}</span> },
+    { id: 'customer', header: 'Khách hàng', width: '24%', minWidth: '160px', cell: (row) => <span className="block whitespace-normal wrap-anywhere font-semibold text-slate-900">{row.customerCode ? `${row.customerCode} · ` : ''}{row.customerName || 'Chưa xác định khách hàng'}</span> },
     { id: 'week', header: 'Tuần bắt đầu', width: '18%', minWidth: '120px', cell: (row) => <span className="font-mono text-xs">{toVietnameseDate(row.weekStartDate)}</span> },
     { id: 'status', header: 'Trạng thái', width: '18%', minWidth: '130px', align: 'center', cell: (row) => <Badge variant={row.status === 'COMPLETED' ? 'success' : row.status === 'TRANSFERRED' ? 'info' : 'warning'}>{MRX_STATUS_LABELS[row.status] ?? 'Trạng thái chưa nhận diện'}</Badge> },
     { id: 'action', header: 'Thao tác', width: '20%', minWidth: '140px', align: 'right', cell: (row) => {
@@ -187,6 +185,23 @@ export function ReconciliationDashboardPage() {
       }}>{target.label}<ArrowRight size={12} aria-hidden="true" /></Button> : 'Chỉ xem thông tin';
     } },
   ], [batchTarget, workActionsDisabled, navigate]);
+  const queueColumns = useMemo<ColumnDef<MrxOperationalSummary['items'][number]>[]>(() => [
+    { id: 'work', header: 'Công việc', width: 'var(--mrx-queue-work-width, 32%)', minWidth: 'var(--mrx-queue-work-width, 150px)', cell: (item) => (
+      <span className="block whitespace-normal wrap-anywhere font-medium text-slate-900">{item.title}</span>
+    ) },
+    { id: 'scope', header: 'Phạm vi', width: 'var(--mrx-queue-scope-width, 26%)', minWidth: '145px', cell: (item) => (
+      <span className="block whitespace-normal wrap-anywhere">{item.subtitle}</span>
+    ) },
+    { id: 'owner', header: 'Phụ trách', width: '18%', minWidth: '105px', cell: (item) => (
+      <span>{item.ownerRole === 'WAREHOUSE' ? 'Kho' : 'Quản lý'}{item.actionKind === 'WAITING' ? ' đang xử lý' : ''}</span>
+    ) },
+    { id: 'action', header: 'Thao tác', width: '24%', minWidth: '170px', align: 'right', cell: (item) => {
+      const target = item.targetUrl;
+      if (!target || !canOpen(target)) return item.actionKind === 'READ_ONLY' ? 'Chỉ xem lịch sử' : null;
+      const label = item.actionKind === 'READ_ONLY' ? 'Xem lịch sử' : QUEUE_ACTION_LABELS[item.queueType] ?? 'Xem hồ sơ';
+      return <Button variant="outline" size="xs" disabled={workActionsDisabled} onClick={() => navigate(target)}>{label}</Button>;
+    } },
+  ], [canOpen, navigate, workActionsDisabled]);
   const metrics = data ? [
     { label: 'Đổi nguồn chờ duyệt', value: data.summary.pendingSourceChangesCount, color: 'text-slate-900' },
     { label: 'Lô chờ Kho xuất', value: data.summary.awaitingWarehouseBatchesCount, color: 'text-amber-700' },
@@ -198,23 +213,11 @@ export function ReconciliationDashboardPage() {
   const hasDecisionRole = hasRole(['Admin', 'Manager', 'Quản trị', 'Quản lý']);
   const hasIssueRole = hasRole(['WarehouseManager', 'Warehouse Manager', 'WarehouseStaff', 'Warehouse Staff', 'Thủ kho']);
   const pendingMetricCount = hasDecisionRole ? 4 : hasIssueRole || hasRole(['Coordinator', 'Điều phối']) ? 1 : 0;
-  const pipeline = <details className="rounded border border-slate-200 bg-white px-4 py-3">
-    <summary className="cursor-pointer text-sm font-semibold text-slate-900">Hướng dẫn quy trình đối soát</summary>
-    <section aria-label="Sơ đồ quy trình đối chiếu 4 bước" className="mt-3">
-      <ol className="grid list-decimal gap-4 pl-5 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
-        {PIPELINE_STEPS.map(step => <li key={step.step}>
-          {canOpen(step.route)
-            ? <Button variant="link" className="h-auto whitespace-normal p-0 text-left" onClick={() => navigate(step.route)}>{step.title}</Button>
-            : <strong>{step.title}</strong>}
-          <p className="mt-1 text-xs text-slate-600">{step.desc}</p>
-        </li>)}
-      </ol>
-    </section>
-  </details>;
+  const showQueue = Boolean(data && (data.summary.items.length > 0 || (data.summary.queueTotalCount ?? 0) > 0));
 
   return (
     <WorkspaceFrame.Root className="select-text">
-      <WorkspaceHeader responsive className="[&_h1]:text-lg" title="Bàn điều hành đối soát"
+      <WorkspaceHeader responsive className="mrx-dashboard-header [&_h1]:text-lg" title="Bàn điều hành đối soát"
         contextSelectors={<>
           <div className="w-64 max-w-full"><Select aria-label="Lọc theo khách hàng" options={[{ value: 'ALL', label: 'Tất cả khách hàng' }, ...customers.map((customer) => ({ value: customer.customerId, label: `${customer.customerCode} · ${customer.customerName}` }))]} value={selectedCustomerId} onChange={(event) => updateFilters({ customerId: event.target.value })} className="h-9 w-full" /></div>
           <HistoricalScopeFilter />
@@ -224,49 +227,45 @@ export function ReconciliationDashboardPage() {
           {canPrepareSource && <Button aria-label="Lập lô đối soát mới" onClick={() => navigate(`/weekly-menu?view=mrx-batch&action=import${selectedCustomerId !== 'ALL' ? `&customerId=${encodeURIComponent(selectedCustomerId)}` : ''}`)}>Lập lô mới</Button>}
         </WorkspaceHeader.Actions>} />
       <WorkspaceFrame.Body className="mrx-dashboard-scroll overflow-y-auto p-4 sm:p-5">
-        <div className="space-y-5">
-          <StateBoundary isLoading={!data && !current?.error} hasExistingData={Boolean(data)} isFetching={refreshing} isPreviousData={isTransitioning} error={current?.error} onRetry={() => void refresh()} isEmpty={false}
+        <div className="space-y-3">
+          {(pendingMetricCount > 0 || metrics.length > 0) && <StateBoundary scope="widget" isLoading={!data && !current?.error} hasExistingData={Boolean(data)} isPreviousData={isTransitioning} isEmpty={false}
+            customSkeleton={<div role="status" aria-label="Đang tải chỉ số điều hành" className="mrx-dashboard-metrics">
+              {Array.from({ length: pendingMetricCount }, (_, index) => <div key={index} aria-hidden="true" className="min-w-0 px-3 py-2"><div className="h-4 w-3/4 rounded bg-slate-200" /><div className="mt-1 h-5 w-12 rounded bg-slate-200" /></div>)}
+            </div>}
+          >
+            {metrics.length > 0 && <dl aria-label="Chỉ số điều hành đối soát" className="mrx-dashboard-metrics">
+              {metrics.map((metric) => <div key={metric.label} className="min-w-0 px-3 py-2"><dt className="text-xs font-medium text-slate-500">{metric.label}</dt><dd className={`text-lg font-semibold tabular-nums ${metric.color}`}><Num value={metric.value} /></dd></div>)}
+            </dl>}
+          </StateBoundary>}
+          <StateBoundary isLoading={!data && !current?.error} hasExistingData={Boolean(data)} isFetching={refreshing} isPreviousData={isTransitioning} error={current?.error} onRetry={() => void retry()} isEmpty={false}
             customSkeleton={<WorkbenchSkeleton geometry={{ kind: 'table', columns: 5, rows: 4, columnWidths: ['20%', '24%', '18%', '18%', '20%'] }} />}
           >
-          {data && <div className="space-y-5">
-            {(data.summary.items.length > 0 || (data.summary.queueTotalCount ?? 0) > 0) && <section aria-label="Công việc theo vai trò" className="space-y-3">
-              <h2 className="text-base font-semibold text-slate-900">Công việc theo vai trò</h2>
-              <ul className="divide-y divide-slate-100 border-y border-slate-200">
-                {data.summary.items.map((item) => <li key={`${item.queueType}_${item.workObjectId}`} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                  <div><p className="text-sm font-medium text-slate-900">{item.title}</p><p className="mt-1 text-xs text-slate-600">{item.subtitle} · {item.ownerRole === 'WAREHOUSE' ? 'Kho' : 'Quản lý'}{item.actionKind === 'WAITING' ? ' đang xử lý' : item.actionKind === 'READ_ONLY' ? ' · Chỉ xem lịch sử' : ''}</p></div>
-                  {item.targetUrl && canOpen(item.targetUrl) && <Button variant="outline" size="sm" disabled={workActionsDisabled} onClick={() => navigate(item.targetUrl!)}>{item.actionKind === 'READ_ONLY' ? 'Xem lịch sử' : QUEUE_ACTION_LABELS[item.queueType] ?? 'Xem hồ sơ'}</Button>}
-                </li>)}
-              </ul>
-              <PaginationBar label="Phân trang công việc" placement="toolbar" page={data.summary.queuePageNumber ?? queuePage}
-                pageSize={data.summary.queuePageSize ?? 10} totalCount={data.summary.queueTotalCount ?? data.summary.items.length}
-                totalPages={data.summary.queueTotalPages ?? 1} hasPrev={queuePage > 1} hasNext={queuePage < (data.summary.queueTotalPages ?? 1)} pending={refreshing}
-                onPageChange={nextPage => setSearchParams(current => { const next = new URLSearchParams(current); next.set('queuePage', String(nextPage)); return next; })} />
-            </section>}
-            <section aria-label="Danh sách lô theo bộ lọc" className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+          {data && <div className="space-y-3">
+            <section aria-label="Danh sách lô theo bộ lọc" className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 bg-slate-50">
-                <h2 className="text-base font-semibold text-slate-900">Danh sách lô đối soát theo bộ lọc</h2>
+                <h2 className="text-base font-semibold text-slate-900">Lô đối soát</h2>
                 {isTransitioning && <span role="status" className="text-xs text-slate-600">Đang tải phạm vi mới</span>}
               </div>
-              <div className="min-h-[280px] flex flex-col">
-                <DataGrid data={data.batches.items} columns={batchColumns} minWidth="min-w-[900px]" keyExtractor={(row) => row.batchId} emptyMessage="Không có lô trong phạm vi đã chọn." />
+              <div className="flex max-h-[min(55dvh,32rem)] flex-col">
+                <DataGrid data={data.batches.items} columns={batchColumns} minWidth="min-w-[740px]" scrollLabel="Bảng lô đối soát" keyExtractor={(row) => row.batchId} emptyMessage="Không có lô trong phạm vi đã chọn." />
               </div>
-              <PaginationBar label="Phân trang lô đối soát" page={data.batches.pageNumber} pageSize={20}
+              <PaginationBar label="Phân trang lô đối soát" placement={showQueue ? "toolbar" : "footer"} page={data.batches.pageNumber} pageSize={20}
                 totalCount={data.batches.totalCount} totalPages={data.batches.totalPages}
                 hasPrev={data.batches.hasPrev} hasNext={data.batches.hasNext} pending={refreshing}
                 onPageChange={next => updateFilters({ page: next })} />
             </section>
+            {showQueue && <section aria-label="Công việc theo vai trò" className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+              <h2 className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold text-slate-900">Công việc theo vai trò</h2>
+              <DataGrid data={data.summary.items} columns={queueColumns} className="mrx-dashboard-queue-grid" minWidth="min-w-[720px]"
+                scrollLabel="Bảng công việc theo vai trò" keyExtractor={(item) => `${item.queueType}_${item.workObjectId}`}
+                emptyMessage="Không có công việc trên trang này." />
+              {(data.summary.queueTotalPages ?? 1) > 1 && <PaginationBar label="Phân trang công việc" page={data.summary.queuePageNumber ?? queuePage}
+                pageSize={data.summary.queuePageSize ?? 10} totalCount={data.summary.queueTotalCount ?? data.summary.items.length}
+                totalPages={data.summary.queueTotalPages ?? 1} hasPrev={queuePage > 1} hasNext={queuePage < (data.summary.queueTotalPages ?? 1)} pending={refreshing}
+                onPageChange={nextPage => setSearchParams(current => { const next = new URLSearchParams(current); next.set('queuePage', String(nextPage)); return next; })} />}
+            </section>}
           </div>}
           </StateBoundary>
-          {(pendingMetricCount > 0 || metrics.length > 0) && <StateBoundary scope="widget" isLoading={!data && !current?.error} hasExistingData={Boolean(data)} isPreviousData={isTransitioning} isEmpty={false}
-            customSkeleton={<div role="status" aria-label="Đang tải chỉ số điều hành" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {Array.from({ length: pendingMetricCount }, (_, index) => <div key={index} aria-hidden="true" className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs"><div className="h-4 w-3/4 rounded bg-slate-200" /><div className="mt-1 h-8 w-12 rounded bg-slate-200" /></div>)}
-            </div>}
-          >
-            {metrics.length > 0 && <dl aria-label="Chỉ số điều hành đối soát" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {metrics.map((metric) => <div key={metric.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs"><dt className="text-xs font-medium text-slate-500">{metric.label}</dt><dd className={`mt-1 text-2xl font-bold font-mono tracking-tight tabular-nums ${metric.color}`}><Num value={metric.value} /></dd></div>)}
-            </dl>}
-          </StateBoundary>}
-          {pipeline}
         </div>
       </WorkspaceFrame.Body>
     </WorkspaceFrame.Root>

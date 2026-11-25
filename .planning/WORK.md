@@ -1,5 +1,44 @@
 # Current task — IDLE
 
+2026-11-25. FR-DASH, FR-WH, DOM-MODE-1 và UXR-04. Kiểm tra vì sao bảng Công việc lặp ngày. Ảnh trước dùng fixture lặp ngày. API có một mục chờ Kho cho mỗi lô và mở ngày phục vụ sớm nhất còn nhu cầu dương mà chưa có phiếu. Làm rõ cột Phạm vi bằng mã khách, mã lô rút gọn, số ngày chưa có phiếu và ngày sớm nhất. Đếm lô, lọc ngày và quyền mở phiếu giữ quy tắc hiện hành.
+
+- **PASS** [4 ca Chrome](../.artifacts/mrx-layout-followup/queue-dates-browser.log) trên 320/834/1440/1920 px với lô cùng và khác ngày. [Hồi quy backend](../.artifacts/mrx-layout-followup/queue-dates-final.log) kiểm lô hai ngày, ngày 15 có phiếu thì còn một ngày và mở ngày 17. [Ca đỏ](../.artifacts/mrx-layout-followup/queue-dates-red.log) xác nhận phụ đề cũ thiếu phạm vi. **NEEDS_EVIDENCE** Dữ liệu bản demo và MySQL thật trong lượt này.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Clarify | Phạm vi công việc Kho MRX | Nhãn một ngày khiến người xem hiểu thiếu việc | IPC Debugging, IPC Test Audit, IPC Code Review, TDD | Có, fixture hai ngày kiểm số đếm và URL sau khi có phiếu | Ảnh cũ lặp cả ngày lẫn đích mở | Giữ một dòng mỗi lô và hiện đủ ngữ cảnh để phân biệt |
+
+2026-11-25. FR-DASH, UXR-04, T7/T8 và DOM-MODE-1. Tổng quan MRX trở về bố cục dọc. Dải chỉ số và bảng Lô đối soát nằm trước bảng Công việc theo vai trò. Bảng công việc dùng bốn cột Công việc, Phạm vi, Phụ trách và Thao tác, giữ quyền điều hướng và phân trang riêng.
+
+### Scoped Pre-Code UI Gate Block
+
+- / trong MATERIAL_RECONCILIATION. WorkspaceFrame giữ bảng lô làm vùng chính. Guard route và canNavigate giữ quyền thao tác hiện hành.
+- Loading, empty, error, permission-denied, partial và write-reconciliation. DataGrid, StateBoundary và PaginationBar. D6, D7, T7, T8, M1.2 và N6.
+
+- **PASS** [27 Vitest và contract BOM](../.artifacts/mrx-layout-followup/queue-table-unit.json), [4 Chrome trên bản build](../.artifacts/mrx-layout-followup/queue-table-final.log) ở 320/834/1440/1920. Kiểm thứ tự và chiều rộng hai bảng, bốn cột, cuộn ngang với cột đầu cố định, khả năng bấm nút ở 320 px và đổi trang riêng. Build, lint, kiểm phụ thuộc và diff-check đạt.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Impeccable Layout | Thứ tự và hiển thị hàng đợi MRX | Bố cục cạnh nhau và hàng đợi dạng danh sách | TDD, IPC UI Review, IPC Test Audit, IPC Code Review | Có, ca đỏ xác nhận thiếu bảng, lượt cuối kiểm bản build | Cột cố định che nút ở 320 px trước khi thu gọn | Hai bảng toàn chiều rộng, giữ thao tác theo quyền |
+
+2026-11-25. FR-DASH, FR-CAT, FR-RECON, DOM-MODE-1, UXR-04, N6/N7. Sửa bố cục sau phản hồi có ảnh và đối chiếu các lượt đọc dashboard.
+
+### Scoped Pre-Code UI Gate Block
+
+- / với bảng lô, /admin-data?view=bom với bảng định mức và /reconciliation với các liên kết lá của AppShell.
+- MATERIAL_RECONCILIATION. Guard điều hướng và ActionGuard giữ quyền hiện có. Định mức dùng chung giữ quyền CAT.BOM.UPDATE và CAT.BOM.IMPORT.
+- Loading, empty, error, permission-denied, partial và write-reconciliation. WorkspaceFrame, WorkspaceHeader, LocalFindBar, DataGrid, PaginationBar và AppShell. D6, D7, T7, T8, M1.2 và N6.
+
+- Tổng quan đưa chỉ số lên trên. Màn rộng đặt bảng lô và hàng đợi cạnh nhau, màn hẹp nối theo thứ tự đọc. Bỏ hướng dẫn, giữ quyền và URL cho từng thao tác. Công việc theo lô có mã khách để phân biệt những dòng cùng ngày, tên khách trong bảng được xuống dòng và phân trang hàng đợi không cắt nút.
+- Nhánh BOM MRX gom số tổng, thiếu và đủ vào nút lọc, giữ tổng dòng định mức, phạm vi mốc giá và ngày, tìm kiếm và thao tác theo quyền. Sidebar bỏ nhãn Tra cứu tĩnh và giữ liên kết thật dưới Đối soát nguyên liệu.
+- Retry của dashboard tái sử dụng phần đọc thành công còn mới, giữ Làm mới tải lại cả hai nguồn. Kiểm bản build xác nhận đổi trang hàng đợi chỉ gọi summary. Backend tái dùng lô và tuần đã có theo từng nhóm, bỏ hai lượt đọc lại khi chiếu nhu cầu Kho.
+- **PASS** [79 Vitest và contract BOM](../.artifacts/mrx-layout-followup/frontend-verified.json), [11 backend và Phase 30](../.artifacts/mrx-layout-followup/backend-final.log), [4 ca Chrome build](../.artifacts/mrx-layout-followup/browser-verified.log) ở 320/834/1440/1920. Build, lint, kiểm phụ thuộc và diff-check đạt. Ca đỏ của retry ghi nhận hai lần gọi bảng. Ca đỏ backend phát hiện truy vấn đọc lại và phụ đề thiếu mã khách. Phép đo cuối lọc truy vấn EXISTS của danh sách khách khỏi nhóm truy vấn đọc lại.
+- **NEEDS_EVIDENCE** MySQL và số liệu hiệu năng trên môi trường triển khai. Ca backend dùng SQLite, ca browser dùng fixture HTTP. Rà nguồn thấy kiểm chốt lô còn đọc theo từng ngày có suất phát sinh đã duyệt, chưa đo hoặc thay đổi đường này.
+
+| Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
+| --- | --- | --- | --- | --- | --- | --- |
+| Using Superpowers, Impeccable Operate/Layout/Distill | Bố cục, sidebar và I/O MRX | Chỉ số dưới bảng, hàng đợi đẩy bảng xuống, số liệu BOM lặp và nhãn sidebar giả affordance | IPC Debugging, IPC Codebase Design, IPC UI Review, IPC Test Audit, IPC Code Review | Có, kiểm ảnh và request bản build, kiểm SQL và hợp đồng | Trace dev gồm request bị React StrictMode hủy, probe mobile phải mở drawer | Giữ bảng là vùng chính, bỏ nhãn và hướng dẫn dư, retry đúng nguồn và tái dùng phạm vi backend |
+
 2026-11-25. FR-DASH và DOM-MODE-1. Khi chuẩn bị PR #64, bộ kiểm đối chiếu ngữ nghĩa phát hiện truy vấn tổng quan đọc phiếu theo lô MRX chưa có trong ma trận Phase 30. Đăng ký truy vấn đọc này với ca hiện có chạy 100 lô, kiểm đếm sai lệch, lô có thể chốt, phân trang và số truy vấn.
 
 | Skill | Task type | Baseline missed | Skill added | Was it correct | Noise | Decision impact |
