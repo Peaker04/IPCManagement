@@ -1,5 +1,10 @@
 # Current task — IDLE
 
+### Thiết kế kiểm thử hiệu năng và phục hồi MRX · FR-DASH / FR-MENU / FR-WH / FR-CHEF / FR-RECON / FR-CAT / FR-ADMIN
+
+- **PROPOSED · Spec và plan chờ duyệt thực thi.** Baseline Release trên MySQL clone, 5 vai trò độc lập, ANV/DAV/FU, toàn bộ route MRX ở vòng kiểm nhanh và đo sâu theo thao tác. Ghép đo FE/API/SQL/mạng với đối chiếu dữ liệu, UniKey Windows, phục hồi sau mất phản hồi, tranh ghi và Excel. Plan T0–T6 chốt baseline. T7 ghi sẵn điều kiện duyệt để kiểm spike, stress, soak dài và giám sát. Bộ chạy hiện có cần lane HTTP 5 vai trò/10 phút tách riêng nếu muốn tránh endurance một giờ của Quantitative. Chưa thực thi. [Spec](../docs/superpowers/specs/2026-11-27-mrx-performance-qualification-design.md) · [Plan](../docs/superpowers/plans/2026-11-27-mrx-performance-qualification.md)
+
+
 2026-11-25. FR-DASH, FR-WH, DOM-MODE-1 và UXR-04. Kiểm tra vì sao bảng Công việc lặp ngày. Ảnh trước dùng fixture lặp ngày. API có một mục chờ Kho cho mỗi lô và mở ngày phục vụ sớm nhất còn nhu cầu dương mà chưa có phiếu. Làm rõ cột Phạm vi bằng mã khách, mã lô rút gọn, số ngày chưa có phiếu và ngày sớm nhất. Đếm lô, lọc ngày và quyền mở phiếu giữ quy tắc hiện hành.
 
 - **PASS** [4 ca Chrome](../.artifacts/mrx-layout-followup/queue-dates-browser.log) trên 320/834/1440/1920 px với lô cùng và khác ngày. [Hồi quy backend](../.artifacts/mrx-layout-followup/queue-dates-final.log) kiểm lô hai ngày, ngày 15 có phiếu thì còn một ngày và mở ngày 17. [Ca đỏ](../.artifacts/mrx-layout-followup/queue-dates-red.log) xác nhận phụ đề cũ thiếu phạm vi. **NEEDS_EVIDENCE** Dữ liệu bản demo và MySQL thật trong lượt này.
